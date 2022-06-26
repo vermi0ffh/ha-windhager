@@ -1,0 +1,21 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Dispositif déjà configuré"
+        },
+        "error": {
+            "cannot_connect": "Impossible de se connecter",
+            "invalid_auth": "Erreur d'authentification",
+            "unknown": "Erreur inconnue"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "host": "Hôte",
+                    "password": "Mot de passe",
+                    "username": "Utilisateur"
+                }
+            }
+        }
+    }
+}
