@@ -42,6 +42,9 @@ class WindhagerHttpClient:
             for device in json_devices:
                 device_id = "/1/" + str(device["nodeId"])
 
+                if "functions" not in device
+                    continue
+
                 # Filter climate controls
                 functions = list(
                     filter(
