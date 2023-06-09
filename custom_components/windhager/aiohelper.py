@@ -4,6 +4,7 @@ import hashlib
 import os
 import re
 import time
+from yarl import URL
 
 from aiohttp import client_exceptions, hdrs
 
