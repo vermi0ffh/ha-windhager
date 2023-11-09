@@ -379,6 +379,24 @@ class WindhagerHttpClient:
                             "oid": device_id + fct_id + "/23/103/0",
                         }
                     )
+                    # Running time until cleaning
+                    self.devices.append(
+                        {
+                            "id": (
+                                self.host
+                                + "/1/"
+                                + str(device["nodeId"])
+                                + fct_id
+                                + "/98/8"
+                            )
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "name": functions[0]["name"]
+                            + " - Running time until cleaning",
+                            "type": "duration",
+                            "oid": device_id + fct_id + "/98/8",
+                        }
+                    )
 
         ret = {
             "devices": self.devices,
