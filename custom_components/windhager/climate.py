@@ -7,6 +7,7 @@ import voluptuous as vol
 from homeassistant.helpers import (
     entity_platform,
 )
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
@@ -91,6 +92,15 @@ class WindhagerThermostatClimate(CoordinatorEntity, ClimateEntity):
             "Manuel",
         ]
         self._custom_temp_remaining_time = 0
+        self._attr_translation_key = "windhager_climate"
+        self.device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("id"))
+            },
+            name=deviceInfo.get("name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("name"),
+        )
 
     @property
     def unique_id(self):
@@ -205,6 +215,15 @@ class WindhagerThermostatClimateWithoutBias(CoordinatorEntity, ClimateEntity):
             "Manuel",
         ]
         self._custom_temp_remaining_time = 0
+        self._attr_translation_key = "windhager_climate"
+        self.device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("id"))
+            },
+            name=deviceInfo.get("name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("name"),
+        )
 
     @property
     def unique_id(self):
