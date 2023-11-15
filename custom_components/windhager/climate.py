@@ -7,6 +7,7 @@ import voluptuous as vol
 from homeassistant.helpers import (
     entity_platform,
 )
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
@@ -81,16 +82,25 @@ class WindhagerThermostatClimate(CoordinatorEntity, ClimateEntity):
         self._name = deviceInfo.get("name")
         self._prefix = deviceInfo.get("prefix")
         self._preset_modes = [
-            "Veille",
-            "Programme chauffage 1",
-            "Programme chauffage 2",
-            "Programme chauffage 3",
-            "Mode chauffage",
-            "Mode réduit",
-            "Vacances",
-            "Manuel",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
         ]
         self._custom_temp_remaining_time = 0
+        self._attr_translation_key = "windhager_climate"
+        self._device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("device_id"))
+            },
+            name=deviceInfo.get("device_name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("device_name"),
+        )
 
     @property
     def unique_id(self):
@@ -103,6 +113,10 @@ class WindhagerThermostatClimate(CoordinatorEntity, ClimateEntity):
     @property
     def temperature_unit(self):
         return TEMP_CELSIUS
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return self._device_info;
 
     @property
     def supported_features(self):
@@ -195,16 +209,25 @@ class WindhagerThermostatClimateWithoutBias(CoordinatorEntity, ClimateEntity):
         self._name = deviceInfo.get("name") + " without bias"
         self._prefix = deviceInfo.get("prefix")
         self._preset_modes = [
-            "Veille",
-            "Programme chauffage 1",
-            "Programme chauffage 2",
-            "Programme chauffage 3",
-            "Mode chauffage",
-            "Mode réduit",
-            "Vacances",
-            "Manuel",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
         ]
         self._custom_temp_remaining_time = 0
+        self._attr_translation_key = "windhager_climate"
+        self._device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("device_id"))
+            },
+            name=deviceInfo.get("device_name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("device_name"),
+        )
 
     @property
     def unique_id(self):
@@ -217,6 +240,10 @@ class WindhagerThermostatClimateWithoutBias(CoordinatorEntity, ClimateEntity):
     @property
     def temperature_unit(self):
         return TEMP_CELSIUS
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return self._device_info;
 
     @property
     def supported_features(self):

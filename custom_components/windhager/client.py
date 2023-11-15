@@ -71,6 +71,10 @@ class WindhagerHttpClient:
                                 fct_id + "/2/10/0",
                                 fct_id + "/3/58/0",
                             ],
+                            "device_id": (self.host + device_id)
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     self.oids.update(
@@ -105,10 +109,14 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Current Temperature",
+                            "name": functions[0]["name"] + " Current Temperature",
                             "type": "temperature",
                             "correction_oid": device_id + fct_id + "/3/58/0",
                             "oid": device_id + fct_id + "/0/1/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
 
@@ -125,9 +133,13 @@ class WindhagerHttpClient:
                             .replace(".", "-")
                             .replace("/", "-"),
                             "name": functions[0]["name"]
-                            + " - Current Temperature real",
+                            + " Current Temperature real",
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/1/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
 
@@ -144,12 +156,16 @@ class WindhagerHttpClient:
                             .replace(".", "-")
                             .replace("/", "-"),
                             "name": functions[0]["name"]
-                            + " - Comfort Temperature Correction",
+                            + " Comfort Temperature Correction",
                             "type": "sensor",
                             "device_class": None,
                             "state_class": None,
                             "unit": "K",
                             "oid": device_id + fct_id + "/3/58/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Current Temperature correction
@@ -165,12 +181,16 @@ class WindhagerHttpClient:
                             .replace(".", "-")
                             .replace("/", "-"),
                             "name": functions[0]["name"]
-                            + " - Current Temperature Correction",
+                            + " Current Temperature Correction",
                             "type": "sensor",
                             "device_class": None,
                             "state_class": None,
                             "unit": "K",
                             "oid": device_id + fct_id + "/3/7/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Target temperature
@@ -185,10 +205,14 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Target Temperature",
+                            "name": functions[0]["name"] + " Target Temperature",
                             "type": "temperature",
                             "correction_oid": device_id + fct_id + "/3/58/0",
                             "oid": device_id + fct_id + "/1/1/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Outside temperature
@@ -203,9 +227,13 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Outside Temperature",
+                            "name": functions[0]["name"] + " Outside Temperature",
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/0/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
 
@@ -234,6 +262,9 @@ class WindhagerHttpClient:
                             # Pellet consumption
                             device_id + fct_id + "/23/100/0",
                             device_id + fct_id + "/23/103/0",
+                            # Cleaning
+                            device_id + fct_id + "/20/61/0",
+                            device_id + fct_id + "/20/62/0"
                         ]
                     )
 
@@ -249,12 +280,16 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Power factor",
+                            "name": functions[0]["name"] + " Power factor",
                             "type": "sensor",
                             "device_class": "power_factor",
                             "state_class": None,
                             "unit": "%",
                             "oid": device_id + fct_id + "/0/9/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Fumes temperature
@@ -269,9 +304,13 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Fumes Temperature",
+                            "name": functions[0]["name"] + " Fumes Temperature",
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/11/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                                .replace(".", "-")
+                                .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Heater temperature
@@ -286,9 +325,13 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Heater Temperature",
+                            "name": functions[0]["name"] + " Heater Temperature",
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/7/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Combustion chamber temperature
@@ -304,9 +347,13 @@ class WindhagerHttpClient:
                             .replace(".", "-")
                             .replace("/", "-"),
                             "name": functions[0]["name"]
-                            + " - Combustion chamber Temperature",
+                            + " Combustion chamber Temperature",
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/45/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Heater status
@@ -321,7 +368,7 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Heater status",
+                            "name": functions[0]["name"] + " Heater status",
                             "options": [
                                 "Brûleur bloqué",
                                 "Autotest",
@@ -342,6 +389,10 @@ class WindhagerHttpClient:
                             ],
                             "type": "select",
                             "oid": device_id + fct_id + "/2/1/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Pellet consumption
@@ -356,9 +407,13 @@ class WindhagerHttpClient:
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
-                            "name": functions[0]["name"] + " - Pellet consumption",
+                            "name": functions[0]["name"] + " Pellet consumption",
                             "type": "total",
                             "oid": device_id + fct_id + "/23/100/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
                     # Total pellet consumption
@@ -374,9 +429,65 @@ class WindhagerHttpClient:
                             .replace(".", "-")
                             .replace("/", "-"),
                             "name": functions[0]["name"]
-                            + " - Total Pellet consumption",
+                            + " Total Pellet consumption",
                             "type": "total_increasing",
                             "oid": device_id + fct_id + "/23/103/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
+                        }
+                    )
+
+                    # Running time until stage 1 cleaning
+                    self.devices.append(
+                        {
+                            "id": (
+                                self.host
+                                + "/1/"
+                                + str(device["nodeId"])
+                                + fct_id
+                                + "/20/61/0"
+                            )
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "name": functions[0]["name"]
+                            + " Running time until stage 1 cleaning",
+                            "type": "sensor",
+                            "device_class": "duration",
+                            "state_class": None,
+                            "unit": "h",
+                            "oid": device_id + fct_id + "/20/61/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
+                        }
+                    )
+
+                    # Running time until stage 2 cleaning
+                    self.devices.append(
+                        {
+                            "id": (
+                                self.host
+                                + "/1/"
+                                + str(device["nodeId"])
+                                + fct_id
+                                + "/20/62/0"
+                            )
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "name": functions[0]["name"]
+                            + " Running time until stage 2 cleaning",
+                            "type": "sensor",
+                            "device_class": "duration",
+                            "state_class": None,
+                            "unit": "h",
+                            "oid": device_id + fct_id + "/20/62/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
                         }
                     )
 
