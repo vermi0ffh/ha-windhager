@@ -262,6 +262,9 @@ class WindhagerHttpClient:
                             # Pellet consumption
                             device_id + fct_id + "/23/100/0",
                             device_id + fct_id + "/23/103/0",
+                            # Cleaning
+                            device_id + fct_id + "/20/61/0",
+                            device_id + fct_id + "/20/62/0"
                         ]
                     )
 
@@ -444,7 +447,7 @@ class WindhagerHttpClient:
                                 + "/1/"
                                 + str(device["nodeId"])
                                 + fct_id
-                                + "/60/0"
+                                + "/20/61/0"
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
@@ -454,7 +457,7 @@ class WindhagerHttpClient:
                             "device_class": "duration",
                             "state_class": None,
                             "unit": "h",
-                            "oid": device_id + fct_id + "/60/0",
+                            "oid": device_id + fct_id + "/20/61/0",
                             "device_id": (self.host + str(device["nodeId"]))
                             .replace(".", "-")
                             .replace("/", "-"),
@@ -470,7 +473,7 @@ class WindhagerHttpClient:
                                 + "/1/"
                                 + str(device["nodeId"])
                                 + fct_id
-                                + "/62/0"
+                                + "/20/62/0"
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
@@ -480,7 +483,7 @@ class WindhagerHttpClient:
                             "device_class": "duration",
                             "state_class": None,
                             "unit": "h",
-                            "oid": device_id + fct_id + "/62/0",
+                            "oid": device_id + fct_id + "/20/62/0",
                             "device_id": (self.host + str(device["nodeId"]))
                             .replace(".", "-")
                             .replace("/", "-"),
