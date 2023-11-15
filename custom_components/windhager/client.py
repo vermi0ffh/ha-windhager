@@ -59,8 +59,8 @@ class WindhagerHttpClient:
                     self.devices.append(
                         {
                             "id": (self.host + device_id)
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "name": functions[0]["name"],
                             "type": "climate",
                             "prefix": device_id,
@@ -72,8 +72,8 @@ class WindhagerHttpClient:
                                 fct_id + "/3/58/0",
                             ],
                             "device_id": (self.host + device_id)
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -107,15 +107,15 @@ class WindhagerHttpClient:
                                 + "/0/1/0"
                                 + "/3/58/0"
                             )
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "name": functions[0]["name"] + " Current Temperature",
                             "type": "temperature",
                             "correction_oid": device_id + fct_id + "/3/58/0",
                             "oid": device_id + fct_id + "/0/1/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -137,8 +137,8 @@ class WindhagerHttpClient:
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/1/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -163,8 +163,8 @@ class WindhagerHttpClient:
                             "unit": "K",
                             "oid": device_id + fct_id + "/3/58/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -188,8 +188,8 @@ class WindhagerHttpClient:
                             "unit": "K",
                             "oid": device_id + fct_id + "/3/7/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -210,8 +210,8 @@ class WindhagerHttpClient:
                             "correction_oid": device_id + fct_id + "/3/58/0",
                             "oid": device_id + fct_id + "/1/1/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -231,8 +231,8 @@ class WindhagerHttpClient:
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/0/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -284,8 +284,8 @@ class WindhagerHttpClient:
                             "unit": "%",
                             "oid": device_id + fct_id + "/0/9/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -326,8 +326,8 @@ class WindhagerHttpClient:
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/7/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -348,8 +348,8 @@ class WindhagerHttpClient:
                             "type": "temperature",
                             "oid": device_id + fct_id + "/0/45/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -387,8 +387,8 @@ class WindhagerHttpClient:
                             "type": "select",
                             "oid": device_id + fct_id + "/2/1/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -408,8 +408,8 @@ class WindhagerHttpClient:
                             "type": "total",
                             "oid": device_id + fct_id + "/23/100/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
@@ -430,12 +430,13 @@ class WindhagerHttpClient:
                             "type": "total_increasing",
                             "oid": device_id + fct_id + "/23/103/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
-                    # Running time until cleaning
+
+                    # Running time until stage 1 cleaning
                     self.devices.append(
                         {
                             "id": (
@@ -443,17 +444,46 @@ class WindhagerHttpClient:
                                 + "/1/"
                                 + str(device["nodeId"])
                                 + fct_id
-                                + "/98/8"
+                                + "/60/0"
                             )
                             .replace(".", "-")
                             .replace("/", "-"),
                             "name": functions[0]["name"]
-                            + " Running time until cleaning",
-                            "type": "duration",
-                            "oid": device_id + fct_id + "/98/8",
+                            + " Running time until stage 1 cleaning",
+                            "type": "sensor",
+                            "device_class": "duration",
+                            "state_class": None,
+                            "unit": "h",
+                            "oid": device_id + fct_id + "/60/0",
                             "device_id": (self.host + str(device["nodeId"]))
-                                .replace(".", "-")
-                                .replace("/", "-"),
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "device_name": functions[0]["name"],
+                        }
+                    )
+
+                    # Running time until stage 2 cleaning
+                    self.devices.append(
+                        {
+                            "id": (
+                                self.host
+                                + "/1/"
+                                + str(device["nodeId"])
+                                + fct_id
+                                + "/62/0"
+                            )
+                            .replace(".", "-")
+                            .replace("/", "-"),
+                            "name": functions[0]["name"]
+                            + " Running time until stage 2 cleaning",
+                            "type": "sensor",
+                            "device_class": "duration",
+                            "state_class": None,
+                            "unit": "h",
+                            "oid": device_id + fct_id + "/62/0",
+                            "device_id": (self.host + str(device["nodeId"]))
+                            .replace(".", "-")
+                            .replace("/", "-"),
                             "device_name": functions[0]["name"],
                         }
                     )
