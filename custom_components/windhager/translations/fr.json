@@ -21,16 +21,18 @@
     "entity": {
         "climate": {
             "windhager_climate": {
-                "preset_mode": {
-                    "state": {
-                        "0": "Veille",
-                        "1": "Programme chauffage 1",
-                        "2": "Programme chauffage 2",
-                        "3": "Programme chauffage 3",
-                        "4": "Mode chauffage",
-                        "5": "Mode réduit",
-                        "6": "Vacances",
-                        "7": "Manuel"
+                "state_attributes": {
+                    "preset_mode": {
+                        "state": {
+                            "0": "Veille",
+                            "1": "Programme chauffage 1",
+                            "2": "Programme chauffage 2",
+                            "3": "Programme chauffage 3",
+                            "4": "Mode chauffage",
+                            "5": "Mode réduit",
+                            "6": "Vacances",
+                            "7": "Manuel"
+                        }
                     }
                 }
             }

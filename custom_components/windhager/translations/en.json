@@ -21,16 +21,18 @@
     "entity": {
         "climate": {
             "windhager_climate": {
-                "preset_mode": {
-                    "state": {
-                        "0": "Standby",
-                        "1": "Heating program 1",
-                        "2": "Heating program 2",
-                        "3": "Heating program 3",
-                        "4": "Day mode",
-                        "5": "Night mode",
-                        "6": "Holidays",
-                        "7": "Manual"
+                "state_attributes": {
+                    "preset_mode": {
+                        "state": {
+                            "0": "Standby",
+                            "1": "Heating program 1",
+                            "2": "Heating program 2",
+                            "3": "Heating program 3",
+                            "4": "Day mode",
+                            "5": "Night mode",
+                            "6": "Holidays",
+                            "7": "Manual"
+                        }
                     }
                 }
             }

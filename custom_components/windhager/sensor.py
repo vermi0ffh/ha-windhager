@@ -5,7 +5,7 @@ import logging
 from homeassistant.const import (
     TEMP_CELSIUS,
 )
-
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
@@ -56,6 +56,14 @@ class WindhagerTemperatureSensor(CoordinatorEntity, SensorEntity):
         self._name = deviceInfo.get("name")
         self._oid = deviceInfo.get("oid")
         self._correction_oid = deviceInfo.get("correction_oid")
+        self._device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("device_id"))
+            },
+            name=deviceInfo.get("device_name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("device_name"),
+        )
 
     @property
     def unique_id(self):
@@ -68,6 +76,10 @@ class WindhagerTemperatureSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_class(self):
         return "temperature"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return self._device_info;
 
     @property
     def native_value(self):
@@ -92,6 +104,14 @@ class WindhagerGenericSensor(CoordinatorEntity, SensorEntity):
         self._state_class = deviceInfo.get("state_class")
         self._unit = deviceInfo.get("unit")
         self._oid = deviceInfo.get("oid")
+        self._device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("device_id"))
+            },
+            name=deviceInfo.get("device_name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("device_name"),
+        )
 
     @property
     def unique_id(self):
@@ -110,6 +130,10 @@ class WindhagerGenericSensor(CoordinatorEntity, SensorEntity):
         return self._state_class
 
     @property
+    def device_info(self) -> DeviceInfo:
+        return self._device_info;
+
+    @property
     def native_value(self):
         return float(self.coordinator.data.get("oids").get(self._oid))
 
@@ -125,6 +149,14 @@ class WindhagerPelletSensor(CoordinatorEntity, SensorEntity):
         self._name = deviceInfo.get("name")
         self._oid = deviceInfo.get("oid")
         self._state_class = deviceInfo.get("type")
+        self._device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("device_id"))
+            },
+            name=deviceInfo.get("device_name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("device_name"),
+        )
 
     @property
     def unique_id(self):
@@ -137,6 +169,10 @@ class WindhagerPelletSensor(CoordinatorEntity, SensorEntity):
     @property
     def state_class(self):
         return self._state_class
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return self._device_info;
 
     @property
     def native_value(self):
@@ -154,6 +190,14 @@ class WindhagerSelectSensor(CoordinatorEntity, SensorEntity):
         self._name = deviceInfo.get("name")
         self._oid = deviceInfo.get("oid")
         self._options = deviceInfo.get("options")
+        self._device_info = DeviceInfo(
+            identifiers={
+                (DOMAIN, deviceInfo.get("device_id"))
+            },
+            name=deviceInfo.get("device_name"),
+            manufacturer="Windhager",
+            model=deviceInfo.get("device_name"),
+        )
 
     @property
     def unique_id(self):
@@ -162,6 +206,10 @@ class WindhagerSelectSensor(CoordinatorEntity, SensorEntity):
     @property
     def name(self):
         return self._name
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return self._device_info;
 
     @property
     def raw_value(self):
