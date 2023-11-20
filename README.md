@@ -1,5 +1,6 @@
 # ha-windhager
-Windhager integration in home assistant
+Integration of heatings boilers of Windhager into home assistant home-automation system.
+Tested with BioWin 2 Touch.
 
 ## Installation using HACS
 
