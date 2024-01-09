@@ -5,7 +5,7 @@
         },
         "error": {
             "cannot_connect": "Fehler beim Verbinden",
-            "invalid_auth": "Fehlerhafte ANmeldung",
+            "invalid_auth": "Fehlerhafte Anmeldung",
             "unknown": "Unerwarteter Fehler"
         },
         "step": {
@@ -25,13 +25,13 @@
                     "preset_mode": {
                         "state": {
                             "0": "Standby",
-                            "1": "Heating program 1",
-                            "2": "Heating program 2",
-                            "3": "Heating program 3",
-                            "4": "Day mode",
-                            "5": "Night mode",
-                            "6": "Holidays",
-                            "7": "Manual"
+                            "1": "Heizprogramm 1",
+                            "2": "Heizprogramm 2",
+                            "3": "Heizprogramm 3",
+                            "4": "Tagmodus",
+                            "5": "Nachtmodus",
+                            "6": "Urlaubsmodus",
+                            "7": "Manuell"
                         }
                     }
                 }
