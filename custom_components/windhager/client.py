@@ -232,7 +232,7 @@ class WindhagerHttpClient:
                             device_id + fct_id + "/0/11/0",
                             # Heater temperature
                             device_id + fct_id + "/0/7/0",
-                            # Combusion chamber temperature
+                            # Combustion chamber temperature
                             device_id + fct_id + "/0/45/0",
                             # Heater status
                             device_id + fct_id + "/2/1/0",
