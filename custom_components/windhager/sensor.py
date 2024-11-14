@@ -83,12 +83,12 @@ class WindhagerTemperatureSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        raw_value = self.coordinator.data.get("oids").get(self._oid)
+        oid_value = self.coordinator.data.get("oids").get(self._oid)
 
-        if raw_value is None:
+        if oid_value is None:
             return None
 
-        ret = float(raw_value)
+        ret = float(oid_value)
 
         if self._correction_oid is not None:
             ret -= float(self.coordinator.data.get("oids").get(self._correction_oid))
@@ -140,7 +140,12 @@ class WindhagerGenericSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return float(self.coordinator.data.get("oids").get(self._oid))
+        oid_value = self.coordinator.data.get("oids").get(self._oid)
+
+        if oid_value is None:
+            return None
+
+        return float(oid_value)
 
     @property
     def native_unit_of_measurement(self):
@@ -181,7 +186,12 @@ class WindhagerPelletSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return float(self.coordinator.data.get("oids").get(self._oid))
+        oid_value = self.coordinator.data.get("oids").get(self._oid)
+
+        if oid_value is None:
+            return None
+
+        return float(oid_value)
 
     @property
     def native_unit_of_measurement(self):
@@ -218,7 +228,12 @@ class WindhagerSelectSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def raw_value(self):
-        return int(self.coordinator.data.get("oids").get(self._oid))
+        oid_value = self.coordinator.data.get("oids").get(self._oid)
+
+        if oid_value is None:
+            return None
+
+        return int(oid_value)
 
     @property
     def native_value(self):
