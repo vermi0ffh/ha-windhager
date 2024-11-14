@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from homeassistant.const import (
-    TEMP_CELSIUS,
+    UnitOfTemperature,
 )
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import (
@@ -92,7 +92,7 @@ class WindhagerTemperatureSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_unit_of_measurement(self):
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
 
 class WindhagerGenericSensor(CoordinatorEntity, SensorEntity):
