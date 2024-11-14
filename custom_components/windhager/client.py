@@ -20,9 +20,6 @@ class WindhagerHttpClient:
         ret = await auth.request("GET", "http://" + self.host + "/api/1.0/lookup" + url)
         json = await ret.json()
 
-        if "value" not in json:
-            _LOGGER.exception("Error while fetching %s no value detected. JSON = %s", url, json)
-
         await client.close()
         return json
 
@@ -93,7 +90,7 @@ class WindhagerHttpClient:
                             device_id + fct_id + "/2/10/0",
                             # Outside temperature
                             device_id + fct_id + "/0/0/0",
-                            # Temp confort correction
+                            # Temp comfort correction
                             device_id + fct_id + "/3/58/0",
                             # Tempe correction
                             device_id + fct_id + "/3/7/0",
@@ -447,5 +444,6 @@ class WindhagerHttpClient:
                 ret["oids"][oid] = json["value"]
             else:
                 ret["oids"][oid] = None
+                _LOGGER.exception("Error while fetching oid %s no value detected. JSON = %s", oid, json)
 
         return ret
