@@ -14,17 +14,14 @@ from homeassistant.helpers.update_coordinator import (
 
 
 from homeassistant.const import (
+    UnitOfTemperature,
     ATTR_TEMPERATURE,
-    TEMP_CELSIUS,
 )
 
 from homeassistant.components.climate.const import (
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_PRESET_MODE,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_OFF,
-    CURRENT_HVAC_OFF,
-    CURRENT_HVAC_HEAT,
+    ClimateEntityFeature,
+    HVACAction,
+    HVACMode,
 )
 
 from homeassistant.components.climate import (
@@ -112,15 +109,15 @@ class WindhagerThermostatClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def temperature_unit(self):
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def device_info(self) -> DeviceInfo:
-        return self._device_info;
+        return self._device_info
 
     @property
     def supported_features(self):
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
     @property
     def current_temperature(self):
@@ -140,18 +137,18 @@ class WindhagerThermostatClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return HVAC_MODE_HEAT
+        return HVACMode.HEAT
 
     @property
     def hvac_action(self):
         if self.raw_preset_mode() == 0:
-            return CURRENT_HVAC_OFF
+            return HVACAction.OFF
 
-        return CURRENT_HVAC_HEAT
+        return HVACAction.HEATING
 
     @property
     def hvac_modes(self):
-        return [HVAC_MODE_HEAT, HVAC_MODE_OFF]
+        return [HVACMode.HEAT, HVACMode.OFF]
 
     @property
     def preset_mode(self):
@@ -239,15 +236,15 @@ class WindhagerThermostatClimateWithoutBias(CoordinatorEntity, ClimateEntity):
 
     @property
     def temperature_unit(self):
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def device_info(self) -> DeviceInfo:
-        return self._device_info;
+        return self._device_info
 
     @property
     def supported_features(self):
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
     @property
     def current_temperature(self):
@@ -263,18 +260,18 @@ class WindhagerThermostatClimateWithoutBias(CoordinatorEntity, ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return HVAC_MODE_HEAT
+        return HVACMode.HEAT
 
     @property
     def hvac_action(self):
         if self.raw_preset_mode() == 0:
-            return CURRENT_HVAC_OFF
+            return HVACAction.OFF
 
-        return CURRENT_HVAC_HEAT
+        return HVACAction.HEATING
 
     @property
     def hvac_modes(self):
-        return [HVAC_MODE_HEAT, HVAC_MODE_OFF]
+        return [HVACMode.HEAT, HVACMode.OFF]
 
     @property
     def preset_mode(self):
