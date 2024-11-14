@@ -50,19 +50,19 @@ async def async_setup_entry(
 
 
 class WindhagerTemperatureSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, deviceInfo):
+    def __init__(self, coordinator, device_info):
         super().__init__(coordinator)
-        self._id = deviceInfo.get("id")
-        self._name = deviceInfo.get("name")
-        self._oid = deviceInfo.get("oid")
-        self._correction_oid = deviceInfo.get("correction_oid")
+        self._id = device_info.get("id")
+        self._name = device_info.get("name")
+        self._oid = device_info.get("oid")
+        self._correction_oid = device_info.get("correction_oid")
         self._device_info = DeviceInfo(
             identifiers={
-                (DOMAIN, deviceInfo.get("device_id"))
+                (DOMAIN, device_info.get("device_id"))
             },
-            name=deviceInfo.get("device_name"),
+            name=device_info.get("device_name"),
             manufacturer="Windhager",
-            model=deviceInfo.get("device_name"),
+            model=device_info.get("device_name"),
         )
 
     @property
@@ -79,11 +79,16 @@ class WindhagerTemperatureSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return self._device_info;
+        return self._device_info
 
     @property
     def native_value(self):
-        ret = float(self.coordinator.data.get("oids").get(self._oid))
+        raw_value = self.coordinator.data.get("oids").get(self._oid)
+
+        if raw_value is None:
+            return None
+
+        ret = float(raw_value)
 
         if self._correction_oid is not None:
             ret -= float(self.coordinator.data.get("oids").get(self._correction_oid))
@@ -96,21 +101,21 @@ class WindhagerTemperatureSensor(CoordinatorEntity, SensorEntity):
 
 
 class WindhagerGenericSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, deviceInfo):
+    def __init__(self, coordinator, device_info):
         super().__init__(coordinator)
-        self._id = deviceInfo.get("id")
-        self._name = deviceInfo.get("name")
-        self._device_class = deviceInfo.get("device_class")
-        self._state_class = deviceInfo.get("state_class")
-        self._unit = deviceInfo.get("unit")
-        self._oid = deviceInfo.get("oid")
+        self._id = device_info.get("id")
+        self._name = device_info.get("name")
+        self._device_class = device_info.get("device_class")
+        self._state_class = device_info.get("state_class")
+        self._unit = device_info.get("unit")
+        self._oid = device_info.get("oid")
         self._device_info = DeviceInfo(
             identifiers={
-                (DOMAIN, deviceInfo.get("device_id"))
+                (DOMAIN, device_info.get("device_id"))
             },
-            name=deviceInfo.get("device_name"),
+            name=device_info.get("device_name"),
             manufacturer="Windhager",
-            model=deviceInfo.get("device_name"),
+            model=device_info.get("device_name"),
         )
 
     @property
@@ -131,7 +136,7 @@ class WindhagerGenericSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return self._device_info;
+        return self._device_info
 
     @property
     def native_value(self):
@@ -143,19 +148,19 @@ class WindhagerGenericSensor(CoordinatorEntity, SensorEntity):
 
 
 class WindhagerPelletSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, deviceInfo):
+    def __init__(self, coordinator, device_info):
         super().__init__(coordinator)
-        self._id = deviceInfo.get("id")
-        self._name = deviceInfo.get("name")
-        self._oid = deviceInfo.get("oid")
-        self._state_class = deviceInfo.get("type")
+        self._id = device_info.get("id")
+        self._name = device_info.get("name")
+        self._oid = device_info.get("oid")
+        self._state_class = device_info.get("type")
         self._device_info = DeviceInfo(
             identifiers={
-                (DOMAIN, deviceInfo.get("device_id"))
+                (DOMAIN, device_info.get("device_id"))
             },
-            name=deviceInfo.get("device_name"),
+            name=device_info.get("device_name"),
             manufacturer="Windhager",
-            model=deviceInfo.get("device_name"),
+            model=device_info.get("device_name"),
         )
 
     @property
@@ -172,7 +177,7 @@ class WindhagerPelletSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return self._device_info;
+        return self._device_info
 
     @property
     def native_value(self):
@@ -184,19 +189,19 @@ class WindhagerPelletSensor(CoordinatorEntity, SensorEntity):
 
 
 class WindhagerSelectSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, deviceInfo):
+    def __init__(self, coordinator, device_info):
         super().__init__(coordinator)
-        self._id = deviceInfo.get("id")
-        self._name = deviceInfo.get("name")
-        self._oid = deviceInfo.get("oid")
-        self._options = deviceInfo.get("options")
+        self._id = device_info.get("id")
+        self._name = device_info.get("name")
+        self._oid = device_info.get("oid")
+        self._options = device_info.get("options")
         self._device_info = DeviceInfo(
             identifiers={
-                (DOMAIN, deviceInfo.get("device_id"))
+                (DOMAIN, device_info.get("device_id"))
             },
-            name=deviceInfo.get("device_name"),
+            name=device_info.get("device_name"),
             manufacturer="Windhager",
-            model=deviceInfo.get("device_name"),
+            model=device_info.get("device_name"),
         )
 
     @property
@@ -209,7 +214,7 @@ class WindhagerSelectSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return self._device_info;
+        return self._device_info
 
     @property
     def raw_value(self):
