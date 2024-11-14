@@ -19,6 +19,10 @@ class WindhagerHttpClient:
         auth = DigestAuth("USER", self.password, client)
         ret = await auth.request("GET", "http://" + self.host + "/api/1.0/lookup" + url)
         json = await ret.json()
+
+        if "value" not in json:
+            _LOGGER.exception("Error while fetching %s no value detected. JSON = %s", url, json)
+
         await client.close()
         return json
 
@@ -499,6 +503,7 @@ class WindhagerHttpClient:
         # Lecture de tous les OIDs trouvés
         for oid in self.oids:
             json = await self.fetch(oid)
-            ret["oids"][oid] = json["value"]
+            if "value" in json:
+                ret["oids"][oid] = json["value"]
 
         return ret
