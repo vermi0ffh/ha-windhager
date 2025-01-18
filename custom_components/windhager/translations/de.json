@@ -1,41 +1,41 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Das Gerät ist bereits eingerichtet"
-        },
-        "error": {
-            "cannot_connect": "Fehler beim Verbinden",
-            "invalid_auth": "Fehlerhafte Anmeldung",
-            "unknown": "Unerwarteter Fehler"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "host": "Host (IP Adresse)",
-                    "password": "Passwort",
-                    "username": "Benutzername"
-                }
-            }
-        }
+  "config": {
+    "abort": {
+      "already_configured": "Das Gerät ist bereits eingerichtet"
     },
-    "entity": {
-        "climate": {
-            "windhager_climate": {
-                "state_attributes": {
-                    "preset_mode": {
-                        "state": {
-                            "0": "Standby",
-                            "1": "Heizprogramm 1",
-                            "2": "Heizprogramm 2",
-                            "3": "Heizprogramm 3",
-                            "4": "Tagmodus",
-                            "5": "Nachtmodus",
-                            "6": "Urlaubsmodus",
-                            "7": "Manuell"
-                        }
-                    }
-                }
-            }
+    "error": {
+      "cannot_connect": "Fehler beim Verbinden",
+      "invalid_auth": "Fehlerhafte Anmeldung",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Host (IP Adresse)",
+          "password": "Passwort",
+          "username": "Benutzername"
         }
+      }
     }
+  },
+  "entity": {
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heizprogramm 1",
+              "2": "Heizprogramm 2",
+              "3": "Heizprogramm 3",
+              "4": "Tagmodus",
+              "5": "Nachtmodus",
+              "6": "Urlaubsmodus",
+              "7": "Manuell"
+            }
+          }
+        }
+      }
+    }
+  }
 }

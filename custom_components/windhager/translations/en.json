@@ -1,41 +1,41 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
-        },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "host": "Host",
-                    "password": "Password",
-                    "username": "Username"
-                }
-            }
-        }
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
     },
-    "entity": {
-        "climate": {
-            "windhager_climate": {
-                "state_attributes": {
-                    "preset_mode": {
-                        "state": {
-                            "0": "Standby",
-                            "1": "Heating program 1",
-                            "2": "Heating program 2",
-                            "3": "Heating program 3",
-                            "4": "Day mode",
-                            "5": "Night mode",
-                            "6": "Holidays",
-                            "7": "Manual"
-                        }
-                    }
-                }
-            }
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Host",
+          "password": "Password",
+          "username": "Username"
         }
+      }
     }
+  },
+  "entity": {
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heating program 1",
+              "2": "Heating program 2",
+              "3": "Heating program 3",
+              "4": "Day mode",
+              "5": "Night mode",
+              "6": "Holidays",
+              "7": "Manual"
+            }
+          }
+        }
+      }
+    }
+  }
 }
