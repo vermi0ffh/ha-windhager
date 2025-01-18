@@ -1,21 +1,23 @@
 # Windhager Heater
 
-This is a custom integration for Windhager heaters to be used with Home Assistant. 
+This is a custom integration for Windhager heaters to be used with Home Assistant.
 
 ## Supported devices
 
-| Device | Status | Notes |
-|--------|:------:|-------|
-| BioWIN2 | ✅ | Infowin Touch (1.0.2), API (1.0.0)  |
+| Device                                                                                  | Status | Notes                              |
+| --------------------------------------------------------------------------------------- | :----: | ---------------------------------- |
+| [BioWIN2](https://www.windhager.com/en/products/pellet-heating-systems/biowin2-3-33kw/) |   ✅   | Infowin Touch (1.0.2), API (1.0.0) |
 
 ## Installation using HACS
 
 1. Install [HACS](https://hacs.xyz/)
 2. Add this repository as a custom repository in HACS by clicking on the three dots in the top right corner and selecting "Custom repository".
 3. Enter the following as the repository URL and select "Integration" as the type:
+
 ```
 https://github.com/vermi0ffh/ha-windhager
 ```
+
 4. Search for "Windhager Heater" and download it.
 5. Restart Home Assistant.
 
@@ -26,6 +28,7 @@ https://github.com/vermi0ffh/ha-windhager
 3. Restart Home Assistant.
 
 ## Configuration
+
 1. Add the integration as usual.
 2. Enter the host and password of your Windhager heater.
 3. The integration will now be available in Home Assistant.
