@@ -23,6 +23,49 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SENSOR]
 
 
+class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
+    """Class to manage fetching Windhager data."""
+
+    def __init__(self, hass, client, entry):
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=UPDATE_INTERVAL),
+        )
+        self.client = client
+        self.entry = entry
+        self.consecutive_timeouts = 0
+
+    async def _async_update_data(self):
+        """Fetch data from API endpoint."""
+        try:
+            _LOGGER.debug("Starting data update from Windhager device")
+            async with async_timeout.timeout(20):
+                data = await self.client.fetch_all()
+                self.consecutive_timeouts = 0
+                return data
+        except asyncio.TimeoutError as err:
+            self.consecutive_timeouts += 1
+            _LOGGER.warning(
+                "Timeout fetching data from %s after 20 seconds (attempt %d)",
+                self.entry.data["host"],
+                self.consecutive_timeouts,
+            )
+            if self.consecutive_timeouts >= 3:
+                raise UpdateFailed(
+                    f"Multiple consecutive timeouts communicating with API: {err}"
+                ) from err
+            # Return last known good data if available
+            return self.data if self.data else None
+        except Exception as err:
+            _LOGGER.error(
+                "Error fetching data from %s: %s", self.entry.data["host"], str(err)
+            )
+            raise UpdateFailed(f"Error communicating with API: {err}") from err
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up windhager integration from a config entry."""
     _LOGGER.info("Setting up Windhager integration for %s", entry.data["host"])
@@ -34,32 +77,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         password=entry.data["password"],
     )
 
-    async def async_update_data():
-        """Fetch data from API endpoint."""
-        try:
-            _LOGGER.debug("Starting data update from Windhager device")
-            async with async_timeout.timeout(20):
-                return await client.fetch_all()
-        except asyncio.TimeoutError as err:
-            _LOGGER.error(
-                "Timeout fetching data from %s after 20 seconds", entry.data["host"]
-            )
-            raise UpdateFailed(f"Timeout communicating with API: {err}") from err
-        except Exception as err:
-            _LOGGER.error(
-                "Error fetching data from %s: %s", entry.data["host"], str(err)
-            )
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
-
-    coordinator = DataUpdateCoordinator(
-        hass,
-        _LOGGER,
-        name=DOMAIN,
-        update_method=async_update_data,
-        update_interval=timedelta(seconds=UPDATE_INTERVAL),
-    )
-    coordinator.client = client
-
+    coordinator = WindhagerDataUpdateCoordinator(hass, client, entry)
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
