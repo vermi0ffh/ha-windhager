@@ -41,7 +41,7 @@ If you want to debug the integration, please add the following to your `configur
 logger:
   default: warning
   logs:
-    custom_components.windhager2: debug
+    custom_components.windhager: debug
 ```
 
 This will enable debug logging for the Windhager integration. If any values are displayed as "Unknown", please check the logs for more information.
