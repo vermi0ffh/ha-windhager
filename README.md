@@ -24,8 +24,9 @@ https://github.com/vermi0ffh/ha-windhager
 ## Installation using manual method
 
 1. Download the repository as a zip file from [here](https://github.com/vermi0ffh/ha-windhager/archive/refs/heads/main.zip).
-2. Extract the zip file to the `custom_components` folder in your Home Assistant installation.
-3. Restart Home Assistant.
+2. Extract the zip file.
+3. Copy the `custom_components/windhager` folder from the extracted files to the `custom_components` folder in your Home Assistant configuration directory.
+4. Restart Home Assistant.
 
 ## Configuration
 
