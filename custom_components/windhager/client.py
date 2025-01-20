@@ -66,7 +66,7 @@ class WindhagerHttpClient:
                 device_id = f"/1/{str(device['nodeId'])}"
 
                 if "functions" not in device:
-                    _LOGGER.warning("Device %s has no functions, skipping.", device_id)
+                    _LOGGER.debug("Device %s has no functions, skipping.", device_id)
                     continue
 
                 # Filter climate controls
@@ -430,9 +430,7 @@ class WindhagerHttpClient:
                     ret["oids"][oid] = json["value"]
                 else:
                     ret["oids"][oid] = None
-                    _LOGGER.warning(
-                        "Invalid or missing value for OID %s: %s", oid, json
-                    )
+                    _LOGGER.debug("Invalid or missing value for OID %s: %s", oid, json)
             except Exception as e:
                 ret["oids"][oid] = None
                 _LOGGER.error("Error while fetching OID %s: %s", oid, str(e))
