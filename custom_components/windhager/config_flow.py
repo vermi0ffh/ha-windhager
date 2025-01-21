@@ -1,21 +1,23 @@
-"""Config flow for heater integration."""
+"""Config flow for Windhager heater integration."""
+
 from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import urlparse
 
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
+from .client import WindhagerHttpClient
+from .exceptions import CannotConnect, InvalidAuth
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("host"): str,
@@ -24,46 +26,51 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-class PlaceholderHub:
-    """Placeholder class to make tests pass.
-
-    TODO Remove this placeholder class and replace with things from your PyPI package.
-    """
-
-    def __init__(self, host: str) -> None:
-        """Initialize."""
-        self.host = host
-
-    async def authenticate(self, password: str) -> bool:
-        """Test if we can authenticate with the host."""
-        return True
-
-
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
+    """Validate the user input allows us to connect."""
+    host = data["host"].strip().rstrip("/")
 
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
-    """
-    # TODO validate the data can be used to set up a connection.
+    # Remove any protocol prefix and additional paths if present
+    if "://" in host:
+        parsed = urlparse(host)
+        host = parsed.netloc or parsed.path
+    else:
+        # Handle case where user just pasted a URL without protocol
+        host = host.split("/")[0]
 
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data["username"], data["password"]
-    # )
+    # Remove any port number if present
+    if ":" in host:
+        host = host.split(":")[0]
 
-    hub = PlaceholderHub(data["host"])
+    # Final cleanup of any remaining slashes or spaces
+    host = host.strip("/")
 
-    if not await hub.authenticate(data["password"]):
-        raise InvalidAuth
+    _LOGGER.info("Validating Windhager connection - Host: %s", host)
 
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
+    try:
+        client = WindhagerHttpClient(
+            host=host,
+            password=data["password"],
+        )
 
-    # Return info that you want to store in the config entry.
-    return {"title": "Windhager Heater"}
+        try:
+            _LOGGER.debug("Testing connection by fetching root device info")
+            await client.fetch("/1")
+            _LOGGER.info("Successfully connected to Windhager device at %s", host)
+        except Exception as err:
+            _LOGGER.error("Connection test failed for %s: %s", host, str(err))
+            raise CannotConnect from err
+        finally:
+            await client.close()
+
+        return {
+            "title": f"Windhager Heater ({host})",
+            "host": host,  # Return the cleaned host
+        }
+
+    except Exception as err:
+        _LOGGER.exception("Unexpected exception during validation: %s", str(err))
+        raise CannotConnect from err
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -76,32 +83,31 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the initial step."""
         if user_input is None:
+            _LOGGER.debug("Showing initial config flow form")
             return self.async_show_form(
                 step_id="user", data_schema=STEP_USER_DATA_SCHEMA
             )
+
+        _LOGGER.debug("Attempting to validate config for host %s", user_input["host"])
 
         errors = {}
 
         try:
             info = await validate_input(self.hass, user_input)
+            # Create a new dict with cleaned host value
+            cleaned_data = {
+                "host": info["host"],  # Use the cleaned host
+                "password": user_input["password"],
+            }
+            return self.async_create_entry(title=info["title"], data=cleaned_data)
         except CannotConnect:
             errors["base"] = "cannot_connect"
         except InvalidAuth:
             errors["base"] = "invalid_auth"
-        except Exception:  # pylint: disable=broad-except
+        except Exception:
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
-        else:
-            return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
         )
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""

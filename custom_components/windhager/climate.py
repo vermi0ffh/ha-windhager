@@ -1,45 +1,34 @@
 """Support for Windhager Climate."""
+
 from __future__ import annotations
-from datetime import timedelta
 import logging
-
 import voluptuous as vol
-from homeassistant.helpers import (
-    entity_platform,
-)
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-)
+from typing import Optional
 
-
-from homeassistant.const import (
-    UnitOfTemperature,
-    ATTR_TEMPERATURE,
-)
-
+from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
     ClimateEntityFeature,
     HVACAction,
     HVACMode,
 )
-
-from homeassistant.components.climate import (
-    ClimateEntity,
-)
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_platform
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import DOMAIN
+from .exceptions import WindhagerValueError
+from .helpers import get_oid_value
 
 _LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = timedelta(seconds=60)
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-):
+) -> None:
+    """Set up Windhager climates from a config entry."""
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
         "set_current_temp_compensation",
@@ -51,263 +40,193 @@ async def async_setup_entry(
         "set_current_temp_compensation",
     )
 
-    """ Set up WindHager climates from a config entry. """
-    data_coordinator = hass.data[DOMAIN][entry.entry_id]
-
+    coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
 
-    for deviceInfo in data_coordinator.data.get("devices"):
-        if deviceInfo.get("type") == "climate":
-            entity = WindhagerThermostatClimate(data_coordinator, deviceInfo)
-            entities.append(entity)
-            entity = WindhagerThermostatClimateWithoutBias(data_coordinator, deviceInfo)
-            entities.append(entity)
+    for device_info in coordinator.data.get("devices", []):
+        if device_info.get("type") == "climate":
+            entities.extend(
+                [
+                    WindhagerThermostatClimate(coordinator, device_info),
+                    WindhagerThermostatClimateWithoutBias(coordinator, device_info),
+                ]
+            )
 
-    # entity = WindhagerThermostatClimate(client, "/1/15")
     async_add_entities(entities)
 
 
-class WindhagerThermostatClimate(CoordinatorEntity, ClimateEntity):
-    """WindHager climate"""
+class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
+    """Base class for Windhager thermostats."""
 
-    SCAN_INTERVAL = timedelta(seconds=60)
-
-    def __init__(self, coordinator, deviceInfo):
+    def __init__(self, coordinator, device_info: dict):
+        """Initialize the thermostat."""
         super().__init__(coordinator)
         self.client = self.coordinator.client
-        self._id = deviceInfo.get("id")
-        self._name = deviceInfo.get("name")
-        self._prefix = deviceInfo.get("prefix")
-        self._preset_modes = [
-            "0",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-        ]
-        self._custom_temp_remaining_time = 0
+        self._id = device_info.get("id", "")
+        self._name = device_info.get("name", "")
+        self._prefix = device_info.get("prefix", "")
+        self._preset_modes = ["0", "1", "2", "3", "4", "5", "6", "7"]
         self._attr_translation_key = "windhager_climate"
         self._device_info = DeviceInfo(
-            identifiers={
-                (DOMAIN, deviceInfo.get("device_id"))
-            },
-            name=deviceInfo.get("device_name"),
+            identifiers={(DOMAIN, device_info.get("device_id", ""))},
+            name=device_info.get("device_name", ""),
             manufacturer="Windhager",
-            model=deviceInfo.get("device_name"),
+            model=device_info.get("device_name", ""),
         )
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
+        """Return unique ID for the entity."""
         return self._id
 
     @property
-    def name(self):
+    def name(self) -> str:
+        """Return the display name of this entity."""
         return self._name
 
     @property
-    def temperature_unit(self):
+    def temperature_unit(self) -> str:
+        """Return the unit of measurement."""
         return UnitOfTemperature.CELSIUS
 
     @property
     def device_info(self) -> DeviceInfo:
+        """Return device information."""
         return self._device_info
 
     @property
-    def supported_features(self):
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+    def supported_features(self) -> int:
+        """Return the list of supported features."""
+        return (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.PRESET_MODE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
+        )
 
     @property
-    def current_temperature(self):
-        return float(
-            self.coordinator.data.get("oids").get(self._prefix + "/0/0/1/0")
-        ) - float(self.coordinator.data.get("oids").get(self._prefix + "/0/3/58/0"))
-
-    @property
-    def target_temperature(self):
-        return float(
-            self.coordinator.data.get("oids").get(self._prefix + "/0/1/1/0")
-        ) - float(self.coordinator.data.get("oids").get(self._prefix + "/0/3/58/0"))
-
-    @property
-    def target_temperature_step(self):
+    def target_temperature_step(self) -> float:
+        """Return the supported step of target temperature."""
         return 0.5
 
     @property
-    def hvac_mode(self):
+    def hvac_mode(self) -> str:
+        """Return hvac operation mode."""
         return HVACMode.HEAT
 
     @property
-    def hvac_action(self):
-        if self.raw_preset_mode() == 0:
-            return HVACAction.OFF
-
-        return HVACAction.HEATING
-
-    @property
-    def hvac_modes(self):
+    def hvac_modes(self) -> list[str]:
+        """Return the list of available hvac operation modes."""
         return [HVACMode.HEAT, HVACMode.OFF]
 
     @property
-    def preset_mode(self):
-        if self.raw_custom_temp_remaining_time() > 0:
-            return self._preset_modes[7]
-
-        return self._preset_modes[self.raw_preset_mode()]
-
-    @property
-    def preset_modes(self):
+    def preset_modes(self) -> list[str]:
+        """Return a list of available preset modes."""
         return self._preset_modes
 
-    def raw_selected_mode(self):
-        return int(self.coordinator.data.get("oids").get(self._prefix + "/0/3/50/0"))
+    def get_oid_value(self, path: str, default: str = "0") -> Optional[float]:
+        """Get OID value with error handling."""
+        return get_oid_value(self.coordinator, path, self._prefix, default)
 
-    def raw_custom_temp_remaining_time(self):
-        return int(self.coordinator.data.get("oids").get(self._prefix + "/0/2/10/0"))
+    def raw_selected_mode(self) -> Optional[int]:
+        """Get raw selected mode value."""
+        return int(self.get_oid_value("/0/3/50/0") or 0)
 
-    def raw_preset_mode(self):
-        return int(self.coordinator.data.get("oids").get(self._prefix + "/0/3/50/0"))
+    def raw_custom_temp_remaining_time(self) -> Optional[int]:
+        """Get raw custom temperature remaining time."""
+        return int(self.get_oid_value("/0/2/10/0") or 0)
 
-    async def async_set_hvac_mode(self, hvac_mode):
-        """Set new target hvac mode."""
-
-    async def async_set_preset_mode(self, preset_mode):
-        id_mode = self._preset_modes.index(preset_mode)
-        await self.client.update(self._prefix + "/0/3/50/0", str(id_mode))
-        # Désactivation du mode manuel au besoin
-        if self.raw_custom_temp_remaining_time() > 0:
-            await self.client.update(self._prefix + "/0/2/10/0", "0")
-        await self.coordinator.async_request_refresh()
-
-    async def async_set_temperature(self, **kwargs):
-        await self.client.update(
-            self._prefix + "/0/3/4/0", str(kwargs.get(ATTR_TEMPERATURE))
-        )
-        # Duration of custom temperature (max 400 minutes)
-        await self.client.update(self._prefix + "/0/2/10/0", "400")
-        await self.coordinator.async_request_refresh()
-
-    async def set_current_temp_compensation(self, compensation):
-        await self.client.update(self._prefix + "/0/3/58/0", str(compensation))
-        await self.coordinator.async_request_refresh()
-
-
-class WindhagerThermostatClimateWithoutBias(CoordinatorEntity, ClimateEntity):
-    """WindHager climate"""
-
-    SCAN_INTERVAL = timedelta(seconds=60)
-
-    def __init__(self, coordinator, deviceInfo):
-        super().__init__(coordinator)
-        self.client = self.coordinator.client
-        self._id = deviceInfo.get("id") + "_nobias"
-        self._name = deviceInfo.get("name") + " without bias"
-        self._prefix = deviceInfo.get("prefix")
-        self._preset_modes = [
-            "0",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-        ]
-        self._custom_temp_remaining_time = 0
-        self._attr_translation_key = "windhager_climate"
-        self._device_info = DeviceInfo(
-            identifiers={
-                (DOMAIN, deviceInfo.get("device_id"))
-            },
-            name=deviceInfo.get("device_name"),
-            manufacturer="Windhager",
-            model=deviceInfo.get("device_name"),
-        )
+    def raw_preset_mode(self) -> Optional[int]:
+        """Get raw preset mode."""
+        return self.raw_selected_mode()
 
     @property
-    def unique_id(self):
-        return self._id
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def temperature_unit(self):
-        return UnitOfTemperature.CELSIUS
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return self._device_info
-
-    @property
-    def supported_features(self):
-        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
-
-    @property
-    def current_temperature(self):
-        return float(self.coordinator.data.get("oids").get(self._prefix + "/0/0/1/0"))
-
-    @property
-    def target_temperature(self):
-        return float(self.coordinator.data.get("oids").get(self._prefix + "/0/1/1/0"))
-
-    @property
-    def target_temperature_step(self):
-        return 0.5
-
-    @property
-    def hvac_mode(self):
-        return HVACMode.HEAT
-
-    @property
-    def hvac_action(self):
+    def hvac_action(self) -> str:
+        """Return the current running hvac operation."""
         if self.raw_preset_mode() == 0:
             return HVACAction.OFF
-
         return HVACAction.HEATING
 
     @property
-    def hvac_modes(self):
-        return [HVACMode.HEAT, HVACMode.OFF]
-
-    @property
-    def preset_mode(self):
+    def preset_mode(self) -> Optional[str]:
+        """Return the current preset mode."""
         if self.raw_custom_temp_remaining_time() > 0:
             return self._preset_modes[7]
+        mode = self.raw_preset_mode()
+        return self._preset_modes[mode] if mode is not None else None
 
-        return self._preset_modes[self.raw_preset_mode()]
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set new preset mode."""
+        id_mode = self._preset_modes.index(preset_mode)
+        await self.client.update(f"{self._prefix}/0/3/50/0", str(id_mode))
+
+        if self.raw_custom_temp_remaining_time() > 0:
+            await self.client.update(f"{self._prefix}/0/2/10/0", "0")
+        await self.coordinator.async_request_refresh()
+
+    async def async_set_temperature(self, **kwargs) -> None:
+        """Set new target temperature."""
+        temp = kwargs.get(ATTR_TEMPERATURE)
+        if temp is None:
+            raise WindhagerValueError("No temperature provided")
+
+        await self.client.update(f"{self._prefix}/0/3/4/0", str(temp))
+        await self.client.update(f"{self._prefix}/0/2/10/0", "400")
+        await self.coordinator.async_request_refresh()
+
+    async def async_set_hvac_mode(self, hvac_mode: str) -> None:
+        """Set new target hvac mode."""
+        # Implement if needed
+        pass
+
+
+class WindhagerThermostatClimate(WindhagerBaseThermostat):
+    """Windhager climate with temperature bias."""
 
     @property
-    def preset_modes(self):
-        return self._preset_modes
+    def current_temperature(self) -> float | None:
+        """Return the current temperature."""
+        current = self.get_oid_value("/0/0/1/0")
+        bias = self.get_oid_value("/0/3/58/0")
 
-    def raw_selected_mode(self):
-        return int(self.coordinator.data.get("oids").get(self._prefix + "/0/3/50/0"))
+        if current is None or bias is None:
+            return None
 
-    def raw_custom_temp_remaining_time(self):
-        return int(self.coordinator.data.get("oids").get(self._prefix + "/0/2/10/0"))
+        return current - bias
 
-    def raw_preset_mode(self):
-        return int(self.coordinator.data.get("oids").get(self._prefix + "/0/3/50/0"))
+    @property
+    def target_temperature(self) -> float | None:
+        """Return the temperature we try to reach."""
+        target = self.get_oid_value("/0/1/1/0")
+        bias = self.get_oid_value("/0/3/58/0")
 
-    async def async_set_hvac_mode(self, hvac_mode):
-        """Set new target hvac mode."""
+        if target is None or bias is None:
+            return None
 
-    async def async_set_preset_mode(self, preset_mode):
-        id_mode = self._preset_modes.index(preset_mode)
-        await self.client.update(self._prefix + "/0/3/50/0", str(id_mode))
-        # Désactivation du mode manuel au besoin
-        if self.raw_custom_temp_remaining_time() > 0:
-            await self.client.update(self._prefix + "/0/2/10/0", "0")
+        return target - bias
+
+    async def set_current_temp_compensation(self, compensation: float) -> None:
+        """Set the temperature compensation value."""
+        await self.client.update(f"{self._prefix}/0/3/58/0", str(compensation))
         await self.coordinator.async_request_refresh()
 
-    async def async_set_temperature(self, **kwargs):
-        await self.client.update(
-            self._prefix + "/0/3/4/0", str(kwargs.get(ATTR_TEMPERATURE))
-        )
-        # Duration of custom temperature (max 400 minutes)
-        await self.client.update(self._prefix + "/0/2/10/0", "400")
-        await self.coordinator.async_request_refresh()
+
+class WindhagerThermostatClimateWithoutBias(WindhagerBaseThermostat):
+    """Windhager climate without temperature bias."""
+
+    def __init__(self, coordinator, device_info: dict):
+        """Initialize the thermostat."""
+        device_info = device_info.copy()
+        device_info["id"] = f"{device_info.get('id', '')}_nobias"
+        device_info["name"] = f"{device_info.get('name', '')} without bias"
+        super().__init__(coordinator, device_info)
+
+    @property
+    def current_temperature(self) -> float | None:
+        """Return the current temperature."""
+        return self.get_oid_value("/0/0/1/0")
+
+    @property
+    def target_temperature(self) -> float | None:
+        """Return the temperature we try to reach."""
+        return self.get_oid_value("/0/1/1/0")

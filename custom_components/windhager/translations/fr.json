@@ -1,41 +1,41 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Dispositif déjà configuré"
-        },
-        "error": {
-            "cannot_connect": "Impossible de se connecter",
-            "invalid_auth": "Erreur d'authentification",
-            "unknown": "Erreur inconnue"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "host": "Hôte",
-                    "password": "Mot de passe",
-                    "username": "Utilisateur"
-                }
-            }
-        }
+  "config": {
+    "abort": {
+      "already_configured": "Dispositif déjà configuré"
     },
-    "entity": {
-        "climate": {
-            "windhager_climate": {
-                "state_attributes": {
-                    "preset_mode": {
-                        "state": {
-                            "0": "Veille",
-                            "1": "Programme chauffage 1",
-                            "2": "Programme chauffage 2",
-                            "3": "Programme chauffage 3",
-                            "4": "Mode chauffage",
-                            "5": "Mode réduit",
-                            "6": "Vacances",
-                            "7": "Manuel"
-                        }
-                    }
-                }
-            }
+    "error": {
+      "cannot_connect": "Impossible de se connecter",
+      "invalid_auth": "Erreur d'authentification",
+      "unknown": "Erreur inconnue"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Hôte",
+          "password": "Mot de passe",
+          "username": "Utilisateur"
         }
+      }
     }
+  },
+  "entity": {
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Veille",
+              "1": "Programme chauffage 1",
+              "2": "Programme chauffage 2",
+              "3": "Programme chauffage 3",
+              "4": "Mode chauffage",
+              "5": "Mode réduit",
+              "6": "Vacances",
+              "7": "Manuel"
+            }
+          }
+        }
+      }
+    }
+  }
 }
