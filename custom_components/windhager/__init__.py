@@ -83,12 +83,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    async def handle_scan_system(call):
+        for key in hass.data[DOMAIN].keys():
+            await hass.data[DOMAIN][key].client.full_system_scan()
+
+    if not hass.services.has_service(DOMAIN, "full_system_scan"):
+        hass.services.async_register(DOMAIN, "full_system_scan", handle_scan_system)
+
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.info("Unloading Windhager integration for %s", entry.data["host"])
+
+    if hass.services.has_service(DOMAIN, "full_system_scan"):
+        hass.services.async_remove(DOMAIN, "full_system_scan")
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         coordinator = hass.data[DOMAIN][entry.entry_id]
