@@ -183,4 +183,12 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
         raw_value = self.raw_value
         if raw_value is None:
             return None
+        if not (0 <= raw_value < len(self._options)):
+            _LOGGER.debug(
+                "Invalid status value %s for sensor %s. Must be between 0 and %d",
+                raw_value,
+                self._name,
+                len(self._options) - 1,
+            )
+            return None
         return self._options[raw_value]
