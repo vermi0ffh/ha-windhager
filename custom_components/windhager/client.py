@@ -1,10 +1,10 @@
 import aiohttp
 import logging
 
-from cffi.model import void_type
-
 from .aiohelper import DigestAuth
 from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
+
+from .reading_name_map import var_ident_map
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -475,4 +475,6 @@ class WindhagerHttpClient:
 
         json_readings = await self.fetch(f"{device_id}{fct_id}{sensor_id}")
         for reading in json_readings:
+            if 'name' in reading and reading['name'] in var_ident_map:
+                reading['translated_name'] = var_ident_map[reading['name']]
             _LOGGER.info(f"Found reading {device_id}{fct_id}{sensor_id} : %s", reading)
