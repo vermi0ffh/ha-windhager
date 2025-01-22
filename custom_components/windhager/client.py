@@ -1,7 +1,10 @@
 import aiohttp
 import logging
+
 from .aiohelper import DigestAuth
 from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
+
+from .reading_name_map import var_ident_map
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -436,3 +439,42 @@ class WindhagerHttpClient:
                 _LOGGER.error("Error while fetching OID %s: %s", oid, str(e))
 
         return ret
+
+    async def full_system_scan(self):
+        # Fetch all devices on the network
+        json_devices = await self.fetch("/1")
+
+        for device in json_devices:
+            _LOGGER.info("Found device %s - %s", device["nodeId"], device["name"])
+            if "functions" not in device:
+                continue
+
+            for function in device["functions"]:
+                if function["fctType"] < 0:
+                    continue
+
+                _LOGGER.info("Found function /1/%s/%s - %s", device["nodeId"], function["fctId"], function["name"])
+                await self.full_scan_function(device, function)
+
+
+    async def full_scan_function(self, device, function):
+        device_id = f"/1/{str(device['nodeId'])}"
+        fct_id = f"/{str(function['fctId'])}"
+        # Fetch all sensors
+        json_sensors = await self.fetch(f"{device_id}{fct_id}")
+
+        for sensor in json_sensors:
+            _LOGGER.info(f"Found sensors {device_id}{fct_id}/%s : %s", sensor["id"], sensor["count"])
+            await self.full_scan_sensor(device, function, sensor)
+
+
+    async def full_scan_sensor(self, device, function, sensor):
+        device_id = f"/1/{str(device['nodeId'])}"
+        fct_id = f"/{str(function['fctId'])}"
+        sensor_id = f"/{str(sensor['id'])}"
+
+        json_readings = await self.fetch(f"{device_id}{fct_id}{sensor_id}")
+        for reading in json_readings:
+            if 'name' in reading and reading['name'] in var_ident_map:
+                reading['translated_name'] = var_ident_map[reading['name']]
+            _LOGGER.info(f"Found reading {device_id}{fct_id}{sensor_id} : %s", reading)
