@@ -33,7 +33,8 @@ async def async_setup_entry(
 
     entities = []
 
-    for deviceInfo in data_coordinator.data.get("devices"):
+    data = data_coordinator.data or {}
+    for deviceInfo in (data.get("devices") or []):
         if deviceInfo.get("type") == "temperature":
             entity = WindhagerTemperatureSensor(data_coordinator, deviceInfo)
             entities.append(entity)
