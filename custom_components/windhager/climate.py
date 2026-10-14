@@ -43,14 +43,15 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = []
 
-    for device_info in coordinator.data.get("devices", []):
-        if device_info.get("type") == "climate":
-            entities.extend(
-                [
-                    WindhagerThermostatClimate(coordinator, device_info),
-                    WindhagerThermostatClimateWithoutBias(coordinator, device_info),
-                ]
-            )
+    data = coordinator.data or {}
+    for device_info in data.get("devices", []):
++        if device_info.get("type") == "climate":
++            entities.extend(
++                [
++                    WindhagerThermostatClimate(coordinator, device_info),
++                    WindhagerThermostatClimateWithoutBias(coordinator, device_info),
++                ]
++            )
 
     async_add_entities(entities)
 
