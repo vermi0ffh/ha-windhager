@@ -1,9 +1,13 @@
+import asyncio
 import aiohttp
 import logging
 from .aiohelper import DigestAuth
 from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
 
 _LOGGER = logging.getLogger(__name__)
+
+# Each request of a scan: the coordinator's timeout
+SCAN_REQUEST_TIMEOUT_S = 20
 
 
 class WindhagerHttpClient:
@@ -418,3 +422,34 @@ class WindhagerHttpClient:
                 _LOGGER.error("Error while fetching OID %s: %s", oid, str(e))
 
         return ret
+
+    async def scan(self):
+        """Everything the API exposes: each device, its functions, their sensors and readings.
+
+        For the diagnostics: what a heater offers beyond the entities created. A request
+        that fails is recorded under "errors" and the scan goes on, so that one
+        unreadable function does not hide the rest.
+        """
+        errors = {}
+
+        async def fetch_or_record(url):
+            try:
+                async with asyncio.timeout(SCAN_REQUEST_TIMEOUT_S):
+                    return await self.fetch(url)
+            # aiohttp, JSON, authentication or timeout: all recorded alike
+            except Exception as err:
+                errors[url] = repr(err)
+                return []
+
+        devices = await fetch_or_record("/1")
+        for device in devices:
+            for function in device.get("functions", []):
+                # Skipped as by the first scan (#23), written against a real heater
+                if function["fctType"] < 0:
+                    continue
+                function_url = f"/1/{device['nodeId']}/{function['fctId']}"
+                function["sensors"] = await fetch_or_record(function_url)
+                for sensor in function["sensors"]:
+                    sensor["readings"] = await fetch_or_record(f"{function_url}/{sensor['id']}")
+
+        return {"devices": devices, "errors": errors}
