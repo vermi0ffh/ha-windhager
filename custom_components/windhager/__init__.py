@@ -10,6 +10,7 @@ import async_timeout
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -53,12 +54,17 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 self.entry.data["host"],
                 self.consecutive_timeouts,
             )
+            if self.data is None:
+                # Nothing to keep yet (the first refresh at start): a failure, so
+                # that Home Assistant retries the setup instead of setting the
+                # platforms up without any device
+                raise UpdateFailed(f"Timeout communicating with API: {err}") from err
             if self.consecutive_timeouts >= 3:
                 raise UpdateFailed(
                     f"Multiple consecutive timeouts communicating with API: {err}"
                 ) from err
-            # Return last known good data if available
-            return self.data if self.data else None
+            # Keep the last known good data
+            return self.data
         except Exception as err:
             _LOGGER.error(
                 "Error fetching data from %s: %s", self.entry.data["host"], str(err)
@@ -78,7 +84,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     coordinator = WindhagerDataUpdateCoordinator(hass, client, entry)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryNotReady:
+        # Home Assistant retries with a new client: close this one's session
+        await client.close()
+        raise
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
