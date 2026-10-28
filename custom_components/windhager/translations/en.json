@@ -19,6 +19,29 @@
     }
   },
   "entity": {
+    "sensor": {
+      "heater_status": {
+        "state": {
+          "0": "Burner blocked",
+          "1": "Self-test",
+          "2": "Turn off heat generator",
+          "3": "Standby",
+          "4": "Burner OFF",
+          "5": "Pre-purge",
+          "6": "Ignition phase",
+          "7": "Flame stabilization",
+          "8": "Modulating mode",
+          "9": "Boiler blocked",
+          "10": "Delayed standby",
+          "11": "Fan stopped",
+          "12": "Cladding door open",
+          "13": "Ignition ready",
+          "14": "Cancel ignition phase",
+          "15": "Preheating in progress",
+          "17": "Burnout"
+        }
+      }
+    },
     "climate": {
       "windhager_climate": {
         "state_attributes": {

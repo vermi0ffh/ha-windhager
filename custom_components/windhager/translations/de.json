@@ -19,6 +19,29 @@
     }
   },
   "entity": {
+    "sensor": {
+      "heater_status": {
+        "state": {
+          "0": "Brenner gesperrt",
+          "1": "Selbsttest",
+          "2": "Wärmeerzeuger abschalten",
+          "3": "Standby",
+          "4": "Brenner AUS",
+          "5": "Vorspülen",
+          "6": "Zündphase",
+          "7": "Flammenstabilisierung",
+          "8": "Modulation",
+          "9": "Kessel gesperrt",
+          "10": "Verzögerter Standby",
+          "11": "Gebläse gestoppt",
+          "12": "Verkleidungstür geöffnet",
+          "13": "Zündung bereit",
+          "14": "Zündphase abgebrochen",
+          "15": "Vorwärmung läuft",
+          "17": "Ausbrand"
+        }
+      }
+    },
     "climate": {
       "windhager_climate": {
         "state_attributes": {

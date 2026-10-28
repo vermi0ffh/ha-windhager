@@ -166,12 +166,18 @@ class WindhagerPelletSensor(WindhagerBaseSensor):
         return "t"
 
 
+# The heater status codes the translations name (16 is not documented)
+HEATER_STATUSES = [str(code) for code in (*range(16), 17)]
+
+
 class WindhagerSelectSensor(WindhagerBaseSensor):
     """Select sensor implementation."""
 
-    def __init__(self, coordinator: Any, device_info: dict) -> None:
-        super().__init__(coordinator, device_info)
-        self._options = device_info.get("options")
+    _attr_translation_key = "heater_status"
+    # An enum: Home Assistant shows the translated status and offers the known
+    # ones in the automation editor
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = HEATER_STATUSES
 
     @property
     def raw_value(self) -> int | None:
@@ -179,16 +185,14 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
 
     @property
     def native_value(self) -> str | None:
-        # TODO use translations to return the correct text for each language (e.g. "1" -> "Self-test"/"Autotest"...); remove the options value in client.py
         raw_value = self.raw_value
         if raw_value is None:
             return None
-        if not (0 <= raw_value < len(self._options)):
+        if str(raw_value) not in HEATER_STATUSES:
             _LOGGER.debug(
-                "Invalid status value %s for sensor %s. Must be between 0 and %d",
+                "Unknown status value %s for sensor %s",
                 raw_value,
                 self._name,
-                len(self._options) - 1,
             )
             return None
-        return self._options[raw_value]
+        return str(raw_value)

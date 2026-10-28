@@ -19,6 +19,29 @@
     }
   },
   "entity": {
+    "sensor": {
+      "heater_status": {
+        "state": {
+          "0": "Brûleur bloqué",
+          "1": "Autotest",
+          "2": "Eteindre gén. chaleur",
+          "3": "Veille",
+          "4": "Brûleur ARRET",
+          "5": "Prérinçage",
+          "6": "Phase d'allumage",
+          "7": "Stabilisation flamme",
+          "8": "Mode modulant",
+          "9": "Chaudière bloqué",
+          "10": "Veille temps différé",
+          "11": "Ventilateur Arrêté",
+          "12": "Porte de revêtement ouverte",
+          "13": "Allumage prêt",
+          "14": "Annuler phase d'allumage",
+          "15": "Préchauffage en cours",
+          "17": "Extinction"
+        }
+      }
+    },
     "climate": {
       "windhager_climate": {
         "state_attributes": {
