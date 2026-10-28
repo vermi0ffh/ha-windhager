@@ -1,6 +1,9 @@
 {
   "domain": "windhager",
   "name": "Windhager Heater",
+  "categories": [
+    "climate.thermostats_heating"
+  ],
   "codeowners": [
     "@vermi0ffh",
     "@jannemannX"
