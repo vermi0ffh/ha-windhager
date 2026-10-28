@@ -17,7 +17,18 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install ruff==0.16.10
-      - run: ruff check custom_components
+      - run: ruff check custom_components tests
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          # pytest-homeassistant-custom-component's Home Assistant needs it
+          python-version: "3.14"
+      - run: pip install -r requirements_test.txt
+      - run: pytest
 
   hassfest:
     runs-on: ubuntu-latest

@@ -1,0 +1,2 @@
+# Pins Home Assistant (homeassistant==2026.10.2) and its test helpers
+pytest-homeassistant-custom-component==0.13.373
