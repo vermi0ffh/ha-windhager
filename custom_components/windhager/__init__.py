@@ -6,7 +6,6 @@ import asyncio
 import logging
 from datetime import timedelta
 
-import async_timeout
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -43,7 +42,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         """Fetch data from API endpoint."""
         try:
             _LOGGER.debug("Starting data update from Windhager device")
-            async with async_timeout.timeout(20):
+            async with asyncio.timeout(20):
                 data = await self.client.fetch_all()
                 self.consecutive_timeouts = 0
                 return data
