@@ -1,0 +1,7 @@
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+# Only what breaks at runtime for now (syntax errors, undefined names, unused imports): the style rules come later,
+# in their own change, so that a pull request is not buried under formatting
+select = ["E9", "F"]

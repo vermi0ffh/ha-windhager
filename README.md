@@ -52,3 +52,7 @@ Please report any issues to the [GitHub repository](https://github.com/vermi0ffh
 ## Contributing
 
 If you want to contribute to this project, please feel free to fork the repository and submit a pull request. Please lint and format the code using [Ruff](https://docs.astral.sh/ruff/) as recommended by the [Home Assistant development guidelines](https://developers.home-assistant.io/docs/development_guidelines).
+
+## License
+
+[Apache 2.0](LICENSE).
