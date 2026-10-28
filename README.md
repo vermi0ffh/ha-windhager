@@ -47,7 +47,13 @@ logger:
 
 This will enable debug logging for the Windhager integration. If any values are displayed as "Unknown", please check the logs for more information.
 
-Please report any issues to the [GitHub repository](https://github.com/vermi0ffh/issues). Please include the logs and what device you are trying to integrate.
+To see everything your heater exposes (to add a sensor, or for a model that is not supported yet), download the
+diagnostics: *Settings → Devices & services → Windhager Heater*, then *Download diagnostics* in the entry's menu.
+The file holds a full scan of the heater's API, with the host and password removed. It can take a minute or more:
+every reading is requested one after the other.
+
+Please report any issues to the [GitHub repository](https://github.com/vermi0ffh/ha-windhager/issues). Please include
+the logs, the diagnostics and what device you are trying to integrate.
 
 ## Contributing
 
