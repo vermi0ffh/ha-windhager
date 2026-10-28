@@ -1,7 +1,6 @@
 import asyncio
 import aiohttp
 import logging
-from .aiohelper import DigestAuth
 from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,27 +18,25 @@ class WindhagerHttpClient:
         self.oids = None
         self.devices = []
         self._session = None
-        self._auth = None
 
     async def _ensure_session(self):
         """Ensure that we have an active client session"""
         if self._session is None:
-            self._session = aiohttp.ClientSession()
-            self._auth = DigestAuth(DEFAULT_USERNAME, self.password, self._session)
+            # aiohttp answers the heater's digest challenge, and reuses it for the next requests
+            self._session = aiohttp.ClientSession(
+                middlewares=(aiohttp.DigestAuthMiddleware(DEFAULT_USERNAME, self.password),)
+            )
 
     async def close(self):
         """Close the client session"""
         if self._session:
             await self._session.close()
             self._session = None
-            self._auth = None
 
     async def fetch(self, url):
         try:
             await self._ensure_session()
-            ret = await self._auth.request(
-                "GET", f"http://{self.host}/api/1.0/lookup{url}"
-            )
+            ret = await self._session.get(f"http://{self.host}/api/1.0/lookup{url}")
             json = await ret.json()
             _LOGGER.debug("Fetched data for %s: %s", url, json)
             return json
@@ -49,8 +46,7 @@ class WindhagerHttpClient:
 
     async def update(self, oid, value):
         await self._ensure_session()
-        await self._auth.request(
-            "PUT",
+        await self._session.put(
             f"http://{self.host}/api/1.0/datapoint",
             data=bytes(f'{{"OID":"{oid}","value":"{value}"}}', "utf-8"),
         )
