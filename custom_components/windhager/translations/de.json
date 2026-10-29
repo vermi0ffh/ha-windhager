@@ -138,5 +138,16 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "write_auth_failed": {
+      "message": "Der Kessel hat das Passwort abgelehnt: nichts wurde geschrieben. Geben Sie sein aktuelles Passwort in der Benachrichtigung zur erneuten Authentifizierung ein."
+    },
+    "write_refused": {
+      "message": "Der Kessel hat den Wert abgelehnt (HTTP {status}): nichts wurde geschrieben."
+    },
+    "write_cannot_connect": {
+      "message": "Der Kessel hat nicht geantwortet: der Wert wurde möglicherweise nicht geschrieben."
+    }
   }
 }

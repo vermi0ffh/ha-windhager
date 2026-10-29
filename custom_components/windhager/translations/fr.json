@@ -138,5 +138,16 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "write_auth_failed": {
+      "message": "La chaudière a refusé le mot de passe : rien n'a été écrit. Saisissez son mot de passe actuel dans la notification de réauthentification."
+    },
+    "write_refused": {
+      "message": "La chaudière a refusé la valeur (HTTP {status}) : rien n'a été écrit."
+    },
+    "write_cannot_connect": {
+      "message": "La chaudière n'a pas répondu : la valeur n'a peut-être pas été écrite."
+    }
   }
 }

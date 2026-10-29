@@ -2,6 +2,7 @@
 
 import hashlib
 import re
+import socket
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from unittest.mock import AsyncMock
@@ -12,7 +13,7 @@ from aiohttp.test_utils import TestServer
 
 from custom_components.windhager.client import WindhagerHttpClient, heater_id
 from custom_components.windhager.const import DEFAULT_USERNAME
-from custom_components.windhager.exceptions import InvalidAuth
+from custom_components.windhager.exceptions import CannotConnect, InvalidAuth, WriteFailed
 
 PASSWORD = "secret"
 REALM = "Windhager"
@@ -29,6 +30,8 @@ class Heater:
 
     host: str
     challenges: int = 0
+    # What the heater answers a write with
+    write_status: int = 200
     datapoints: list[bytes] = field(default_factory=list)
 
 
@@ -55,6 +58,8 @@ async def heater(socket_enabled: None) -> AsyncIterator[Heater]:
             challenge = f'Digest realm="{REALM}", nonce="{NONCE}", qop="auth", algorithm=MD5'
             return web.Response(status=401, headers={"WWW-Authenticate": challenge})
         if request.method == "PUT":
+            if state.write_status != 200:
+                return web.Response(status=state.write_status)
             state.datapoints.append(await request.read())
             return web.json_response({})
         return web.json_response([{"nodeId": 15, "name": "BioWIN"}])
@@ -86,6 +91,39 @@ async def test_a_datapoint_update_is_authenticated(heater: Heater) -> None:
     await client.close()
 
     assert heater.datapoints == [b'{"OID":"/1/15/0/3/4/0","value":"21.5"}']
+
+
+async def test_a_write_the_heater_refuses_raises_its_status(heater: Heater) -> None:
+    heater.write_status = 500
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    with pytest.raises(WriteFailed) as refused:
+        await client.update("/1/15/0/3/4/0", "21.5")
+    await client.close()
+
+    assert refused.value.status == 500
+
+
+async def test_a_write_with_a_wrong_password_fails_the_authentication(heater: Heater) -> None:
+    client = WindhagerHttpClient(heater.host, "wrong")
+
+    with pytest.raises(InvalidAuth):
+        await client.update("/1/15/0/3/4/0", "21.5")
+    await client.close()
+
+    assert heater.datapoints == []
+
+
+async def test_a_write_to_a_heater_that_does_not_answer_cannot_connect(socket_enabled: None) -> None:
+    # A port nobody listens on: bound then released
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    client = WindhagerHttpClient(f"127.0.0.1:{port}", PASSWORD)
+
+    with pytest.raises(CannotConnect):
+        await client.update("/1/15/0/3/4/0", "21.5")
+    await client.close()
 
 
 async def test_a_wrong_password_fails_the_lookup(heater: Heater) -> None:

@@ -138,5 +138,16 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "write_auth_failed": {
+      "message": "The heater refused the password: nothing was written. Enter its current password in the re-authentication notice."
+    },
+    "write_refused": {
+      "message": "The heater refused the value (HTTP {status}): nothing was written."
+    },
+    "write_cannot_connect": {
+      "message": "The heater did not answer: the value may not have been written."
+    }
   }
 }
