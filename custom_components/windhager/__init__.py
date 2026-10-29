@@ -70,8 +70,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) ->
     # Before the platforms, so that they find their entities and devices under the new ids
     await _async_migrate_unique_ids(hass, entry, coordinator.data.get("heater_id"))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _async_remove_empty_devices(hass, entry)
 
     return True
+
+
+def _async_remove_empty_devices(hass: HomeAssistant, entry: WindhagerConfigEntry) -> None:
+    """Remove the entry's devices left without any entity.
+
+    Before 2026-10-29 a circuit's climates had a device of their own, apart from the
+    circuit's sensors: set up again, they join their module's device and leave that
+    one empty. A device that still has entities stays, even if its module did not
+    answer this time: removing it would remove them.
+    """
+    device_registry = dr.async_get(hass)
+    entity_registry = er.async_get(hass)
+    for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        if not er.async_entries_for_device(
+            entity_registry, device.id, include_disabled_entities=True
+        ):
+            device_registry.async_remove_device(device.id)
 
 
 def _async_set_heater_id(

@@ -127,6 +127,12 @@ class WindhagerHttpClient:
                         device["functions"],
                     )
                 )
+                # What the module's device shows: its model and chip ID
+                module = {
+                    "device_model": device.get("name"),
+                    "device_serial_number": device.get("neuronId"),
+                }
+
                 if len(functions) > 0:
                     fct_id = f"/{str(functions[0]['fctId'])}"
 
@@ -144,8 +150,13 @@ class WindhagerHttpClient:
                                 f"{fct_id}/2/10/0",
                                 f"{fct_id}/3/58/0",
                             ],
-                            "device_id": self.slugify(f"{self.id_base}{device_id}"),
+                            # The module's device, as its sensors' (it was a device of
+                            # its own, without them, before 2026-10-29)
+                            "device_id": self.slugify(
+                                f"{self.id_base}{str(device['nodeId'])}"
+                            ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     self.oids.update(
@@ -182,6 +193,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
 
@@ -200,6 +212,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
 
@@ -223,6 +236,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Current Temperature correction
@@ -245,6 +259,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Target temperature
@@ -262,6 +277,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Outside temperature
@@ -278,6 +294,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
 
@@ -331,6 +348,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Fumes temperature
@@ -347,6 +365,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Heater temperature
@@ -363,6 +382,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Combustion chamber temperature
@@ -379,6 +399,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Heater status
@@ -395,6 +416,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Pellet consumption
@@ -411,6 +433,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
                     # Total pellet consumption
@@ -427,6 +450,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
 
@@ -448,6 +472,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
 
@@ -469,6 +494,7 @@ class WindhagerHttpClient:
                                 f"{self.id_base}{str(device['nodeId'])}"
                             ),
                             "device_name": functions[0]["name"],
+                            **module,
                         }
                     )
 

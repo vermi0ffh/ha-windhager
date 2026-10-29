@@ -42,7 +42,8 @@ enter the new password there.
 If the heater gets a new address, *Reconfigure* the entry (in its menu) with it: its entities and their history are
 kept, as long as it is the same heater.
 
-The entities are named after their device ("BioWIN Heater status"), in English, French or German after Home
+Each module of the heater is a device (the heater, each heating circuit), with its model, its chip ID as serial
+number and a link to the InfoWIN Touch's web page. The entities are named after their device ("BioWIN Heater status"), in English, French or German after Home
 Assistant's language. A new installation gets its entity ids in that language too
 (`sensor.biowin_etat_de_la_chaudiere` in French); the entity ids already created are kept.
 
