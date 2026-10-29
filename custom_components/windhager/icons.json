@@ -1,0 +1,63 @@
+{
+  "entity": {
+    "sensor": {
+      "power_factor": {
+        "default": "mdi:gauge"
+      },
+      "heater_status": {
+        "default": "mdi:fire",
+        "state": {
+          "0": "mdi:alert",
+          "3": "mdi:power-sleep",
+          "4": "mdi:fire-off",
+          "9": "mdi:alert",
+          "10": "mdi:power-sleep",
+          "11": "mdi:fan-off",
+          "12": "mdi:door-open"
+        }
+      },
+      "pellet_consumption": {
+        "default": "mdi:grain"
+      },
+      "total_pellet_consumption": {
+        "default": "mdi:grain"
+      },
+      "time_until_stage_1_cleaning": {
+        "default": "mdi:broom"
+      },
+      "time_until_stage_2_cleaning": {
+        "default": "mdi:broom"
+      }
+    },
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:calendar-clock",
+            "state": {
+              "0": "mdi:power-standby",
+              "4": "mdi:weather-sunny",
+              "5": "mdi:weather-night",
+              "6": "mdi:airplane",
+              "7": "mdi:hand-back-right"
+            }
+          }
+        }
+      },
+      "windhager_climate_without_bias": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:calendar-clock",
+            "state": {
+              "0": "mdi:power-standby",
+              "4": "mdi:weather-sunny",
+              "5": "mdi:weather-night",
+              "6": "mdi:airplane",
+              "7": "mdi:hand-back-right"
+            }
+          }
+        }
+      }
+    }
+  }
+}

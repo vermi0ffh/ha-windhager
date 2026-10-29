@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.const import EntityCategory
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -25,6 +26,16 @@ class WindhagerEntity(CoordinatorEntity[WindhagerDataUpdateCoordinator]):
         super().__init__(coordinator)
         self._attr_unique_id = device_info.get("id")
         self._attr_translation_key = device_info.get("key")
+        self._attr_entity_category = (
+            EntityCategory(category)
+            if (category := device_info.get("entity_category"))
+            else None
+        )
+        # Read by Home Assistant only when it creates the entity: an existing one keeps
+        # its state, enabled or not
+        self._attr_entity_registry_enabled_default = device_info.get(
+            "enabled_default", True
+        )
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, device_info.get("device_id"))},
             name=device_info.get("device_name"),
