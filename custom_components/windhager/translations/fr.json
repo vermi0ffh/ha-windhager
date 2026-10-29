@@ -38,7 +38,38 @@
   },
   "entity": {
     "sensor": {
+      "current_temperature": {
+        "name": "Température actuelle"
+      },
+      "current_temperature_real": {
+        "name": "Température actuelle réelle"
+      },
+      "comfort_temperature_correction": {
+        "name": "Correction de la température de confort"
+      },
+      "current_temperature_correction": {
+        "name": "Correction de la température actuelle"
+      },
+      "target_temperature": {
+        "name": "Température de consigne"
+      },
+      "outside_temperature": {
+        "name": "Température extérieure"
+      },
+      "power_factor": {
+        "name": "Puissance"
+      },
+      "fumes_temperature": {
+        "name": "Température des fumées"
+      },
+      "heater_temperature": {
+        "name": "Température de la chaudière"
+      },
+      "combustion_chamber_temperature": {
+        "name": "Température de la chambre de combustion"
+      },
       "heater_status": {
+        "name": "État de la chaudière",
         "state": {
           "0": "Brûleur bloqué",
           "1": "Autotest",
@@ -58,10 +89,39 @@
           "15": "Préchauffage en cours",
           "17": "Extinction"
         }
+      },
+      "pellet_consumption": {
+        "name": "Consommation de granulés"
+      },
+      "total_pellet_consumption": {
+        "name": "Consommation totale de granulés"
+      },
+      "time_until_stage_1_cleaning": {
+        "name": "Durée de fonctionnement avant le nettoyage niveau 1"
+      },
+      "time_until_stage_2_cleaning": {
+        "name": "Durée de fonctionnement avant le nettoyage niveau 2"
       }
     },
     "climate": {
       "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Veille",
+              "1": "Programme chauffage 1",
+              "2": "Programme chauffage 2",
+              "3": "Programme chauffage 3",
+              "4": "Mode chauffage",
+              "5": "Mode réduit",
+              "6": "Vacances",
+              "7": "Manuel"
+            }
+          }
+        }
+      },
+      "windhager_climate_without_bias": {
+        "name": "Sans biais",
         "state_attributes": {
           "preset_mode": {
             "state": {

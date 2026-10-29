@@ -42,6 +42,10 @@ enter the new password there.
 If the heater gets a new address, *Reconfigure* the entry (in its menu) with it: its entities and their history are
 kept, as long as it is the same heater.
 
+The entities are named after their device ("BioWIN Heater status"), in English, French or German after Home
+Assistant's language. A new installation gets its entity ids in that language too
+(`sensor.biowin_etat_de_la_chaudiere` in French); the entity ids already created are kept.
+
 ## Issues
 
 If you want to debug the integration, please add the following to your `configuration.yaml` file:

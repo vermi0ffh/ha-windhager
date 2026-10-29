@@ -52,6 +52,7 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         self.client = self.coordinator.client
         self._prefix = device_info.get("prefix", "")
         self._preset_modes = ["0", "1", "2", "3", "4", "5", "6", "7"]
+        # Not named in the translations: the climate takes its circuit's name
         self._attr_translation_key = "windhager_climate"
 
     @property
@@ -183,8 +184,8 @@ class WindhagerThermostatClimateWithoutBias(WindhagerBaseThermostat):
         """Initialize the thermostat."""
         device_info = device_info.copy()
         device_info["id"] = f"{device_info.get('id', '')}_nobias"
-        device_info["name"] = f"{device_info.get('name', '')} without bias"
         super().__init__(coordinator, device_info)
+        self._attr_translation_key = "windhager_climate_without_bias"
 
     @property
     def current_temperature(self) -> float | None:

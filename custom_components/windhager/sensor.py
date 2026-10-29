@@ -167,7 +167,7 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
             _LOGGER.debug(
                 "Unknown status value %s for sensor %s",
                 raw_value,
-                self.name,
+                self.entity_id,
             )
             return None
         return str(raw_value)
