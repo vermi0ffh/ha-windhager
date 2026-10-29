@@ -10,6 +10,22 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_REQUEST_TIMEOUT_S = 20
 
 
+def heater_id(json_devices: list[dict]) -> str | None:
+    """The heater's identity: the Neuron ID of the module holding its heater function.
+
+    A Neuron ID is the module's chip ID, unique and fixed, unlike the host. Without a
+    heater function, the first module's; without any module, None.
+    """
+    modules = [device for device in json_devices if "neuronId" in device]
+    for device in modules:
+        if any(
+            function.get("fctType") == HEATER_FUNCTION_TYPE
+            for function in device.get("functions", [])
+        ):
+            return device["neuronId"]
+    return modules[0]["neuronId"] if modules else None
+
+
 class WindhagerHttpClient:
     """Raw API HTTP requests"""
 
@@ -18,6 +34,7 @@ class WindhagerHttpClient:
         self.password = password
         self.oids = None
         self.devices = []
+        self.heater_id = None
         self._session = None
 
     async def _ensure_session(self):
@@ -65,6 +82,7 @@ class WindhagerHttpClient:
             self.oids = set()
             # Fetch all devices on the network
             json_devices = await self.fetch("/1")
+            self.heater_id = heater_id(json_devices)
 
             # Add devices
             for device in json_devices:
@@ -406,6 +424,7 @@ class WindhagerHttpClient:
 
         ret = {
             "devices": self.devices,
+            "heater_id": self.heater_id,
             "oids": {},
         }
 

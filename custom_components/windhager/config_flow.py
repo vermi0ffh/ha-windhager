@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN
-from .client import WindhagerHttpClient
+from .client import WindhagerHttpClient, heater_id
 from .exceptions import CannotConnect, InvalidAuth
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     )
     try:
         _LOGGER.debug("Testing connection by fetching root device info")
-        await client.fetch("/1")
+        json_devices = await client.fetch("/1")
         _LOGGER.info("Successfully connected to Windhager device at %s", host)
     except InvalidAuth:
         raise
@@ -68,6 +68,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {
         "title": f"Windhager Heater ({host})",
         "host": host,  # Return the cleaned host
+        "heater_id": heater_id(json_devices),
     }
 
 
@@ -92,12 +93,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             info = await validate_input(self.hass, user_input)
-            # Create a new dict with cleaned host value
-            cleaned_data = {
-                "host": info["host"],  # Use the cleaned host
-                "password": user_input["password"],
-            }
-            return self.async_create_entry(title=info["title"], data=cleaned_data)
         except CannotConnect:
             errors["base"] = "cannot_connect"
         except InvalidAuth:
@@ -105,6 +100,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except Exception:
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
+        else:
+            # The same heater is added once, whatever host it is reached at
+            if info["heater_id"] is not None:
+                await self.async_set_unique_id(info["heater_id"])
+                self._abort_if_unique_id_configured()
+            # Create a new dict with cleaned host value
+            cleaned_data = {
+                "host": info["host"],  # Use the cleaned host
+                "password": user_input["password"],
+            }
+            return self.async_create_entry(title=info["title"], data=cleaned_data)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors

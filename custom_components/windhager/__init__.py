@@ -61,9 +61,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) ->
         raise
 
     entry.runtime_data = coordinator
+    _async_set_heater_id(hass, entry, coordinator.data.get("heater_id"))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
+
+
+def _async_set_heater_id(
+    hass: HomeAssistant, entry: WindhagerConfigEntry, heater_id: str | None
+) -> None:
+    """Give an entry added before the heater's identity was known its unique id."""
+    if entry.unique_id is not None or heater_id is None:
+        return
+    others = hass.config_entries.async_entries(DOMAIN)
+    if any(other.unique_id == heater_id for other in others):
+        _LOGGER.warning(
+            "Another entry already holds the heater at %s: remove one of them",
+            entry.data["host"],
+        )
+        return
+    hass.config_entries.async_update_entry(entry, unique_id=heater_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) -> bool:
