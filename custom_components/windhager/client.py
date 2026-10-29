@@ -177,6 +177,7 @@ class WindhagerHttpClient:
                             "key": "current_temperature_real",
                             "name": f"{functions[0]['name']} Current Temperature real",
                             "type": "temperature",
+                            "entity_category": "diagnostic",
                             "oid": f"{device_id}{fct_id}/0/1/0",
                             "device_id": self.slugify(
                                 f"{self.id_base}{str(device['nodeId'])}"
@@ -195,7 +196,10 @@ class WindhagerHttpClient:
                             "name": f"{functions[0]['name']} Comfort Temperature Correction",
                             "type": "sensor",
                             "device_class": None,
-                            "state_class": None,
+                            "state_class": "measurement",
+                            # A setting of the circuit, rarely watched
+                            "entity_category": "diagnostic",
+                            "enabled_default": False,
                             "unit": "K",
                             "oid": f"{device_id}{fct_id}/3/58/0",
                             "device_id": self.slugify(
@@ -214,7 +218,10 @@ class WindhagerHttpClient:
                             "name": f"{functions[0]['name']} Current Temperature Correction",
                             "type": "sensor",
                             "device_class": None,
-                            "state_class": None,
+                            "state_class": "measurement",
+                            # A setting of the circuit, rarely watched
+                            "entity_category": "diagnostic",
+                            "enabled_default": False,
                             "unit": "K",
                             "oid": f"{device_id}{fct_id}/3/7/0",
                             "device_id": self.slugify(
@@ -300,7 +307,7 @@ class WindhagerHttpClient:
                             "name": f"{functions[0]['name']} Power factor",
                             "type": "sensor",
                             "device_class": "power_factor",
-                            "state_class": None,
+                            "state_class": "measurement",
                             "unit": "%",
                             "oid": f"{device_id}{fct_id}/0/9/0",
                             "device_id": self.slugify(
@@ -416,7 +423,8 @@ class WindhagerHttpClient:
                             "name": f"{functions[0]['name']} Running time until stage 1 cleaning",
                             "type": "sensor",
                             "device_class": "duration",
-                            "state_class": None,
+                            "state_class": "measurement",
+                            "entity_category": "diagnostic",
                             "unit": "h",
                             "oid": f"{device_id}{fct_id}/20/61/0",
                             "device_id": self.slugify(
@@ -436,7 +444,8 @@ class WindhagerHttpClient:
                             "name": f"{functions[0]['name']} Running time until stage 2 cleaning",
                             "type": "sensor",
                             "device_class": "duration",
-                            "state_class": None,
+                            "state_class": "measurement",
+                            "entity_category": "diagnostic",
                             "unit": "h",
                             "oid": f"{device_id}{fct_id}/20/62/0",
                             "device_id": self.slugify(

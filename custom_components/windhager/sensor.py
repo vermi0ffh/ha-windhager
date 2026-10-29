@@ -10,6 +10,7 @@ from homeassistant.const import (
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
+    SensorStateClass,
 )
 from homeassistant.core import HomeAssistant
 
@@ -70,6 +71,9 @@ class WindhagerTemperatureSensor(WindhagerBaseSensor):
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
         self._correction_oid = device_info.get("correction_oid")
+
+    # A measurement: Home Assistant keeps its long-term statistics
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def device_class(self) -> SensorDeviceClass:

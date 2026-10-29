@@ -46,6 +46,10 @@ The entities are named after their device ("BioWIN Heater status"), in English, 
 Assistant's language. A new installation gets its entity ids in that language too
 (`sensor.biowin_etat_de_la_chaudiere` in French); the entity ids already created are kept.
 
+The circuit's temperature corrections, its temperature without correction and the running times until cleaning are
+diagnostics. The two corrections are disabled on a new installation: enable them in the entity's settings to follow
+them.
+
 ## Issues
 
 If you want to debug the integration, please add the following to your `configuration.yaml` file:
