@@ -1,10 +1,12 @@
 {
   "config": {
+    "flow_title": "{host}",
     "abort": {
       "already_configured": "Dispositif déjà configuré",
       "reauth_successful": "La réauthentification a réussi",
       "reconfigure_successful": "La reconfiguration a réussi",
-      "wrong_heater": "Cette adresse répond avec une autre chaudière que celle de cette entrée"
+      "wrong_heater": "Cette adresse répond avec une autre chaudière que celle de cette entrée",
+      "not_ipv4": "La chaudière n'a été trouvée qu'à une adresse IPv6 : ajoutez-la à la main avec son adresse IPv4 ou son nom d'hôte."
     },
     "error": {
       "cannot_connect": "Impossible de se connecter",
@@ -31,6 +33,13 @@
         "description": "Nouvelle adresse ou nouveau mot de passe pour cette chaudière : ses entités et leur historique sont conservés.",
         "data": {
           "host": "Hôte",
+          "password": "Mot de passe"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Une chaudière Windhager a été trouvée",
+        "description": "L'InfoWIN Touch à l'adresse {host} répond : saisissez son mot de passe pour ajouter la chaudière.",
+        "data": {
           "password": "Mot de passe"
         }
       }

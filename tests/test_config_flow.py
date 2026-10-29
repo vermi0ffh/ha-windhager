@@ -1,12 +1,15 @@
 """Adding an entry, and giving a new password when the heater refuses the old one."""
 
 from collections.abc import Iterator
+from ipaddress import ip_address
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
+from homeassistant.config_entries import SOURCE_DHCP, SOURCE_USER, SOURCE_ZEROCONF, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.windhager import config_flow
@@ -145,3 +148,108 @@ async def test_another_heater_at_the_new_host_is_refused(
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "wrong_heater"
     assert entry.data == {"host": "192.0.2.1", "password": "secret"}
+
+
+# The InfoWIN Touch as zeroconf and DHCP see it (a documentation address, a fake MAC
+# under TEM AG's prefix)
+MAC = "00:23:43:00:00:01"
+ZEROCONF = ZeroconfServiceInfo(
+    ip_address=ip_address("192.0.2.30"),
+    ip_addresses=[ip_address("192.0.2.30")],
+    hostname="mb6620.local.",
+    name=f"mb6620 [{MAC}]._workstation._tcp.local.",
+    port=9,
+    type="_workstation._tcp.local.",
+    properties={},
+)
+DHCP = DhcpServiceInfo(ip="192.0.2.30", hostname="mb6620", macaddress="002343000001")
+
+
+@pytest.mark.parametrize(("source", "discovery"), [(SOURCE_ZEROCONF, ZEROCONF), (SOURCE_DHCP, DHCP)])
+async def test_a_discovered_heater_is_added_with_its_password(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock, source: str, discovery: object
+) -> None:
+    flow_client.fetch.return_value = [HEATER_MODULE]
+
+    result = await hass.config_entries.flow.async_init("windhager", context={"source": source}, data=discovery)
+    assert result["step_id"] == "discovery_confirm"
+    flow_client.fetch.assert_not_awaited()
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"password": "secret"})
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {"host": "192.0.2.30", "password": "secret", "mac": MAC}
+    assert result["result"].unique_id == "0a0000000060"
+
+
+async def test_a_heater_found_by_zeroconf_and_dhcp_is_offered_once(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_ZEROCONF}, data=ZEROCONF)
+
+    result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_DHCP}, data=DHCP)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_in_progress"
+
+
+async def test_a_known_heater_found_at_a_new_address_is_followed(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    entry = MockConfigEntry(
+        domain="windhager", unique_id="0a0000000060", data={"host": "192.0.2.9", "password": "secret", "mac": MAC}
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_DHCP}, data=DHCP)
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert entry.data["host"] == "192.0.2.30"
+    flow_client.fetch.assert_not_awaited()
+
+
+async def test_an_entry_discovered_at_its_own_address_learns_the_mac(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    entry = MockConfigEntry(domain="windhager", data={"host": "192.0.2.30", "password": "secret"})
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_ZEROCONF}, data=ZEROCONF)
+
+    assert result["reason"] == "already_configured"
+    assert entry.data == {"host": "192.0.2.30", "password": "secret", "mac": MAC}
+
+
+async def test_an_entry_added_by_hand_elsewhere_follows_its_heater_once_confirmed(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    flow_client.fetch.return_value = [HEATER_MODULE]
+    entry = MockConfigEntry(
+        domain="windhager", unique_id="0a0000000060", data={"host": "192.0.2.9", "password": "secret"}
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_DHCP}, data=DHCP)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"password": "secret"})
+
+    assert result["reason"] == "already_configured"
+    assert entry.data == {"host": "192.0.2.30", "password": "secret", "mac": MAC}
+
+
+async def test_a_heater_found_at_an_ipv6_address_only_is_not_offered(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    ipv6 = ZeroconfServiceInfo(
+        ip_address=ip_address("2001:db8::30"),
+        ip_addresses=[ip_address("2001:db8::30")],
+        hostname="mb6620.local.",
+        name=f"mb6620 [{MAC}]._workstation._tcp.local.",
+        port=9,
+        type="_workstation._tcp.local.",
+        properties={},
+    )
+
+    result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_ZEROCONF}, data=ipv6)
+
+    assert result["reason"] == "not_ipv4"
