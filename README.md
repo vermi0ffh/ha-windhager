@@ -63,6 +63,9 @@ logger:
 
 This will enable debug logging for the Windhager integration. If any values are displayed as "Unknown", please check the logs for more information.
 
+When the heater cannot be reached (or does not answer three polls in a row), its entities are *unavailable* and the
+log says so once, then once again when it answers; the details of each failed request are in the debug log.
+
 To see everything your heater exposes (to add a sensor, or for a model that is not supported yet), download the
 diagnostics: *Settings → Devices & services → Windhager Heater*, then *Download diagnostics* in the entry's menu.
 The first download starts a full scan of the heater's API in the background (about two minutes: every reading is

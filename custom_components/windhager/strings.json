@@ -147,6 +147,15 @@
     },
     "write_cannot_connect": {
       "message": "The heater did not answer: the value may not have been written."
+    },
+    "auth_failed": {
+      "message": "The heater at {host} refused the password."
+    },
+    "timeout": {
+      "message": "The heater at {host} did not answer within 20 seconds."
+    },
+    "cannot_connect": {
+      "message": "Cannot read the heater at {host}: {error}"
     }
   }
 }

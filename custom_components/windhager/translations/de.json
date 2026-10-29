@@ -148,6 +148,15 @@
     },
     "write_cannot_connect": {
       "message": "Der Kessel hat nicht geantwortet: der Wert wurde möglicherweise nicht geschrieben."
+    },
+    "auth_failed": {
+      "message": "Der Kessel unter {host} hat das Passwort abgelehnt."
+    },
+    "timeout": {
+      "message": "Der Kessel unter {host} hat nicht innerhalb von 20 Sekunden geantwortet."
+    },
+    "cannot_connect": {
+      "message": "Der Kessel unter {host} kann nicht gelesen werden: {error}"
     }
   }
 }
