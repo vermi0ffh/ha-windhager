@@ -135,7 +135,7 @@ temperature the main climate shows.
 | ----- | ----------- |
 | `compensation` | Required. The correction in K, from -3.5 to 3.5, in steps of 0.1. |
 
-Target the circuit's main climate, not its *Without bias* climate.
+The action targets either of the circuit's climates: both write the circuit's correction.
 
 ## Examples
 

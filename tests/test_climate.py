@@ -62,6 +62,21 @@ async def test_the_compensation_service_writes_the_circuit_bias(
     client.update.assert_awaited_once_with("/1/15/0/0/3/58/0", "-1.5")
 
 
+async def test_the_compensation_service_on_the_climate_without_bias_writes_the_same_bias(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up_circuit(hass, entry, client)
+
+    await hass.services.async_call(
+        "windhager",
+        "set_current_temp_compensation",
+        {"entity_id": "climate.heating_circuit_without_bias", "compensation": 1.0},
+        blocking=True,
+    )
+
+    client.update.assert_awaited_once_with("/1/15/0/0/3/58/0", "1.0")
+
+
 @pytest.mark.parametrize(
     ("failure", "translation_key"),
     [
