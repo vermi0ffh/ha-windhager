@@ -42,5 +42,3 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # No icon yet: the brand images come in their own change
-          ignore: brands
