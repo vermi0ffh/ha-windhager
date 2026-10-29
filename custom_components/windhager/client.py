@@ -75,8 +75,11 @@ class WindhagerHttpClient:
             json = await ret.json()
             _LOGGER.debug("Fetched data for %s: %s", url, json)
             return json
+        except aiohttp.ClientConnectionError as err:
+            raise CannotConnect(f"Cannot reach the heater for {url}: {err}") from err
         except Exception as e:
-            _LOGGER.error("Failed to fetch data for %s: %s", url, str(e))
+            # The caller decides: the coordinator logs once when the heater is lost
+            _LOGGER.debug("Failed to fetch data for %s: %s", url, str(e))
             raise
 
     async def update(self, oid: str, value: str) -> None:
@@ -484,9 +487,14 @@ class WindhagerHttpClient:
                 else:
                     ret["oids"][oid] = None
                     _LOGGER.debug("Invalid or missing value for OID %s: %s", oid, json)
+            except (InvalidAuth, CannotConnect):
+                # The heater as a whole, not this datapoint: the coordinator asks for
+                # the password, or makes the entities unavailable
+                raise
             except Exception as e:
+                # On every poll while it lasts: debug, the entity reads unknown
                 ret["oids"][oid] = None
-                _LOGGER.error("Error while fetching OID %s: %s", oid, str(e))
+                _LOGGER.debug("Error while fetching OID %s: %s", oid, str(e))
 
         return ret
 

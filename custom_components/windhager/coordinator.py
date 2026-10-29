@@ -52,27 +52,36 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 return data
         except InvalidAuth as err:
             # Home Assistant stops polling and asks the user for the new password
-            raise ConfigEntryAuthFailed(str(err)) from err
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN,
+                translation_key="auth_failed",
+                translation_placeholders={"host": self.entry.data["host"]},
+            ) from err
         except asyncio.TimeoutError as err:
             self.consecutive_timeouts += 1
-            _LOGGER.warning(
+            # Debug: the coordinator logs once when the heater is lost, and once back
+            _LOGGER.debug(
                 "Timeout fetching data from %s after 20 seconds (attempt %d)",
                 self.entry.data["host"],
                 self.consecutive_timeouts,
             )
-            if self.data is None:
+            if self.data is None or self.consecutive_timeouts >= 3:
                 # Nothing to keep yet (the first refresh at start): a failure, so
                 # that Home Assistant retries the setup instead of setting the
-                # platforms up without any device
-                raise UpdateFailed(f"Timeout communicating with API: {err}") from err
-            if self.consecutive_timeouts >= 3:
+                # platforms up without any device. After three, the heater is lost.
                 raise UpdateFailed(
-                    f"Multiple consecutive timeouts communicating with API: {err}"
+                    translation_domain=DOMAIN,
+                    translation_key="timeout",
+                    translation_placeholders={"host": self.entry.data["host"]},
                 ) from err
             # Keep the last known good data
             return self.data
         except Exception as err:
-            _LOGGER.error(
-                "Error fetching data from %s: %s", self.entry.data["host"], str(err)
-            )
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="cannot_connect",
+                translation_placeholders={
+                    "host": self.entry.data["host"],
+                    "error": str(err),
+                },
+            ) from err

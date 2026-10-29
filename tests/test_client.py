@@ -165,3 +165,40 @@ async def test_the_entities_and_devices_are_named_after_the_heater_not_the_host(
 
     ids = {device["id"] for device in data["devices"]} | {device["device_id"] for device in data["devices"]}
     assert ids and all(identifier.startswith("0a0000000060") for identifier in ids)
+
+
+async def polled_client(failure: Exception) -> WindhagerHttpClient:
+    """A client that found its datapoints, the heater then failing every request with `failure`."""
+    client = WindhagerHttpClient("192.0.2.1", PASSWORD)
+    heater = {**HEATER_MODULE, "functions": [{"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN"}]}
+    client.fetch = AsyncMock(side_effect=lambda url: [heater] if url == "/1" else {"value": "1"})
+    await client.fetch_all()
+    client.fetch = AsyncMock(side_effect=failure)
+    return client
+
+
+@pytest.mark.parametrize("failure", [InvalidAuth("refused"), CannotConnect("no answer")])
+async def test_a_poll_the_heater_fails_as_a_whole_raises(failure: Exception) -> None:
+    client = await polled_client(failure)
+
+    with pytest.raises(type(failure)):
+        await client.fetch_all()
+
+
+async def test_a_datapoint_answered_without_a_value_reads_unknown() -> None:
+    client = await polled_client(ValueError("not JSON"))
+
+    data = await client.fetch_all()
+
+    assert data["oids"] and all(value is None for value in data["oids"].values())
+
+
+async def test_a_heater_that_does_not_answer_a_lookup_cannot_connect(socket_enabled: None) -> None:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    client = WindhagerHttpClient(f"127.0.0.1:{port}", PASSWORD)
+
+    with pytest.raises(CannotConnect):
+        await client.fetch("/1")
+    await client.close()

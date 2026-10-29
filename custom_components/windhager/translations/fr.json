@@ -148,6 +148,15 @@
     },
     "write_cannot_connect": {
       "message": "La chaudière n'a pas répondu : la valeur n'a peut-être pas été écrite."
+    },
+    "auth_failed": {
+      "message": "La chaudière à l'adresse {host} a refusé le mot de passe."
+    },
+    "timeout": {
+      "message": "La chaudière à l'adresse {host} n'a pas répondu en 20 secondes."
+    },
+    "cannot_connect": {
+      "message": "Impossible de lire la chaudière à l'adresse {host} : {error}"
     }
   }
 }
