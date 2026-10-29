@@ -156,6 +156,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/1/0/3/58/0"
                             ),
+                            "key": "current_temperature",
                             "name": f"{functions[0]['name']} Current Temperature",
                             "type": "temperature",
                             "correction_oid": f"{device_id}{fct_id}/3/58/0",
@@ -173,6 +174,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/1/0"
                             ),
+                            "key": "current_temperature_real",
                             "name": f"{functions[0]['name']} Current Temperature real",
                             "type": "temperature",
                             "oid": f"{device_id}{fct_id}/0/1/0",
@@ -189,6 +191,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/3/58/0"
                             ),
+                            "key": "comfort_temperature_correction",
                             "name": f"{functions[0]['name']} Comfort Temperature Correction",
                             "type": "sensor",
                             "device_class": None,
@@ -207,6 +210,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/3/7/0"
                             ),
+                            "key": "current_temperature_correction",
                             "name": f"{functions[0]['name']} Current Temperature Correction",
                             "type": "sensor",
                             "device_class": None,
@@ -225,6 +229,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/1/1/0"
                             ),
+                            "key": "target_temperature",
                             "name": f"{functions[0]['name']} Target Temperature",
                             "type": "temperature",
                             "correction_oid": f"{device_id}{fct_id}/3/58/0",
@@ -241,6 +246,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/0/0"
                             ),
+                            "key": "outside_temperature",
                             "name": f"{functions[0]['name']} Outside Temperature",
                             "type": "temperature",
                             "oid": f"{device_id}{fct_id}/0/0/0",
@@ -290,6 +296,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/9/0"
                             ),
+                            "key": "power_factor",
                             "name": f"{functions[0]['name']} Power factor",
                             "type": "sensor",
                             "device_class": "power_factor",
@@ -308,6 +315,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/11/0"
                             ),
+                            "key": "fumes_temperature",
                             "name": f"{functions[0]['name']} Fumes Temperature",
                             "type": "temperature",
                             "oid": f"{device_id}{fct_id}/0/11/0",
@@ -323,6 +331,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/7/0"
                             ),
+                            "key": "heater_temperature",
                             "name": f"{functions[0]['name']} Heater Temperature",
                             "type": "temperature",
                             "oid": f"{device_id}{fct_id}/0/7/0",
@@ -338,6 +347,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/45/0"
                             ),
+                            "key": "combustion_chamber_temperature",
                             "name": f"{functions[0]['name']} Combustion chamber Temperature",
                             "type": "temperature",
                             "oid": f"{device_id}{fct_id}/0/45/0",
@@ -353,6 +363,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/2/1/0"
                             ),
+                            "key": "heater_status",
                             "name": f"{functions[0]['name']} Heater status",
                             "type": "select",
                             "oid": f"{device_id}{fct_id}/2/1/0",
@@ -368,6 +379,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/23/100/0"
                             ),
+                            "key": "pellet_consumption",
                             "name": f"{functions[0]['name']} Pellet consumption",
                             "type": "total",
                             "oid": f"{device_id}{fct_id}/23/100/0",
@@ -383,6 +395,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/23/103/0"
                             ),
+                            "key": "total_pellet_consumption",
                             "name": f"{functions[0]['name']} Total Pellet consumption",
                             "type": "total_increasing",
                             "oid": f"{device_id}{fct_id}/23/103/0",
@@ -399,6 +412,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/20/61/0"
                             ),
+                            "key": "time_until_stage_1_cleaning",
                             "name": f"{functions[0]['name']} Running time until stage 1 cleaning",
                             "type": "sensor",
                             "device_class": "duration",
@@ -418,6 +432,7 @@ class WindhagerHttpClient:
                             "id": self.slugify(
                                 f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/20/62/0"
                             ),
+                            "key": "time_until_stage_2_cleaning",
                             "name": f"{functions[0]['name']} Running time until stage 2 cleaning",
                             "type": "sensor",
                             "device_class": "duration",

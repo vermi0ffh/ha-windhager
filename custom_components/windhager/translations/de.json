@@ -38,7 +38,38 @@
   },
   "entity": {
     "sensor": {
+      "current_temperature": {
+        "name": "Aktuelle Temperatur"
+      },
+      "current_temperature_real": {
+        "name": "Aktuelle Temperatur real"
+      },
+      "comfort_temperature_correction": {
+        "name": "Korrektur Komforttemperatur"
+      },
+      "current_temperature_correction": {
+        "name": "Korrektur aktuelle Temperatur"
+      },
+      "target_temperature": {
+        "name": "Solltemperatur"
+      },
+      "outside_temperature": {
+        "name": "Außentemperatur"
+      },
+      "power_factor": {
+        "name": "Leistung"
+      },
+      "fumes_temperature": {
+        "name": "Abgastemperatur"
+      },
+      "heater_temperature": {
+        "name": "Kesseltemperatur"
+      },
+      "combustion_chamber_temperature": {
+        "name": "Brennkammertemperatur"
+      },
       "heater_status": {
+        "name": "Kesselstatus",
         "state": {
           "0": "Brenner gesperrt",
           "1": "Selbsttest",
@@ -58,10 +89,39 @@
           "15": "Vorwärmung läuft",
           "17": "Ausbrand"
         }
+      },
+      "pellet_consumption": {
+        "name": "Pelletverbrauch"
+      },
+      "total_pellet_consumption": {
+        "name": "Gesamter Pelletverbrauch"
+      },
+      "time_until_stage_1_cleaning": {
+        "name": "Betriebszeit bis Reinigung Stufe 1"
+      },
+      "time_until_stage_2_cleaning": {
+        "name": "Betriebszeit bis Reinigung Stufe 2"
       }
     },
     "climate": {
       "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heizprogramm 1",
+              "2": "Heizprogramm 2",
+              "3": "Heizprogramm 3",
+              "4": "Tagmodus",
+              "5": "Nachtmodus",
+              "6": "Urlaubsmodus",
+              "7": "Manuell"
+            }
+          }
+        }
+      },
+      "windhager_climate_without_bias": {
+        "name": "Ohne Korrektur",
         "state_attributes": {
           "preset_mode": {
             "state": {

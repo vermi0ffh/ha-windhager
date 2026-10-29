@@ -34,5 +34,108 @@
       "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]",
       "wrong_heater": "This address answers with another heater than this entry's"
     }
+  },
+  "entity": {
+    "sensor": {
+      "current_temperature": {
+        "name": "Current temperature"
+      },
+      "current_temperature_real": {
+        "name": "Current temperature real"
+      },
+      "comfort_temperature_correction": {
+        "name": "Comfort temperature correction"
+      },
+      "current_temperature_correction": {
+        "name": "Current temperature correction"
+      },
+      "target_temperature": {
+        "name": "Target temperature"
+      },
+      "outside_temperature": {
+        "name": "Outside temperature"
+      },
+      "power_factor": {
+        "name": "Power factor"
+      },
+      "fumes_temperature": {
+        "name": "Fumes temperature"
+      },
+      "heater_temperature": {
+        "name": "Heater temperature"
+      },
+      "combustion_chamber_temperature": {
+        "name": "Combustion chamber temperature"
+      },
+      "heater_status": {
+        "name": "Heater status",
+        "state": {
+          "0": "Burner blocked",
+          "1": "Self-test",
+          "2": "Turn off heat generator",
+          "3": "Standby",
+          "4": "Burner OFF",
+          "5": "Pre-purge",
+          "6": "Ignition phase",
+          "7": "Flame stabilization",
+          "8": "Modulating mode",
+          "9": "Boiler blocked",
+          "10": "Delayed standby",
+          "11": "Fan stopped",
+          "12": "Cladding door open",
+          "13": "Ignition ready",
+          "14": "Cancel ignition phase",
+          "15": "Preheating in progress",
+          "17": "Burnout"
+        }
+      },
+      "pellet_consumption": {
+        "name": "Pellet consumption"
+      },
+      "total_pellet_consumption": {
+        "name": "Total pellet consumption"
+      },
+      "time_until_stage_1_cleaning": {
+        "name": "Running time until stage 1 cleaning"
+      },
+      "time_until_stage_2_cleaning": {
+        "name": "Running time until stage 2 cleaning"
+      }
+    },
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heating program 1",
+              "2": "Heating program 2",
+              "3": "Heating program 3",
+              "4": "Day mode",
+              "5": "Night mode",
+              "6": "Holidays",
+              "7": "Manual"
+            }
+          }
+        }
+      },
+      "windhager_climate_without_bias": {
+        "name": "Without bias",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heating program 1",
+              "2": "Heating program 2",
+              "3": "Heating program 3",
+              "4": "Day mode",
+              "5": "Night mode",
+              "6": "Holidays",
+              "7": "Manual"
+            }
+          }
+        }
+      }
+    }
   }
 }
