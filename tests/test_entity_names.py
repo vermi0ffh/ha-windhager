@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -43,7 +44,9 @@ async def test_a_new_english_installation_gets_the_entity_ids_of_the_former_name
         for device in data["devices"]
     } | {"climate.circuit_without_bias"}
 
-    assert set(hass.states.async_entity_ids()) == expected
+    # The registry: an entity disabled by default has no state
+    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    assert {entity.entity_id for entity in entities} == expected
 
 
 async def test_the_names_are_translated_after_their_device(
