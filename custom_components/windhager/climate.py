@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 import logging
-import voluptuous as vol
 from typing import Optional
 
 from homeassistant.components.climate import ClimateEntity
@@ -12,35 +11,24 @@ from homeassistant.components.climate.const import (
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_platform
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import DOMAIN
+from .coordinator import WindhagerConfigEntry
+from .entity import WindhagerEntity
 from .exceptions import WindhagerValueError
 from .helpers import get_oid_value
 
 _LOGGER = logging.getLogger(__name__)
 
+# One write at a time to the heater: its API answers the requests one after the other
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+    hass: HomeAssistant, entry: WindhagerConfigEntry, async_add_entities
 ) -> None:
     """Set up Windhager climates from a config entry."""
-    platform = entity_platform.async_get_current_platform()
-    platform.async_register_entity_service(
-        "set_current_temp_compensation",
-        {
-            vol.Required("compensation"): vol.All(
-                vol.Coerce(float), vol.Range(min=-3.5, max=3.5)
-            ),
-        },
-        "set_current_temp_compensation",
-    )
-
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     entities = []
 
     for device_info in coordinator.data.get("devices", []):
@@ -55,44 +43,21 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
+class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
     """Base class for Windhager thermostats."""
 
     def __init__(self, coordinator, device_info: dict):
         """Initialize the thermostat."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, device_info)
         self.client = self.coordinator.client
-        self._id = device_info.get("id", "")
-        self._name = device_info.get("name", "")
         self._prefix = device_info.get("prefix", "")
         self._preset_modes = ["0", "1", "2", "3", "4", "5", "6", "7"]
         self._attr_translation_key = "windhager_climate"
-        self._device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_info.get("device_id", ""))},
-            name=device_info.get("device_name", ""),
-            manufacturer="Windhager",
-            model=device_info.get("device_name", ""),
-        )
-
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for the entity."""
-        return self._id
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this entity."""
-        return self._name
 
     @property
     def temperature_unit(self) -> str:
         """Return the unit of measurement."""
         return UnitOfTemperature.CELSIUS
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        return self._device_info
 
     @property
     def supported_features(self) -> int:

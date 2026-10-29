@@ -10,6 +10,8 @@ This is a custom integration for Windhager heaters to be used with Home Assistan
 
 ## Installation using HACS
 
+The integration requires Home Assistant 2025.10 or later.
+
 1. Install [HACS](https://hacs.xyz/)
 2. Add this repository as a custom repository in HACS by clicking on the three dots in the top right corner and selecting "Custom repository".
 3. Enter the following as the repository URL and select "Integration" as the type:

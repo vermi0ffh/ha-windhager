@@ -2,82 +2,49 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import timedelta
 
-from homeassistant.config_entries import ConfigEntry
+import voluptuous as vol
+from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
+from homeassistant.helpers import config_validation as cv, service
+from homeassistant.helpers.typing import ConfigType
 
 from .client import WindhagerHttpClient
-from .const import DOMAIN, UPDATE_INTERVAL
+from .const import DOMAIN
+from .coordinator import WindhagerConfigEntry, WindhagerDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SENSOR]
 
-
-class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Windhager data."""
-
-    def __init__(self, hass, client, entry):
-        """Initialize the coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(seconds=UPDATE_INTERVAL),
-        )
-        self.client = client
-        self.entry = entry
-        self.consecutive_timeouts = 0
-        # The diagnostics' API scan (diagnostics.ApiScan), started by the first download
-        self.api_scan = None
-
-    async def _async_update_data(self):
-        """Fetch data from API endpoint."""
-        try:
-            _LOGGER.debug("Starting data update from Windhager device")
-            async with asyncio.timeout(20):
-                data = await self.client.fetch_all()
-                self.consecutive_timeouts = 0
-                return data
-        except asyncio.TimeoutError as err:
-            self.consecutive_timeouts += 1
-            _LOGGER.warning(
-                "Timeout fetching data from %s after 20 seconds (attempt %d)",
-                self.entry.data["host"],
-                self.consecutive_timeouts,
-            )
-            if self.data is None:
-                # Nothing to keep yet (the first refresh at start): a failure, so
-                # that Home Assistant retries the setup instead of setting the
-                # platforms up without any device
-                raise UpdateFailed(f"Timeout communicating with API: {err}") from err
-            if self.consecutive_timeouts >= 3:
-                raise UpdateFailed(
-                    f"Multiple consecutive timeouts communicating with API: {err}"
-                ) from err
-            # Keep the last known good data
-            return self.data
-        except Exception as err:
-            _LOGGER.error(
-                "Error fetching data from %s: %s", self.entry.data["host"], str(err)
-            )
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the integration's services, once for all its entries."""
+    # Registered here rather than with the climates, so that they exist, and say
+    # why they fail, even while no entry is loaded
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "set_current_temp_compensation",
+        entity_domain=CLIMATE_DOMAIN,
+        schema={
+            vol.Required("compensation"): vol.All(
+                vol.Coerce(float), vol.Range(min=-3.5, max=3.5)
+            ),
+        },
+        func="set_current_temp_compensation",
+    )
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) -> bool:
     """Set up windhager integration from a config entry."""
     _LOGGER.info("Setting up Windhager integration for %s", entry.data["host"])
-
-    hass.data.setdefault(DOMAIN, {})
 
     client = WindhagerHttpClient(
         host=entry.data["host"],
@@ -92,19 +59,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await client.close()
         raise
 
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.info("Unloading Windhager integration for %s", entry.data["host"])
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        coordinator = hass.data[DOMAIN][entry.entry_id]
-        await coordinator.client.close()
-        hass.data[DOMAIN].pop(entry.entry_id)
+        await entry.runtime_data.client.close()
 
     return unload_ok

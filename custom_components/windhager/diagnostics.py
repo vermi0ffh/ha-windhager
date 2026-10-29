@@ -8,13 +8,12 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .client import WindhagerHttpClient
-from .const import DOMAIN
+from .coordinator import WindhagerConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ class ApiScan:
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: WindhagerConfigEntry
 ) -> dict[str, Any]:
     """The entry, the data the entities read, and a full scan of the heater's API.
 
@@ -56,7 +55,7 @@ async def async_get_config_entry_diagnostics(
     the scan in the background, and the following ones hold its result, kept until the
     entry is reloaded.
     """
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     if coordinator.api_scan is None:
         coordinator.api_scan = ApiScan(started_at=dt_util.utcnow())
         entry.async_create_background_task(
@@ -70,7 +69,7 @@ async def async_get_config_entry_diagnostics(
     }
 
 
-async def _async_scan(entry: ConfigEntry, scan: ApiScan) -> None:
+async def _async_scan(entry: WindhagerConfigEntry, scan: ApiScan) -> None:
     # A client of its own: the scan's many requests do not share the coordinator's
     # session and digest authentication state
     client = WindhagerHttpClient(entry.data[CONF_HOST], entry.data[CONF_PASSWORD])

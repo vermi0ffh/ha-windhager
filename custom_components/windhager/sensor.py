@@ -7,29 +7,27 @@ from typing import Any
 from homeassistant.const import (
     UnitOfTemperature,
 )
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-)
-
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from . import DOMAIN
+from .coordinator import WindhagerConfigEntry
+from .entity import WindhagerEntity
 from .helpers import parse_value, get_oid_value
 
 _LOGGER = logging.getLogger(__name__)
 
+# Read only, from the coordinator's data: no limit
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+    hass: HomeAssistant, entry: WindhagerConfigEntry, async_add_entities
 ) -> None:
     """Set up WindHager lights from a config entry."""
-    data_coordinator = hass.data[DOMAIN][entry.entry_id]
+    data_coordinator = entry.runtime_data
 
     entities = []
 
@@ -53,36 +51,13 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class WindhagerBaseSensor(CoordinatorEntity, SensorEntity):
+class WindhagerBaseSensor(WindhagerEntity, SensorEntity):
     """Base class for Windhager sensors."""
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._id = device_info.get("id")
-        self._name = device_info.get("name")
+        super().__init__(coordinator, device_info)
         self._oid = device_info.get("oid")
-        self._device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_info.get("device_id"))},
-            name=device_info.get("device_name"),
-            manufacturer="Windhager",
-            model=device_info.get("device_name"),
-        )
-
-    @property
-    def unique_id(self) -> str:
-        """Return unique ID for sensor."""
-        return self._id
-
-    @property
-    def name(self) -> str:
-        """Return sensor name."""
-        return self._name
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info."""
-        return self._device_info
 
     def _get_oid_value(self, oid: str | None = None) -> Any | None:
         """Get value from coordinator data for given OID."""
@@ -192,7 +167,7 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
             _LOGGER.debug(
                 "Unknown status value %s for sensor %s",
                 raw_value,
-                self._name,
+                self.name,
             )
             return None
         return str(raw_value)
