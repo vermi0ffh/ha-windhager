@@ -40,5 +40,8 @@ class WindhagerEntity(CoordinatorEntity[WindhagerDataUpdateCoordinator]):
             identifiers={(DOMAIN, device_info.get("device_id"))},
             name=device_info.get("device_name"),
             manufacturer="Windhager",
-            model=device_info.get("device_name"),
+            model=device_info.get("device_model"),
+            serial_number=device_info.get("device_serial_number"),
+            # The InfoWIN Touch's own web page
+            configuration_url=f"http://{coordinator.entry.data['host']}",
         )
