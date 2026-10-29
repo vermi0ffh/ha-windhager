@@ -12,6 +12,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.windhager import config_flow
 from custom_components.windhager.exceptions import InvalidAuth
 
+HEATER_MODULE = {"nodeId": 60, "neuronId": "0a0000000060", "functions": [{"fctId": 0, "fctType": 9}]}
+
 
 @pytest.fixture
 def flow_client() -> Iterator[MagicMock]:
@@ -37,6 +39,28 @@ async def test_a_heater_answering_is_added_with_its_cleaned_host(
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {"host": "192.0.2.1", "password": "secret"}
+
+
+async def test_a_heater_is_added_once_whatever_its_host(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    flow_client.fetch.return_value = [HEATER_MODULE]
+    MockConfigEntry(domain="windhager", unique_id="0a0000000060", data={"host": "192.0.2.9"}).add_to_hass(hass)
+
+    result = await add_heater(hass, "secret")
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+async def test_a_new_heater_is_added_with_its_neuron_id(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    flow_client.fetch.return_value = [HEATER_MODULE]
+
+    result = await add_heater(hass, "secret")
+
+    assert result["result"].unique_id == "0a0000000060"
 
 
 @pytest.mark.parametrize(

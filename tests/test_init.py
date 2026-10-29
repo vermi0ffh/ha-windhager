@@ -69,3 +69,27 @@ async def test_unloading_closes_the_session(hass: HomeAssistant, entry: MockConf
 
     assert entry.state is ConfigEntryState.NOT_LOADED
     client.close.assert_awaited_once()
+
+
+async def test_an_entry_added_before_gets_the_heater_id_as_unique_id(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    client.fetch_all.return_value = {"devices": [], "heater_id": "0a0000000060", "oids": {}}
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.unique_id == "0a0000000060"
+
+
+async def test_an_entry_duplicating_another_keeps_no_unique_id(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    MockConfigEntry(domain="windhager", unique_id="0a0000000060", data={"host": "192.0.2.9"}).add_to_hass(hass)
+    client.fetch_all.return_value = {"devices": [], "heater_id": "0a0000000060", "oids": {}}
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.unique_id is None

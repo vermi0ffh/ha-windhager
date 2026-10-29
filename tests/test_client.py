@@ -9,7 +9,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestServer
 
-from custom_components.windhager.client import WindhagerHttpClient
+from custom_components.windhager.client import WindhagerHttpClient, heater_id
 from custom_components.windhager.const import DEFAULT_USERNAME
 from custom_components.windhager.exceptions import InvalidAuth
 
@@ -95,3 +95,22 @@ async def test_a_wrong_password_fails_the_lookup(heater: Heater) -> None:
     await client.close()
 
     assert heater.challenges == 2
+
+
+# The modules of an installation as /1 lists them (fake Neuron IDs): a heating circuit
+# module first, then the heater, then a module with no function of interest
+CIRCUIT_MODULE = {"nodeId": 15, "neuronId": "0a0000000015", "functions": [{"fctId": 0, "fctType": 14}]}
+HEATER_MODULE = {"nodeId": 60, "neuronId": "0a0000000060", "functions": [{"fctId": 0, "fctType": 9}]}
+OTHER_MODULE = {"nodeId": 90, "neuronId": "0a0000000090", "functions": [{"fctId": 32, "fctType": -1}]}
+
+
+@pytest.mark.parametrize(
+    ("modules", "expected"),
+    [
+        ([CIRCUIT_MODULE, HEATER_MODULE, OTHER_MODULE], "0a0000000060"),
+        ([OTHER_MODULE, CIRCUIT_MODULE], "0a0000000090"),
+        ([], None),
+    ],
+)
+def test_the_heater_is_identified_by_its_module_neuron_id(modules: list[dict], expected: str | None) -> None:
+    assert heater_id(modules) == expected
