@@ -2,12 +2,14 @@ import asyncio
 import aiohttp
 import logging
 from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
-from .exceptions import InvalidAuth
+from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 
 _LOGGER = logging.getLogger(__name__)
 
 # Each request of a scan: the coordinator's timeout
 SCAN_REQUEST_TIMEOUT_S = 20
+# A write: the same, so that a heater gone silent fails the action instead of holding it
+WRITE_TIMEOUT_S = 20
 
 
 def slugify(identifier_str: str) -> str:
@@ -77,12 +79,24 @@ class WindhagerHttpClient:
             _LOGGER.error("Failed to fetch data for %s: %s", url, str(e))
             raise
 
-    async def update(self, oid, value):
+    async def update(self, oid: str, value: str) -> None:
+        """Write a datapoint; raise if the heater did not take it."""
         await self._ensure_session()
-        await self._session.put(
-            f"http://{self.host}/api/1.0/datapoint",
-            data=bytes(f'{{"OID":"{oid}","value":"{value}"}}', "utf-8"),
-        )
+        try:
+            async with (
+                asyncio.timeout(WRITE_TIMEOUT_S),
+                self._session.put(
+                    f"http://{self.host}/api/1.0/datapoint",
+                    data=bytes(f'{{"OID":"{oid}","value":"{value}"}}', "utf-8"),
+                ) as ret,
+            ):
+                # Refused like a lookup, with a 401 (2026-10-29): nothing is written
+                if ret.status == 401:
+                    raise InvalidAuth(f"The heater refused the password writing {oid}")
+                if not ret.ok:
+                    raise WriteFailed(oid, ret.status)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise CannotConnect(f"Cannot reach the heater writing {oid}: {err}") from err
 
     slugify = staticmethod(slugify)
 

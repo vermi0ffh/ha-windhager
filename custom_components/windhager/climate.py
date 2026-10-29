@@ -12,10 +12,12 @@ from homeassistant.components.climate.const import (
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from .coordinator import WindhagerConfigEntry
 from .entity import WindhagerEntity
-from .exceptions import WindhagerValueError
+from .const import DOMAIN
+from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 from .helpers import get_oid_value
 
 _LOGGER = logging.getLogger(__name__)
@@ -121,23 +123,43 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         mode = self.raw_preset_mode()
         return self._preset_modes[mode] if mode is not None else None
 
+    async def _async_write(self, path: str, value: str) -> None:
+        """Write a datapoint of the circuit; a failure is an error the user sees."""
+        try:
+            await self.client.update(f"{self._prefix}{path}", value)
+        except InvalidAuth as err:
+            # As when polling: Home Assistant asks the user for the new password
+            self.coordinator.entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="write_auth_failed"
+            ) from err
+        except WriteFailed as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="write_refused",
+                translation_placeholders={"status": str(err.status)},
+            ) from err
+        except CannotConnect as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="write_cannot_connect"
+            ) from err
+
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
         id_mode = self._preset_modes.index(preset_mode)
-        await self.client.update(f"{self._prefix}/0/3/50/0", str(id_mode))
+        await self._async_write("/0/3/50/0", str(id_mode))
 
         if self.raw_custom_temp_remaining_time() > 0:
-            await self.client.update(f"{self._prefix}/0/2/10/0", "0")
+            await self._async_write("/0/2/10/0", "0")
         await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs) -> None:
         """Set new target temperature."""
-        temp = kwargs.get(ATTR_TEMPERATURE)
-        if temp is None:
-            raise WindhagerValueError("No temperature provided")
-
-        await self.client.update(f"{self._prefix}/0/3/4/0", str(temp))
-        await self.client.update(f"{self._prefix}/0/2/10/0", "400")
+        # Home Assistant refuses a range (target_temp_low / high) before calling it: the
+        # entity does not support TARGET_TEMPERATURE_RANGE
+        temp = kwargs[ATTR_TEMPERATURE]
+        await self._async_write("/0/3/4/0", str(temp))
+        await self._async_write("/0/2/10/0", "400")
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
@@ -173,7 +195,7 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
 
     async def set_current_temp_compensation(self, compensation: float) -> None:
         """Set the temperature compensation value."""
-        await self.client.update(f"{self._prefix}/0/3/58/0", str(compensation))
+        await self._async_write("/0/3/58/0", str(compensation))
         await self.coordinator.async_request_refresh()
 
 

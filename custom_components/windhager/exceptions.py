@@ -21,7 +21,10 @@ class InvalidAuth(WindhagerError):
     pass
 
 
-class WindhagerValueError(WindhagerError):
-    """Error to indicate invalid values."""
+class WriteFailed(WindhagerError):
+    """Error to indicate the heater answered a write with an error status."""
 
-    pass
+    def __init__(self, oid: str, status: int) -> None:
+        super().__init__(f"The heater answered {status} writing {oid}")
+        self.status = status
+
