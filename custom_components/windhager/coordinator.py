@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -15,6 +16,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from .client import WindhagerHttpClient
 from .const import DOMAIN, UPDATE_INTERVAL
+from .exceptions import InvalidAuth
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +50,9 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 data = await self.client.fetch_all()
                 self.consecutive_timeouts = 0
                 return data
+        except InvalidAuth as err:
+            # Home Assistant stops polling and asks the user for the new password
+            raise ConfigEntryAuthFailed(str(err)) from err
         except asyncio.TimeoutError as err:
             self.consecutive_timeouts += 1
             _LOGGER.warning(

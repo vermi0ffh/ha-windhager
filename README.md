@@ -36,6 +36,9 @@ https://github.com/vermi0ffh/ha-windhager
 2. Enter the host and password of your Windhager heater.
 3. The integration will now be available in Home Assistant.
 
+If the heater's password changes, Home Assistant stops polling it and shows a *Re-authentication required* notice:
+enter the new password there.
+
 ## Issues
 
 If you want to debug the integration, please add the following to your `configuration.yaml` file:

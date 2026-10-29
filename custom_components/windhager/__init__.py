@@ -8,7 +8,7 @@ import voluptuous as vol
 from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, service
 from homeassistant.helpers.typing import ConfigType
 
@@ -54,8 +54,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) ->
     coordinator = WindhagerDataUpdateCoordinator(hass, client, entry)
     try:
         await coordinator.async_config_entry_first_refresh()
-    except ConfigEntryNotReady:
-        # Home Assistant retries with a new client: close this one's session
+    except (ConfigEntryNotReady, ConfigEntryAuthFailed):
+        # Home Assistant retries, or asks for the password, with a new client: close
+        # this one's session
         await client.close()
         raise
 
