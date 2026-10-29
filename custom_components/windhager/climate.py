@@ -162,6 +162,13 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         await self._async_write("/0/2/10/0", "400")
         await self.coordinator.async_request_refresh()
 
+    async def set_current_temp_compensation(self, compensation: float) -> None:
+        """Set the temperature compensation value."""
+        # The circuit's own correction: both climates of a circuit write the same one (the
+        # action targets either of them)
+        await self._async_write("/0/3/58/0", str(compensation))
+        await self.coordinator.async_request_refresh()
+
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target hvac mode."""
         # Implement if needed
@@ -192,11 +199,6 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
             return None
 
         return target - bias
-
-    async def set_current_temp_compensation(self, compensation: float) -> None:
-        """Set the temperature compensation value."""
-        await self._async_write("/0/3/58/0", str(compensation))
-        await self.coordinator.async_request_refresh()
 
 
 class WindhagerThermostatClimateWithoutBias(WindhagerBaseThermostat):
