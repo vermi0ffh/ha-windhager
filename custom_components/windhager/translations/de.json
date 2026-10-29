@@ -17,8 +17,11 @@
       "user": {
         "data": {
           "host": "Host (IP Adresse)",
-          "password": "Passwort",
-          "username": "Benutzername"
+          "password": "Passwort"
+        },
+        "data_description": {
+          "host": "Die Adresse des InfoWIN Touch des Kessels in Ihrem Netzwerk: seine IP-Adresse oder sein Hostname (mb6620, wenn Ihr Router ihn auflöst).",
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
         }
       },
       "reauth_confirm": {
@@ -26,6 +29,9 @@
         "description": "Der Heizkessel unter {host} hat das Passwort abgelehnt: Geben Sie sein aktuelles InfoWIN-Passwort ein.",
         "data": {
           "password": "Passwort"
+        },
+        "data_description": {
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
         }
       },
       "reconfigure": {
@@ -34,6 +40,10 @@
         "data": {
           "host": "Host",
           "password": "Passwort"
+        },
+        "data_description": {
+          "host": "Die Adresse des InfoWIN Touch des Kessels in Ihrem Netzwerk: seine IP-Adresse oder sein Hostname (mb6620, wenn Ihr Router ihn auflöst).",
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
         }
       },
       "discovery_confirm": {
@@ -41,6 +51,9 @@
         "description": "Das InfoWIN Touch unter {host} antwortet: geben Sie sein Passwort ein, um den Kessel hinzuzufügen.",
         "data": {
           "password": "Passwort"
+        },
+        "data_description": {
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
         }
       }
     }

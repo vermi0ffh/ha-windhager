@@ -1,12 +1,29 @@
 # Windhager Heater
 
-This is a custom integration for Windhager heaters to be used with Home Assistant.
+A custom integration for [Home Assistant](https://www.home-assistant.io/) that reads Windhager pellet heaters through
+their InfoWIN Touch on your local network. It shows the heater's temperatures, status and pellet consumption, and gives
+each heating circuit a thermostat to follow it and change its target temperature or program.
+
+The integration talks only to the InfoWIN Touch, with no cloud. It polls the heater's readings every minute.
+
+## Use cases
+
+- Follow the heater in Home Assistant: room, outside, boiler and fumes temperatures; what the burner is doing; the
+  pellets burnt; the hours left until the next cleaning.
+- Change a circuit's target temperature or program from a dashboard, a voice assistant or an automation, for example
+  holidays while you are away.
+- Get notified when the heater stops on a fault (burner or boiler blocked), when the pellets burnt reach a threshold,
+  or when a cleaning is due.
 
 ## Supported devices
 
 | Device                                                                                  | Status | Notes                              |
 | --------------------------------------------------------------------------------------- | :----: | ---------------------------------- |
 | [BioWIN2](https://www.windhager.com/en/products/pellet-heating-systems/biowin2-3-33kw/) |   ✅   | Infowin Touch (1.0.2), API (1.0.0) |
+
+The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN) and the heating circuits (a
+UMUMLZ module, for instance). Other Windhager heaters behind an InfoWIN Touch may work if their modules expose the
+same functions. The diagnostics (see [Troubleshooting](#troubleshooting)) show what yours exposes.
 
 ## Installation using HACS
 
@@ -32,32 +49,161 @@ https://github.com/vermi0ffh/ha-windhager
 
 ## Configuration
 
-1. Add the integration as usual.
-2. Enter the host and password of your Windhager heater.
-3. The integration will now be available in Home Assistant.
+Add the integration from *Settings → Devices & services → Add integration → Windhager Heater* and fill in:
 
-Home Assistant also finds the InfoWIN Touch on the network (zeroconf or DHCP, as `mb6620`): accept the discovered
-*Windhager Heater* and enter its password. Once discovered, an entry follows its heater to a new address by itself;
-an entry added by hand learns its heater's MAC the first time the heater is discovered at the entry's address.
+| Parameter | Description |
+| --------- | ----------- |
+| Host      | The address of the heater's InfoWIN Touch on your network: its IP address, or its host name (`mb6620` if your router resolves it). |
+| Password  | The password of the InfoWIN Touch's web access. The integration logs in as `USER`. |
 
-If the heater's password changes, Home Assistant stops polling it and shows a *Re-authentication required* notice:
-enter the new password there.
+The integration has no other options.
 
-If the heater gets a new address, *Reconfigure* the entry (in its menu) with it: its entities and their history are
-kept, as long as it is the same heater.
+Home Assistant can also find the InfoWIN Touch on the network by zeroconf or DHCP, under the name `mb6620`. Accept
+the discovered *Windhager Heater* and enter its password.
 
-Each module of the heater is a device (the heater, each heating circuit), with its model, its chip ID as serial
-number and a link to the InfoWIN Touch's web page. The entities are named after their device ("BioWIN Heater status"), in English, French or German after Home
-Assistant's language. A new installation gets its entity ids in that language too
-(`sensor.biowin_etat_de_la_chaudiere` in French); the entity ids already created are kept.
+- An entry created from a discovery follows its heater by MAC address: if the heater gets a new address, the entry
+  updates itself.
+- An entry added by hand learns the heater's MAC the first time the heater is discovered at the entry's address.
 
-The circuit's temperature corrections, its temperature without correction and the running times until cleaning are
-diagnostics. The two corrections are disabled on a new installation: enable them in the entity's settings to follow
-them.
+If the heater's password changes, Home Assistant stops polling it and shows a *Re-authentication required* notice.
+Enter the new password there.
 
-## Issues
+If the heater gets a new address and the entry did not update itself, open the entry's menu, choose *Reconfigure* and
+enter the new address. As long as it is the same heater, its entities and their history are kept.
 
-If you want to debug the integration, please add the following to your `configuration.yaml` file:
+## Data updates
+
+The integration polls the heater every 60 seconds. The InfoWIN Touch answers slowly and handles one request at a
+time, so the integration sends its requests one after the other. A change made on the heater shows in Home Assistant
+at the next poll. A change made from Home Assistant triggers a poll right after it.
+
+## Devices and entities
+
+Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
+ID as the serial number, and a link to the InfoWIN Touch's web page.
+
+The entities are named after their device, for example "BioWIN Heater status". The names follow Home Assistant's
+language: English, French or German. A new installation also gets its entity ids in that language (for example
+`sensor.biowin_etat_de_la_chaudiere` in French). Entity ids that already exist are kept.
+
+Each heating circuit has these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Climate (named after the circuit) | The circuit's thermostat. It shows the room and target temperatures minus the comfort temperature correction, and the circuit's program as its preset. |
+| Climate *Without bias* | The same thermostat, showing the temperatures as the heater reads them, without the correction. |
+| Current temperature, Current temperature real | The room temperature, with and without the comfort temperature correction. |
+| Target temperature | The temperature the circuit is heating to. |
+| Outside temperature | The outside sensor's temperature. |
+| Comfort temperature correction, Current temperature correction | The corrections set on the heater, in K. |
+
+The heater has these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Heater status | What the burner is doing: standby, ignition phase, modulating mode, burner blocked… |
+| Power factor | The burner's output, in %. |
+| Heater temperature, Fumes temperature, Combustion chamber temperature | The heater's temperatures. |
+| Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
+| Running time until stage 1 cleaning, Running time until stage 2 cleaning | The burner hours left until each cleaning. |
+
+These entities are diagnostics: the two temperature corrections, Current temperature real, and the two running times
+until cleaning. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
+settings.
+
+### Thermostat
+
+The presets are the circuit's programs:
+
+- *Standby*;
+- *Heating program 1*, *2* and *3*;
+- *Day mode* and *Night mode*;
+- *Holidays*;
+- *Manual*, shown while a temporary target temperature is running.
+
+Setting a target temperature makes it a temporary target for 400 minutes (6 h 40). After that, the circuit goes back
+to its program. Choosing a preset ends a temporary target.
+
+## Actions
+
+### `windhager.set_current_temp_compensation`
+
+Sets a circuit's comfort temperature correction: the difference between the room temperature the heater reads and the
+temperature the main climate shows.
+
+| Field | Description |
+| ----- | ----------- |
+| `compensation` | Required. The correction in K, from -3.5 to 3.5, in steps of 0.1. |
+
+Target the circuit's main climate, not its *Without bias* climate.
+
+## Examples
+
+Switch to holidays when the house has been empty for a day, and back to the circuit's program when someone comes
+home:
+
+```yaml
+automation:
+  - alias: "Heating on holidays while away"
+    triggers:
+      - trigger: state
+        entity_id: zone.home
+        to: "0"
+        for: "24:00:00"
+    actions:
+      - action: climate.set_preset_mode
+        target:
+          entity_id: climate.circuit
+        data:
+          preset_mode: "6"  # Holidays
+  - alias: "Heating back to its program"
+    triggers:
+      - trigger: numeric_state
+        entity_id: zone.home
+        above: 0
+    actions:
+      - action: climate.set_preset_mode
+        target:
+          entity_id: climate.circuit
+        data:
+          preset_mode: "1"  # Heating program 1
+```
+
+Send a notification when the heater stops on a fault:
+
+```yaml
+automation:
+  - alias: "Heater blocked"
+    triggers:
+      - trigger: state
+        entity_id: sensor.biowin_heater_status
+        to:
+          - "0"  # Burner blocked
+          - "9"  # Boiler blocked
+    actions:
+      - action: notify.notify
+        data:
+          message: "The heater is blocked (status {{ states('sensor.biowin_heater_status') }})"
+```
+
+In automations, the presets and the heater status are codes; Home Assistant shows them by name. The entity ids above
+are those of an English installation: find yours in each entity's settings.
+
+## Known limitations
+
+- The climate's *Off* mode does nothing yet: choose the *Standby* preset to stop a circuit. The climate always shows
+  *Heat*.
+- The integration reads the heater's modules when it starts. A module added later, such as a new heating circuit,
+  appears after you reload the entry.
+- Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
+  supported yet.
+- The readings are polled every minute, so a change on the heater can take up to a minute to show.
+- Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
+- The heater status has no name for code 16, which is undocumented: the status shows as unknown.
+
+## Troubleshooting
+
+To debug the integration, add the following to your `configuration.yaml` file:
 
 ```yaml
 logger:
@@ -66,19 +212,39 @@ logger:
     custom_components.windhager: debug
 ```
 
-This will enable debug logging for the Windhager integration. If any values are displayed as "Unknown", please check the logs for more information.
+This enables debug logging for the Windhager integration. If any values are shown as "Unknown", check the logs for
+more information.
 
-When the heater cannot be reached (or does not answer three polls in a row), its entities are *unavailable* and the
-log says so once, then once again when it answers; the details of each failed request are in the debug log.
+When the heater cannot be reached, or does not answer three polls in a row, its entities become *unavailable*. The
+log says so once, then once more when the heater answers again. The details of each failed request are in the debug
+log.
+
+- **Cannot connect** when adding the heater: check that the InfoWIN Touch's web page opens at `http://<host>`, and
+  that Home Assistant can reach that address.
+- **Invalid authentication**: the password was refused. Log in to the InfoWIN Touch's web page with it to check it.
+- **Entities unavailable**: the heater did not answer, and the log says why. They come back by themselves once the
+  heater answers again, for example after it was switched off at the mains or the InfoWIN Touch restarted.
+- **A changed setting fails with an error**: the heater refused the change or did not answer. The message says which.
 
 To see everything your heater exposes (to add a sensor, or for a model that is not supported yet), download the
-diagnostics: *Settings → Devices & services → Windhager Heater*, then *Download diagnostics* in the entry's menu.
-The first download starts a full scan of the heater's API in the background (about two minutes: every reading is
-requested one after the other); once the log says it has finished, download the diagnostics again to get it. The
-file holds the host and password redacted.
+diagnostics:
 
-Please report any issues to the [GitHub repository](https://github.com/vermi0ffh/ha-windhager/issues). Please include
-the logs, the diagnostics and what device you are trying to integrate.
+1. Go to *Settings → Devices & services → Windhager Heater*, and choose *Download diagnostics* in the entry's menu.
+   This first download starts a full scan of the heater's API in the background. The scan takes about two minutes,
+   because every reading is requested one after the other.
+2. Once the log says the scan has finished, download the diagnostics again: the file now holds the scan.
+
+The host and password are redacted in the file.
+
+Please report issues on the [GitHub repository](https://github.com/vermi0ffh/ha-windhager/issues). Include the logs,
+the diagnostics, and the device you are trying to integrate.
+
+## Removal
+
+1. Go to *Settings → Devices & services → Windhager Heater*, and choose *Delete* in the entry's menu. Its devices and
+   entities are removed with it. Nothing changes on the heater.
+2. To also remove the integration's files, remove it in HACS (or delete the `custom_components/windhager` folder),
+   then restart Home Assistant.
 
 ## Contributing
 

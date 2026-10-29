@@ -17,8 +17,11 @@
       "user": {
         "data": {
           "host": "Host",
-          "password": "Password",
-          "username": "Username"
+          "password": "Password"
+        },
+        "data_description": {
+          "host": "The address of the heater's InfoWIN Touch on your network: its IP address, or its host name (mb6620 when your router resolves it).",
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
         }
       },
       "reauth_confirm": {
@@ -26,6 +29,9 @@
         "description": "The heater at {host} refused the password: enter its current InfoWIN password.",
         "data": {
           "password": "Password"
+        },
+        "data_description": {
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
         }
       },
       "reconfigure": {
@@ -34,6 +40,10 @@
         "data": {
           "host": "Host",
           "password": "Password"
+        },
+        "data_description": {
+          "host": "The address of the heater's InfoWIN Touch on your network: its IP address, or its host name (mb6620 when your router resolves it).",
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
         }
       },
       "discovery_confirm": {
@@ -41,6 +51,9 @@
         "description": "The InfoWIN Touch at {host} answers: enter its password to add the heater.",
         "data": {
           "password": "Password"
+        },
+        "data_description": {
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
         }
       }
     }
