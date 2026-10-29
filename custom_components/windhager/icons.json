@@ -36,9 +36,6 @@
             "default": "mdi:calendar-clock",
             "state": {
               "0": "mdi:power-standby",
-              "1": "mdi:calendar-clock",
-              "2": "mdi:calendar-clock",
-              "3": "mdi:calendar-clock",
               "4": "mdi:weather-sunny",
               "5": "mdi:weather-night",
               "6": "mdi:airplane",
@@ -53,9 +50,6 @@
             "default": "mdi:calendar-clock",
             "state": {
               "0": "mdi:power-standby",
-              "1": "mdi:calendar-clock",
-              "2": "mdi:calendar-clock",
-              "3": "mdi:calendar-clock",
               "4": "mdi:weather-sunny",
               "5": "mdi:weather-night",
               "6": "mdi:airplane",
