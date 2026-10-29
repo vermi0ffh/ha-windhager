@@ -1,5 +1,6 @@
 """The diagnostics: the entry, the coordinator's data and a full scan of the API."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistant
@@ -52,23 +53,55 @@ async def test_the_scan_walks_every_device_function_and_sensor() -> None:
     assert "/1/15/1" not in [call.args[0] for call in fetch.await_args_list]
 
 
-async def test_the_diagnostics_hold_the_data_and_the_scan_without_the_credentials(
+async def test_the_first_download_starts_the_scan_the_next_one_holds_it(
     hass: HomeAssistant, hass_client: ClientSessionGenerator, entry: MockConfigEntry, client: MagicMock
 ) -> None:
     client.fetch_all.return_value = {"devices": [], "oids": {"/1/15/0/0/45/0": "612.3"}}
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
+    # The scan lasts until the first download is served, as a real one (about 100 s on 2026-10-28)
+    first_served = asyncio.Event()
+
+    async def scan() -> dict:
+        await first_served.wait()
+        return {"devices": [{"nodeId": 15}], "errors": {}}
+
     with patch.object(diagnostics, "WindhagerHttpClient") as scan_client_class:
         scan_client = scan_client_class.return_value
-        scan_client.scan = AsyncMock(return_value={"devices": [{"nodeId": 15}], "errors": {}})
+        scan_client.scan = AsyncMock(side_effect=scan)
         scan_client.close = AsyncMock()
+        first = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+        first_served.set()
+        await hass.async_block_till_done(wait_background_tasks=True)
+        second = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+
+    assert first["entry"] == second["entry"] == {"host": "**REDACTED**", "password": "**REDACTED**"}
+    assert first["coordinator_data"] == {"devices": [], "oids": {"/1/15/0/0/45/0": "612.3"}}
+    assert first["scan"]["status"] == "running"
+    assert second["scan"]["status"] == "done"
+    assert second["scan"]["devices"] == [{"nodeId": 15}]
+    assert second["scan"]["errors"] == {}
+    # One scan, with the entry's credentials, its client closed
+    scan_client_class.assert_called_once_with("192.0.2.1", "secret")
+    scan_client.scan.assert_awaited_once()
+    scan_client.close.assert_awaited_once()
+
+
+async def test_a_scan_that_fails_is_reported_done_with_its_error(
+    hass: HomeAssistant, hass_client: ClientSessionGenerator, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch.object(diagnostics, "WindhagerHttpClient") as scan_client_class:
+        scan_client = scan_client_class.return_value
+        scan_client.scan = AsyncMock(side_effect=ValueError("unexpected answer"))
+        scan_client.close = AsyncMock()
+        await get_diagnostics_for_config_entry(hass, hass_client, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
         result = await get_diagnostics_for_config_entry(hass, hass_client, entry)
 
-    assert result == {
-        "entry": {"host": "**REDACTED**", "password": "**REDACTED**"},
-        "coordinator_data": {"devices": [], "oids": {"/1/15/0/0/45/0": "612.3"}},
-        "scan": {"devices": [{"nodeId": 15}], "errors": {}},
-    }
-    scan_client_class.assert_called_once_with("192.0.2.1", "secret")
+    assert result["scan"]["status"] == "done"
+    assert result["scan"]["error"] == "ValueError('unexpected answer')"
     scan_client.close.assert_awaited_once()
