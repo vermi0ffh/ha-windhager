@@ -1,10 +1,12 @@
 {
   "config": {
+    "flow_title": "{host}",
     "abort": {
       "already_configured": "Das Gerät ist bereits eingerichtet",
       "reauth_successful": "Die erneute Authentifizierung war erfolgreich",
       "reconfigure_successful": "Die Neukonfiguration war erfolgreich",
-      "wrong_heater": "Unter dieser Adresse antwortet ein anderer Heizkessel als der dieses Eintrags"
+      "wrong_heater": "Unter dieser Adresse antwortet ein anderer Heizkessel als der dieses Eintrags",
+      "not_ipv4": "Der Kessel wurde nur unter einer IPv6-Adresse gefunden: fügen Sie ihn manuell mit seiner IPv4-Adresse oder seinem Hostnamen hinzu."
     },
     "error": {
       "cannot_connect": "Fehler beim Verbinden",
@@ -31,6 +33,13 @@
         "description": "Neue Adresse oder neues Passwort für diesen Heizkessel: seine Entitäten und ihr Verlauf bleiben erhalten.",
         "data": {
           "host": "Host",
+          "password": "Passwort"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Ein Windhager-Kessel wurde gefunden",
+        "description": "Das InfoWIN Touch unter {host} antwortet: geben Sie sein Passwort ein, um den Kessel hinzuzufügen.",
+        "data": {
           "password": "Passwort"
         }
       }

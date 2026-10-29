@@ -1,10 +1,12 @@
 {
   "config": {
+    "flow_title": "{host}",
     "abort": {
       "already_configured": "Device is already configured",
       "reauth_successful": "Re-authentication was successful",
       "reconfigure_successful": "Reconfiguration was successful",
-      "wrong_heater": "This address answers with another heater than this entry's"
+      "wrong_heater": "This address answers with another heater than this entry's",
+      "not_ipv4": "The heater was found at an IPv6 address only: add it by hand with its IPv4 address or host name."
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -31,6 +33,13 @@
         "description": "A new address or password for this heater: its entities and their history are kept.",
         "data": {
           "host": "Host",
+          "password": "Password"
+        }
+      },
+      "discovery_confirm": {
+        "title": "A Windhager heater was found",
+        "description": "The InfoWIN Touch at {host} answers: enter its password to add the heater.",
+        "data": {
           "password": "Password"
         }
       }

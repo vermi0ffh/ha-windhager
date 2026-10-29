@@ -36,6 +36,10 @@ https://github.com/vermi0ffh/ha-windhager
 2. Enter the host and password of your Windhager heater.
 3. The integration will now be available in Home Assistant.
 
+Home Assistant also finds the InfoWIN Touch on the network (zeroconf or DHCP, as `mb6620`): accept the discovered
+*Windhager Heater* and enter its password. Once discovered, an entry follows its heater to a new address by itself;
+an entry added by hand learns its heater's MAC the first time the heater is discovered at the entry's address.
+
 If the heater's password changes, Home Assistant stops polling it and shows a *Re-authentication required* notice:
 enter the new password there.
 
