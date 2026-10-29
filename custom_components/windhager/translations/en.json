@@ -180,5 +180,17 @@
     "cannot_connect": {
       "message": "Cannot read the heater at {host}: {error}"
     }
+  },
+  "services": {
+    "set_current_temp_compensation": {
+      "name": "Set temperature compensation",
+      "description": "Sets a heating circuit's comfort temperature correction: the difference between the room temperature the heater reads and the one the main climate shows.",
+      "fields": {
+        "compensation": {
+          "name": "Compensation",
+          "description": "The correction in K, from -3.5 to 3.5."
+        }
+      }
+    }
   }
 }

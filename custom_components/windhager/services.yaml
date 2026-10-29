@@ -1,14 +1,10 @@
 set_current_temp_compensation:
-  name: Set Current Temperature Compensation
-  description: Change the compensation for current temperature mesurement
   target:
     entity:
       integration: windhager
       domain: climate
   fields:
     compensation:
-      name: Thermostat bias
-      description: Added to the current temperature
       required: true
       selector:
         number:

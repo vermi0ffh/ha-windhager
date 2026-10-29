@@ -180,5 +180,17 @@
     "cannot_connect": {
       "message": "Impossible de lire la chaudière à l'adresse {host} : {error}"
     }
+  },
+  "services": {
+    "set_current_temp_compensation": {
+      "name": "Définir la compensation de température",
+      "description": "Définit la correction de température de confort d'un circuit de chauffage : l'écart entre la température ambiante lue par la chaudière et celle affichée par le thermostat principal.",
+      "fields": {
+        "compensation": {
+          "name": "Compensation",
+          "description": "La correction en K, de -3,5 à 3,5."
+        }
+      }
+    }
   }
 }

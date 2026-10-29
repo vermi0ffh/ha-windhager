@@ -180,5 +180,17 @@
     "cannot_connect": {
       "message": "Der Kessel unter {host} kann nicht gelesen werden: {error}"
     }
+  },
+  "services": {
+    "set_current_temp_compensation": {
+      "name": "Temperaturkorrektur einstellen",
+      "description": "Stellt die Komforttemperatur-Korrektur eines Heizkreises ein: die Differenz zwischen der vom Kessel gemessenen Raumtemperatur und der vom Haupt-Thermostat angezeigten.",
+      "fields": {
+        "compensation": {
+          "name": "Korrektur",
+          "description": "Die Korrektur in K, von -3,5 bis 3,5."
+        }
+      }
+    }
   }
 }

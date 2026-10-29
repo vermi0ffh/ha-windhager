@@ -132,3 +132,16 @@ async def test_the_write_errors_are_translated(
 
     for key in ("write_refused", "write_cannot_connect", "write_auth_failed"):
         assert translations[f"component.windhager.exceptions.{key}.message"]
+
+
+@pytest.mark.parametrize("language", ["en", "fr", "de"])
+async def test_the_compensation_action_is_translated(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, language: str
+) -> None:
+    await hass.config_entries.async_setup(entry.entry_id)
+
+    translations = await async_get_translations(hass, language, "services", ["windhager"])
+
+    action = "component.windhager.services.set_current_temp_compensation"
+    for key in ("name", "description", "fields.compensation.name", "fields.compensation.description"):
+        assert translations[f"{action}.{key}"]
