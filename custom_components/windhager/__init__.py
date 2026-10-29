@@ -7,12 +7,17 @@ import logging
 import voluptuous as vol
 from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv, service
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+    service,
+)
 from homeassistant.helpers.typing import ConfigType
 
-from .client import WindhagerHttpClient
+from .client import WindhagerHttpClient, slugify
 from .const import DOMAIN
 from .coordinator import WindhagerConfigEntry, WindhagerDataUpdateCoordinator
 
@@ -62,6 +67,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) ->
 
     entry.runtime_data = coordinator
     _async_set_heater_id(hass, entry, coordinator.data.get("heater_id"))
+    # Before the platforms, so that they find their entities and devices under the new ids
+    await _async_migrate_unique_ids(hass, entry, coordinator.data.get("heater_id"))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
@@ -81,6 +88,49 @@ def _async_set_heater_id(
         )
         return
     hass.config_entries.async_update_entry(entry, unique_id=heater_id)
+
+
+async def _async_migrate_unique_ids(
+    hass: HomeAssistant, entry: WindhagerConfigEntry, heater_id: str | None
+) -> None:
+    """Rename the entities and devices named after the host to the heater's Neuron ID.
+
+    Their unique ids started with the host, so a new address made new entities and lost
+    the history; the registry keeps the entity ids, their settings and their history
+    across the renaming. Done once: the renamed ids no longer start with the host.
+    """
+    if heater_id is None:
+        return
+    host_id = slugify(entry.data["host"])
+    entity_registry = er.async_get(hass)
+
+    @callback
+    def renamed(entity: er.RegistryEntry) -> dict[str, str] | None:
+        if not entity.unique_id.startswith(host_id):
+            return None
+        unique_id = heater_id + entity.unique_id.removeprefix(host_id)
+        if entity_registry.async_get_entity_id(entity.domain, DOMAIN, unique_id):
+            # Another entry of the same heater (added twice) took it first
+            _LOGGER.warning("%s is not renamed: %s is taken", entity.entity_id, unique_id)
+            return None
+        return {"new_unique_id": unique_id}
+
+    await er.async_migrate_entries(hass, entry.entry_id, renamed)
+
+    device_registry = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        identifiers = {
+            (domain, heater_id + identifier.removeprefix(host_id))
+            if domain == DOMAIN and identifier.startswith(host_id)
+            else (domain, identifier)
+            for domain, identifier in device.identifiers
+        }
+        if identifiers == device.identifiers:
+            continue
+        try:
+            device_registry.async_update_device(device.id, new_identifiers=identifiers)
+        except dr.DeviceIdentifierCollisionError:
+            _LOGGER.warning("Device %s is not renamed: its new id is taken", device.name)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) -> bool:
