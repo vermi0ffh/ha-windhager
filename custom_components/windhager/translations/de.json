@@ -2,7 +2,9 @@
   "config": {
     "abort": {
       "already_configured": "Das Gerät ist bereits eingerichtet",
-      "reauth_successful": "Die erneute Authentifizierung war erfolgreich"
+      "reauth_successful": "Die erneute Authentifizierung war erfolgreich",
+      "reconfigure_successful": "Die Neukonfiguration war erfolgreich",
+      "wrong_heater": "Unter dieser Adresse antwortet ein anderer Heizkessel als der dieses Eintrags"
     },
     "error": {
       "cannot_connect": "Fehler beim Verbinden",
@@ -21,6 +23,14 @@
         "title": "Passwort abgelehnt",
         "description": "Der Heizkessel unter {host} hat das Passwort abgelehnt: Geben Sie sein aktuelles InfoWIN-Passwort ein.",
         "data": {
+          "password": "Passwort"
+        }
+      },
+      "reconfigure": {
+        "title": "Heizkessel neu konfigurieren",
+        "description": "Neue Adresse oder neues Passwort für diesen Heizkessel: seine Entitäten und ihr Verlauf bleiben erhalten.",
+        "data": {
+          "host": "Host",
           "password": "Passwort"
         }
       }

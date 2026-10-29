@@ -108,3 +108,40 @@ async def test_a_new_password_also_refused_keeps_asking(
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
     assert entry.data["password"] == "secret"
+
+
+async def reconfigure(hass: HomeAssistant, entry: MockConfigEntry) -> dict:
+    result = await entry.start_reconfigure_flow(hass)
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.0.2.2", "password": "new-secret"}
+    )
+
+
+async def test_the_heater_at_a_new_host_is_reconfigured_in_place(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    entry = MockConfigEntry(domain="windhager", unique_id="0a0000000060", data={"host": "192.0.2.1", "password": "secret"})
+    entry.add_to_hass(hass)
+    flow_client.fetch.return_value = [HEATER_MODULE]
+
+    result = await reconfigure(hass, entry)
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data == {"host": "192.0.2.2", "password": "new-secret"}
+    assert entry.title == "Windhager Heater (192.0.2.2)"
+
+
+async def test_another_heater_at_the_new_host_is_refused(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    entry = MockConfigEntry(domain="windhager", unique_id="0a0000000061", data={"host": "192.0.2.1", "password": "secret"})
+    entry.add_to_hass(hass)
+    flow_client.fetch.return_value = [HEATER_MODULE]
+
+    result = await reconfigure(hass, entry)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "wrong_heater"
+    assert entry.data == {"host": "192.0.2.1", "password": "secret"}

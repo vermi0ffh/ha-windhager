@@ -153,3 +153,42 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={"host": entry.data["host"]},
             errors=errors,
         )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """A new host or password for the same heater, keeping its entities."""
+        entry = self._get_reconfigure_entry()
+        errors = {}
+
+        if user_input is not None:
+            try:
+                info = await validate_input(self.hass, user_input)
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                # Another heater at that host would take over this one's entities
+                if info["heater_id"] is not None and entry.unique_id is not None:
+                    await self.async_set_unique_id(info["heater_id"])
+                    self._abort_if_unique_id_mismatch(reason="wrong_heater")
+                return self.async_update_reload_and_abort(
+                    entry,
+                    title=info["title"],
+                    data_updates={
+                        "host": info["host"],
+                        "password": user_input["password"],
+                    },
+                )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_USER_DATA_SCHEMA, {"host": entry.data["host"]}
+            ),
+            errors=errors,
+        )

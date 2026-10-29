@@ -2,7 +2,9 @@
   "config": {
     "abort": {
       "already_configured": "Device is already configured",
-      "reauth_successful": "Re-authentication was successful"
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Reconfiguration was successful",
+      "wrong_heater": "This address answers with another heater than this entry's"
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -21,6 +23,14 @@
         "title": "Password refused",
         "description": "The heater at {host} refused the password: enter its current InfoWIN password.",
         "data": {
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure the heater",
+        "description": "A new address or password for this heater: its entities and their history are kept.",
+        "data": {
+          "host": "Host",
           "password": "Password"
         }
       }

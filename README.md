@@ -39,6 +39,9 @@ https://github.com/vermi0ffh/ha-windhager
 If the heater's password changes, Home Assistant stops polling it and shows a *Re-authentication required* notice:
 enter the new password there.
 
+If the heater gets a new address, *Reconfigure* the entry (in its menu) with it: its entities and their history are
+kept, as long as it is the same heater.
+
 ## Issues
 
 If you want to debug the integration, please add the following to your `configuration.yaml` file:

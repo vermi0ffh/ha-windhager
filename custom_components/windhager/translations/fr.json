@@ -2,7 +2,9 @@
   "config": {
     "abort": {
       "already_configured": "Dispositif déjà configuré",
-      "reauth_successful": "La réauthentification a réussi"
+      "reauth_successful": "La réauthentification a réussi",
+      "reconfigure_successful": "La reconfiguration a réussi",
+      "wrong_heater": "Cette adresse répond avec une autre chaudière que celle de cette entrée"
     },
     "error": {
       "cannot_connect": "Impossible de se connecter",
@@ -21,6 +23,14 @@
         "title": "Mot de passe refusé",
         "description": "La chaudière à l'adresse {host} a refusé le mot de passe : saisissez son mot de passe InfoWIN actuel.",
         "data": {
+          "password": "Mot de passe"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer la chaudière",
+        "description": "Nouvelle adresse ou nouveau mot de passe pour cette chaudière : ses entités et leur historique sont conservés.",
+        "data": {
+          "host": "Hôte",
           "password": "Mot de passe"
         }
       }
