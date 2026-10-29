@@ -1,7 +1,8 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Dispositif déjà configuré"
+      "already_configured": "Dispositif déjà configuré",
+      "reauth_successful": "La réauthentification a réussi"
     },
     "error": {
       "cannot_connect": "Impossible de se connecter",
@@ -14,6 +15,13 @@
           "host": "Hôte",
           "password": "Mot de passe",
           "username": "Utilisateur"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Mot de passe refusé",
+        "description": "La chaudière à l'adresse {host} a refusé le mot de passe : saisissez son mot de passe InfoWIN actuel.",
+        "data": {
+          "password": "Mot de passe"
         }
       }
     }

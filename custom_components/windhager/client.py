@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import logging
 from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
+from .exceptions import InvalidAuth
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +38,10 @@ class WindhagerHttpClient:
         try:
             await self._ensure_session()
             ret = await self._session.get(f"http://{self.host}/api/1.0/lookup{url}")
+            # The heater refuses the password with a 401 and an HTML page (2026-10-29),
+            # which reading as JSON would turn into a mere connection error
+            if ret.status == 401:
+                raise InvalidAuth(f"The heater refused the password for {url}")
             json = await ret.json()
             _LOGGER.debug("Fetched data for %s: %s", url, json)
             return json

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -24,6 +25,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required("password"): str,
     }
 )
+STEP_REAUTH_DATA_SCHEMA = vol.Schema({vol.Required("password"): str})
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -47,30 +49,26 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     _LOGGER.info("Validating Windhager connection - Host: %s", host)
 
+    client = WindhagerHttpClient(
+        host=host,
+        password=data["password"],
+    )
     try:
-        client = WindhagerHttpClient(
-            host=host,
-            password=data["password"],
-        )
-
-        try:
-            _LOGGER.debug("Testing connection by fetching root device info")
-            await client.fetch("/1")
-            _LOGGER.info("Successfully connected to Windhager device at %s", host)
-        except Exception as err:
-            _LOGGER.error("Connection test failed for %s: %s", host, str(err))
-            raise CannotConnect from err
-        finally:
-            await client.close()
-
-        return {
-            "title": f"Windhager Heater ({host})",
-            "host": host,  # Return the cleaned host
-        }
-
+        _LOGGER.debug("Testing connection by fetching root device info")
+        await client.fetch("/1")
+        _LOGGER.info("Successfully connected to Windhager device at %s", host)
+    except InvalidAuth:
+        raise
     except Exception as err:
-        _LOGGER.exception("Unexpected exception during validation: %s", str(err))
+        _LOGGER.error("Connection test failed for %s: %s", host, str(err))
         raise CannotConnect from err
+    finally:
+        await client.close()
+
+    return {
+        "title": f"Windhager Heater ({host})",
+        "host": host,  # Return the cleaned host
+    }
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -110,4 +108,42 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        )
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> config_entries.ConfigFlowResult:
+        """The heater refused the password: ask for the new one."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Check the new password against the heater, then reload the entry with it."""
+        entry = self._get_reauth_entry()
+        errors = {}
+
+        if user_input is not None:
+            try:
+                await validate_input(
+                    self.hass,
+                    {"host": entry.data["host"], "password": user_input["password"]},
+                )
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates={"password": user_input["password"]}
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=STEP_REAUTH_DATA_SCHEMA,
+            description_placeholders={"host": entry.data["host"]},
+            errors=errors,
         )

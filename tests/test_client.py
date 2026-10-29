@@ -11,6 +11,7 @@ from aiohttp.test_utils import TestServer
 
 from custom_components.windhager.client import WindhagerHttpClient
 from custom_components.windhager.const import DEFAULT_USERNAME
+from custom_components.windhager.exceptions import InvalidAuth
 
 PASSWORD = "secret"
 REALM = "Windhager"
@@ -89,7 +90,7 @@ async def test_a_datapoint_update_is_authenticated(heater: Heater) -> None:
 async def test_a_wrong_password_fails_the_lookup(heater: Heater) -> None:
     client = WindhagerHttpClient(heater.host, "wrong")
 
-    with pytest.raises(Exception):
+    with pytest.raises(InvalidAuth):
         await client.fetch("/1")
     await client.close()
 

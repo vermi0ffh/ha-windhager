@@ -1,7 +1,8 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful"
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -14,6 +15,13 @@
           "host": "Host",
           "password": "Password",
           "username": "Username"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Password refused",
+        "description": "The heater at {host} refused the password: enter its current InfoWIN password.",
+        "data": {
+          "password": "Password"
         }
       }
     }
