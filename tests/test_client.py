@@ -4,6 +4,7 @@ import hashlib
 import re
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from unittest.mock import AsyncMock
 
 import pytest
 from aiohttp import web
@@ -114,3 +115,15 @@ OTHER_MODULE = {"nodeId": 90, "neuronId": "0a0000000090", "functions": [{"fctId"
 )
 def test_the_heater_is_identified_by_its_module_neuron_id(modules: list[dict], expected: str | None) -> None:
     assert heater_id(modules) == expected
+
+
+async def test_the_entities_and_devices_are_named_after_the_heater_not_the_host() -> None:
+    client = WindhagerHttpClient("192.0.2.1", PASSWORD)
+    heater = {**HEATER_MODULE, "functions": [{"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN"}]}
+    circuit = {**CIRCUIT_MODULE, "functions": [{"fctId": 0, "fctType": 14, "lock": False, "name": "Circuit"}]}
+    client.fetch = AsyncMock(side_effect=lambda url: [circuit, heater] if url == "/1" else {"value": "1"})
+
+    data = await client.fetch_all()
+
+    ids = {device["id"] for device in data["devices"]} | {device["device_id"] for device in data["devices"]}
+    assert ids and all(identifier.startswith("0a0000000060") for identifier in ids)
