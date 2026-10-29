@@ -17,8 +17,11 @@
       "user": {
         "data": {
           "host": "Hôte",
-          "password": "Mot de passe",
-          "username": "Utilisateur"
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "host": "L'adresse de l'InfoWIN Touch de la chaudière sur votre réseau : son adresse IP, ou son nom d'hôte (mb6620 si votre box le résout).",
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
         }
       },
       "reauth_confirm": {
@@ -26,6 +29,9 @@
         "description": "La chaudière à l'adresse {host} a refusé le mot de passe : saisissez son mot de passe InfoWIN actuel.",
         "data": {
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
         }
       },
       "reconfigure": {
@@ -34,6 +40,10 @@
         "data": {
           "host": "Hôte",
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "host": "L'adresse de l'InfoWIN Touch de la chaudière sur votre réseau : son adresse IP, ou son nom d'hôte (mb6620 si votre box le résout).",
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
         }
       },
       "discovery_confirm": {
@@ -41,6 +51,9 @@
         "description": "L'InfoWIN Touch à l'adresse {host} répond : saisissez son mot de passe pour ajouter la chaudière.",
         "data": {
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
         }
       }
     }

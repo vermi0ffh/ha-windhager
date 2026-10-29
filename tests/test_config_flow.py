@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+from homeassistant.helpers.translation import async_get_translations
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.windhager import config_flow
@@ -253,3 +254,13 @@ async def test_a_heater_found_at_an_ipv6_address_only_is_not_offered(
     result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_ZEROCONF}, data=ipv6)
 
     assert result["reason"] == "not_ipv4"
+
+
+@pytest.mark.parametrize("language", ["en", "fr", "de"])
+async def test_every_field_of_the_flow_is_described(hass: HomeAssistant, language: str) -> None:
+    translations = await async_get_translations(hass, language, "config", ["windhager"])
+
+    fields = [key for key in translations if ".data." in key]
+    assert fields
+    for field in fields:
+        assert translations.get(field.replace(".data.", ".data_description.")), field
