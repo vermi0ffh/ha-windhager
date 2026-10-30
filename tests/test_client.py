@@ -202,3 +202,24 @@ async def test_a_heater_that_does_not_answer_a_lookup_cannot_connect(socket_enab
     with pytest.raises(CannotConnect):
         await client.fetch("/1")
     await client.close()
+
+
+async def test_a_module_without_functions_gives_no_entity() -> None:
+    client = WindhagerHttpClient("192.0.2.1", PASSWORD)
+    heater = {**HEATER_MODULE, "functions": [{"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN"}]}
+    bare = {**CIRCUIT_MODULE}
+    bare.pop("functions", None)
+    client.fetch = AsyncMock(side_effect=lambda url: [bare, heater] if url == "/1" else {"value": "1"})
+
+    data = await client.fetch_all()
+
+    assert data["devices"] and all(device["device_id"].endswith("60") for device in data["devices"])
+
+
+async def test_a_datapoint_the_heater_gives_as_dashes_reads_unknown() -> None:
+    client = await polled_client(ValueError("unused"))
+    client.fetch = AsyncMock(return_value={"value": "-.-"})
+
+    data = await client.fetch_all()
+
+    assert data["oids"] and all(value is None for value in data["oids"].values())

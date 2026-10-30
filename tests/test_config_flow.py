@@ -256,6 +256,72 @@ async def test_a_heater_found_at_an_ipv6_address_only_is_not_offered(
     assert result["reason"] == "not_ipv4"
 
 
+async def test_a_host_with_a_port_is_kept_without_it(
+    hass: HomeAssistant, flow_client: MagicMock, client: MagicMock
+) -> None:
+    result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.0.2.1:80", "password": "secret"}
+    )
+
+    assert result["data"]["host"] == "192.0.2.1"
+
+
+async def open_form(hass: HomeAssistant, step: str) -> tuple[dict, MockConfigEntry | None]:
+    """The form of `step` waiting for the user's input, with the entry it is about."""
+    if step == "discovery_confirm":
+        result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_DHCP}, data=DHCP)
+        return result, None
+    entry = MockConfigEntry(domain="windhager", data={"host": "192.0.2.1", "password": "secret"})
+    entry.add_to_hass(hass)
+    if step == "reauth_confirm":
+        return await entry.start_reauth_flow(hass), entry
+    return await entry.start_reconfigure_flow(hass), entry
+
+
+STEPS = ["discovery_confirm", "reauth_confirm", "reconfigure"]
+
+
+def form_input(step: str, password: str) -> dict[str, str]:
+    """What the user types in the form of `step`: the user and reconfigure steps also ask the host."""
+    if step in ("discovery_confirm", "reauth_confirm"):
+        return {"password": password}
+    return {"host": "192.0.2.2", "password": password}
+
+
+@pytest.mark.parametrize("step", STEPS)
+@pytest.mark.parametrize(
+    ("error", "expected"), [(InvalidAuth("refused"), "invalid_auth"), (TimeoutError(), "cannot_connect")]
+)
+async def test_a_heater_failing_the_check_keeps_the_form_with_the_reason(
+    hass: HomeAssistant, flow_client: MagicMock, step: str, error: Exception, expected: str
+) -> None:
+    flow_client.fetch.side_effect = error
+    result, entry = await open_form(hass, step)
+    assert result["step_id"] == step
+
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], form_input(step, "wrong"))
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == step
+    assert result["errors"] == {"base": expected}
+    assert entry is None or entry.data == {"host": "192.0.2.1", "password": "secret"}
+
+
+@pytest.mark.parametrize("step", ["user", *STEPS])
+async def test_an_unexpected_failure_of_the_check_is_an_unknown_error(hass: HomeAssistant, step: str) -> None:
+    if step == "user":
+        result = await hass.config_entries.flow.async_init("windhager", context={"source": SOURCE_USER})
+    else:
+        result, _ = await open_form(hass, step)
+
+    with patch.object(config_flow, "WindhagerHttpClient", side_effect=RuntimeError("a bug")):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], form_input(step, "secret"))
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "unknown"}
+
+
 @pytest.mark.parametrize("language", ["en", "fr", "de"])
 async def test_every_field_of_the_flow_is_described(hass: HomeAssistant, language: str) -> None:
     translations = await async_get_translations(hass, language, "config", ["windhager"])
