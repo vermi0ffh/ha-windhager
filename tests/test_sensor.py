@@ -1,4 +1,4 @@
-"""The heater status sensor."""
+"""The sensors' values: the heater status, a value the heater does not give."""
 
 from unittest.mock import MagicMock
 
@@ -47,3 +47,29 @@ async def test_the_heater_status_is_translated(
     translations = await async_get_translations(hass, language, "entity", ["windhager"])
 
     assert translations["component.windhager.entity.sensor.heater_status.state.3"] == label
+
+
+TEMPERATURE_OID = "/1/15/0/0/0/1/0"
+TEMPERATURE = {
+    "id": "flow_temperature",
+    "name": "BioWIN Flow temperature",
+    "type": "temperature",
+    "oid": TEMPERATURE_OID,
+    "device_id": "biowin",
+    "device_name": "BioWIN",
+}
+
+
+# None: the heater answered "-.-" or no value (the client keeps the datapoint, valueless)
+@pytest.mark.parametrize("value", [None, "not a number"])
+async def test_a_value_that_is_not_a_number_is_unknown_not_zero(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, value: str | None
+) -> None:
+    client.fetch_all.return_value = {
+        "devices": [TEMPERATURE, STATUS],
+        "oids": {TEMPERATURE_OID: value, STATUS_OID: value},
+    }
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert [state.state for state in hass.states.async_all("sensor")] == ["unknown", "unknown"]
