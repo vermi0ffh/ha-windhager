@@ -29,6 +29,7 @@ climates for the heating circuits; some of its users drive their heating with it
 ```bash
 pip install -r requirements_test.txt   # the pinned Home Assistant of the tests (Python 3.14)
 pytest                                 # the tests
+pytest --cov=custom_components/windhager --cov-fail-under=95   # the coverage the CI requires (Gold)
 ruff check custom_components tests     # what the CI checks
 ```
 

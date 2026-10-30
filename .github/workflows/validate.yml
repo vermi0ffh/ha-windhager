@@ -28,7 +28,8 @@ jobs:
           # pytest-homeassistant-custom-component's Home Assistant needs it
           python-version: "3.14"
       - run: pip install -r requirements_test.txt
-      - run: pytest
+      # The Gold quality scale asks for more than 95 % of the integration covered
+      - run: pytest --cov=custom_components/windhager --cov-report=term-missing --cov-fail-under=95
 
   hassfest:
     runs-on: ubuntu-latest
