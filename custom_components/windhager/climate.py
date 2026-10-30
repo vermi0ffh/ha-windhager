@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .coordinator import WindhagerConfigEntry
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_add_module_entities
 from .const import DOMAIN
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 from .helpers import get_oid_value
@@ -29,20 +29,18 @@ PARALLEL_UPDATES = 1
 async def async_setup_entry(
     hass: HomeAssistant, entry: WindhagerConfigEntry, async_add_entities
 ) -> None:
-    """Set up Windhager climates from a config entry."""
+    """Set up Windhager climates from a config entry, and those of a circuit added later."""
     coordinator = entry.runtime_data
-    entities = []
 
-    for device_info in coordinator.data.get("devices", []):
-        if device_info.get("type") == "climate":
-            entities.extend(
-                [
-                    WindhagerThermostatClimate(coordinator, device_info),
-                    WindhagerThermostatClimateWithoutBias(coordinator, device_info),
-                ]
-            )
+    def climates_of(device_info: dict) -> list[WindhagerBaseThermostat]:
+        if device_info.get("type") != "climate":
+            return []
+        return [
+            WindhagerThermostatClimate(coordinator, device_info),
+            WindhagerThermostatClimateWithoutBias(coordinator, device_info),
+        ]
 
-    async_add_entities(entities)
+    async_add_module_entities(entry, async_add_entities, climates_of)
 
 
 class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):

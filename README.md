@@ -80,6 +80,9 @@ at the next poll. A change made from Home Assistant triggers a poll right after 
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
 
+Every ten minutes, the integration also lists the heater's modules again. A module added to the heater, such as a new
+heating circuit, gets its device and entities within ten minutes, without a reload.
+
 ## Devices and entities
 
 Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
@@ -217,8 +220,6 @@ are those of an English installation: find yours in each entity's settings.
 
 - The climate's *Off* mode does nothing yet: choose the *Standby* preset to stop a circuit. The climate always shows
   *Heat*.
-- The integration reads the heater's modules when it starts. A module added later, such as a new heating circuit,
-  appears after you reload the entry.
 - Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
   supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.
