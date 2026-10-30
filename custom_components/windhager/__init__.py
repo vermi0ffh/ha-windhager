@@ -153,6 +153,22 @@ async def _async_migrate_unique_ids(
             _LOGGER.warning("Device %s is not renamed: its new id is taken", device.name)
 
 
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: WindhagerConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Let the user delete a module's device the heater no longer lists, with its entities.
+
+    A device with entities stays at setup, even if its module did not answer
+    (_async_remove_empty_devices): only the user knows the module is gone. A module the
+    heater lists keeps its device; one deleted while it did not answer comes back at the
+    next reload.
+    """
+    listed = {device.get("device_id") for device in entry.runtime_data.data.get("devices", [])}
+    return not any(
+        domain == DOMAIN and identifier in listed for domain, identifier in device_entry.identifiers
+    )
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.info("Unloading Windhager integration for %s", entry.data["host"])

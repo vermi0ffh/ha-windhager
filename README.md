@@ -85,6 +85,10 @@ page.
 Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
 ID as the serial number, and a link to the InfoWIN Touch's web page.
 
+A module removed from the heater keeps its device and entities, which become unavailable: the integration cannot tell
+a removed module from one that did not answer. To remove them, open the device and choose *Delete* in its menu. Only
+the device of a module the heater no longer lists can be deleted.
+
 The entities are named after their device, for example "BioWIN Heater status". The names follow Home Assistant's
 language: English, French or German. A new installation also gets its entity ids in that language (for example
 `sensor.biowin_etat_de_la_chaudiere` in French). Entity ids that already exist are kept.
