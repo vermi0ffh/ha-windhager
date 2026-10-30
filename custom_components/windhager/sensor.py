@@ -148,8 +148,9 @@ class WindhagerPelletSensor(WindhagerBaseSensor):
         return "t"
 
 
-# The heater status codes the translations name (16 is not documented)
-HEATER_STATUSES = [str(code) for code in (*range(16), 17)]
+# The heater status codes the translations name: those of the InfoWIN Touch's
+# res/xml/AufzaehlTexte_<language>.xml (2026-10-30)
+HEATER_STATUSES = [str(code) for code in range(18)]
 
 
 class WindhagerSelectSensor(WindhagerBaseSensor):

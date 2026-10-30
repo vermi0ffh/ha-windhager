@@ -27,7 +27,7 @@ async def heater_status(hass: HomeAssistant, entry: MockConfigEntry, client: Mag
     return state
 
 
-@pytest.mark.parametrize(("code", "expected"), [("3", "3"), ("17", "17"), ("16", "unknown")])
+@pytest.mark.parametrize(("code", "expected"), [("3", "3"), ("16", "16"), ("17", "17"), ("18", "unknown")])
 async def test_the_heater_status_is_its_code_among_the_known_ones(
     hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, code: str, expected: str
 ) -> None:
@@ -35,7 +35,7 @@ async def test_the_heater_status_is_its_code_among_the_known_ones(
 
     assert state.state == expected
     assert state.attributes["device_class"] == "enum"
-    assert state.attributes["options"] == [str(code) for code in (*range(16), 17)]
+    assert state.attributes["options"] == [str(code) for code in range(18)]
 
 
 @pytest.mark.parametrize(("language", "label"), [("en", "Standby"), ("fr", "Veille"), ("de", "Standby")])
@@ -73,3 +73,15 @@ async def test_a_value_that_is_not_a_number_is_unknown_not_zero(
     await hass.async_block_till_done()
 
     assert [state.state for state in hass.states.async_all("sensor")] == ["unknown", "unknown"]
+
+
+@pytest.mark.parametrize("language", ["en", "fr", "de"])
+async def test_every_heater_status_has_a_name(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, language: str
+) -> None:
+    state = await heater_status(hass, entry, client, "3")
+
+    translations = await async_get_translations(hass, language, "entity", ["windhager"])
+
+    for code in state.attributes["options"]:
+        assert translations[f"component.windhager.entity.sensor.heater_status.state.{code}"]
