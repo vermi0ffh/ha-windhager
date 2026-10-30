@@ -77,6 +77,9 @@ The integration polls the heater every 60 seconds. The InfoWIN Touch answers slo
 time, so the integration sends its requests one after the other. A change made on the heater shows in Home Assistant
 at the next poll. A change made from Home Assistant triggers a poll right after it.
 
+When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
+page.
+
 ## Devices and entities
 
 Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
@@ -106,9 +109,11 @@ The heater has these entities:
 | Heater temperature, Fumes temperature, Combustion chamber temperature | The heater's temperatures. |
 | Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
 | Running time until stage 1 cleaning, Running time until stage 2 cleaning | The burner hours left until each cleaning. |
+| Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
+| Heater problem | On while the heater reports an error. |
 
-These entities are diagnostics: the two temperature corrections, Current temperature real, and the two running times
-until cleaning. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
+These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
+until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.
 
 ### Thermostat
@@ -169,7 +174,22 @@ automation:
           preset_mode: "1"  # Heating program 1
 ```
 
-Send a notification when the heater stops on a fault:
+Send a notification when the heater reports an error, with the heater's text for it:
+
+```yaml
+automation:
+  - alias: "Heater error"
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.biowin_heater_problem
+        to: "on"
+    actions:
+      - action: notify.notify
+        data:
+          message: "Heater error {{ states('sensor.biowin_heater_error') }}"
+```
+
+Or when it stops on a fault, from its status:
 
 ```yaml
 automation:
@@ -200,6 +220,7 @@ are those of an English installation: find yours in each entity's settings.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
 - The heater status has no name for code 16, which is undocumented: the status shows as unknown.
+- The heater reports one error at a time, the current one: an earlier error, or a second one, does not show.
 
 ## Troubleshooting
 

@@ -13,11 +13,11 @@ climates for the heating circuits; some of its users drive their heating with it
 
 | Path | Content |
 |------|---------|
-| `custom_components/windhager/client.py` | The HTTP client of the heater's API (aiohttp, digest authentication): discovery of the devices, reads, writes (`update`), the diagnostics' scan |
+| `custom_components/windhager/client.py` | The HTTP client of the heater's API (aiohttp, digest authentication): discovery of the devices, reads, writes (`update`), the heater's error texts, the diagnostics' scan |
 | `custom_components/windhager/coordinator.py` | The coordinator polling the heater for every entity; `WindhagerConfigEntry`, the entry typed with it |
 | `custom_components/windhager/entity.py` | `WindhagerEntity`, the base of the climates and sensors (unique id, name, device) |
 | `custom_components/windhager/__init__.py` | Setting up and unloading an entry; the services, registered once in `async_setup` |
-| `custom_components/windhager/climate.py`, `sensor.py` | The platforms |
+| `custom_components/windhager/binary_sensor.py`, `climate.py`, `sensor.py` | The platforms |
 | `custom_components/windhager/config_flow.py` | Adding an entry: host and password, checked against the heater |
 | `custom_components/windhager/diagnostics.py` | The diagnostics: the entry (redacted), the coordinator's data, the API scan in the background |
 | `custom_components/windhager/strings.json`, `translations/` | The texts, in English, French and German |

@@ -59,6 +59,11 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "heater_problem": {
+        "name": "Heater problem"
+      }
+    },
     "sensor": {
       "current_temperature": {
         "name": "Current temperature"
@@ -123,6 +128,17 @@
       },
       "time_until_stage_2_cleaning": {
         "name": "Running time until stage 2 cleaning"
+      },
+      "heater_error": {
+        "name": "Heater error",
+        "state": {
+          "none": "No error"
+        },
+        "state_attributes": {
+          "code": {
+            "name": "Code"
+          }
+        }
       }
     },
     "climate": {

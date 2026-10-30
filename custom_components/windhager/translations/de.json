@@ -59,6 +59,11 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "heater_problem": {
+        "name": "Kesselproblem"
+      }
+    },
     "sensor": {
       "current_temperature": {
         "name": "Aktuelle Temperatur"
@@ -123,6 +128,17 @@
       },
       "time_until_stage_2_cleaning": {
         "name": "Betriebszeit bis Reinigung Stufe 2"
+      },
+      "heater_error": {
+        "name": "Kesselfehler",
+        "state": {
+          "none": "Kein Fehler"
+        },
+        "state_attributes": {
+          "code": {
+            "name": "Code"
+          }
+        }
       }
     },
     "climate": {

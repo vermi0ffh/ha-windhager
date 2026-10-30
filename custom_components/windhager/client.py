@@ -1,6 +1,9 @@
 import asyncio
 import aiohttp
 import logging
+# The InfoWIN Touch's own text files, on the local network: Python's expat refuses
+# external entities and limits entity expansion
+import xml.etree.ElementTree as ET
 from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 
@@ -10,6 +13,11 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_REQUEST_TIMEOUT_S = 20
 # A write: the same, so that a heater gone silent fails the action instead of holding it
 WRITE_TIMEOUT_S = 20
+# The error texts' file: about 7 kB, once at setup
+ERROR_TEXTS_TIMEOUT_S = 20
+# The languages of the InfoWIN Touch's error texts tried after the instance's: English, then
+# German, the manufacturer's
+ERROR_TEXTS_FALLBACK_LANGUAGES = ("en", "de")
 
 
 def slugify(identifier_str: str) -> str:
@@ -100,6 +108,38 @@ class WindhagerHttpClient:
                     raise WriteFailed(oid, ret.status)
         except (aiohttp.ClientError, TimeoutError) as err:
             raise CannotConnect(f"Cannot reach the heater writing {oid}: {err}") from err
+
+    async def fetch_error_texts(self, language: str) -> dict[str, str]:
+        """The heater's own texts of its error codes, by code, in `language` if it has them.
+
+        The InfoWIN Touch's web page names the error codes from its files
+        (res/xml/ErrorTexte_<language>.xml, 2026-10-30), which follow its firmware: the
+        integration does not keep a copy of them. Empty if no file could be read: the
+        error then shows as its code.
+        """
+        languages = [language.split("-")[0].lower()]
+        languages += [other for other in ERROR_TEXTS_FALLBACK_LANGUAGES if other not in languages]
+        await self._ensure_session()
+        for lang in languages:
+            url = f"http://{self.host}/res/xml/ErrorTexte_{lang}.xml"
+            try:
+                async with (
+                    asyncio.timeout(ERROR_TEXTS_TIMEOUT_S),
+                    self._session.get(url) as ret,
+                ):
+                    if not ret.ok:
+                        _LOGGER.debug("No error texts at %s: %s", url, ret.status)
+                        continue
+                    root = ET.fromstring(await ret.text())
+            except (aiohttp.ClientError, TimeoutError, ET.ParseError) as err:
+                _LOGGER.debug("Cannot read the error texts at %s: %s", url, err)
+                continue
+            return {
+                error.get("code"): " ".join(error.get("text", "").split())
+                for error in root.iter("error")
+                if error.get("code")
+            }
+        return {}
 
     slugify = staticmethod(slugify)
 
@@ -322,6 +362,8 @@ class WindhagerHttpClient:
                             f"{device_id}{fct_id}/0/45/0",
                             # Heater status
                             f"{device_id}{fct_id}/2/1/0",
+                            # Error code: "-" without an error
+                            f"{device_id}{fct_id}/2/0/0",
                             # Pellet consumption
                             f"{device_id}{fct_id}/23/100/0",
                             f"{device_id}{fct_id}/23/103/0",
@@ -419,6 +461,28 @@ class WindhagerHttpClient:
                             **module,
                         }
                     )
+                    # The heater's error, and whether it has one
+                    for key, name, entity_type, suffix in (
+                        ("heater_error", "Heater error", "error", ""),
+                        ("heater_problem", "Heater problem", "problem", "/problem"),
+                    ):
+                        self.devices.append(
+                            {
+                                "id": self.slugify(
+                                    f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/2/0/0{suffix}"
+                                ),
+                                "key": key,
+                                "name": f"{functions[0]['name']} {name}",
+                                "type": entity_type,
+                                "entity_category": "diagnostic",
+                                "oid": f"{device_id}{fct_id}/2/0/0",
+                                "device_id": self.slugify(
+                                    f"{self.id_base}{str(device['nodeId'])}"
+                                ),
+                                "device_name": functions[0]["name"],
+                                **module,
+                            }
+                        )
                     # Pellet consumption
                     self.devices.append(
                         {

@@ -39,6 +39,9 @@ async def async_setup_entry(
         elif deviceInfo.get("type") == "sensor":
             entity = WindhagerGenericSensor(data_coordinator, deviceInfo)
             entities.append(entity)
+        elif deviceInfo.get("type") == "error":
+            entity = WindhagerErrorSensor(data_coordinator, deviceInfo)
+            entities.append(entity)
         elif deviceInfo.get("type") == "select":
             entity = WindhagerSelectSensor(data_coordinator, deviceInfo)
             entities.append(entity)
@@ -175,3 +178,35 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
             )
             return None
         return str(raw_value)
+
+
+# The error code's value without an error (2026-10-30: "-" before a fault, "42" during it)
+NO_ERROR = "-"
+# Home Assistant's limit for a state
+MAX_STATE_LENGTH = 255
+
+
+class WindhagerErrorSensor(WindhagerBaseSensor):
+    """The heater's error: its code and the heater's own text for it, or none."""
+
+    @property
+    def _code(self) -> str | None:
+        """The error code as the heater gives it: NO_ERROR without one, None if unknown."""
+        return self.coordinator.data.get("oids", {}).get(self._oid)
+
+    @property
+    def native_value(self) -> str | None:
+        code = self._code
+        if code is None:
+            return None
+        if code == NO_ERROR:
+            # Translated: "No error"
+            return "none"
+        text = self.coordinator.error_texts.get(code)
+        return f"{code}: {text}"[:MAX_STATE_LENGTH] if text else code
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The code alone, for automations: the text depends on the heater's language."""
+        code = self._code
+        return {"code": parse_value(code, int, self._oid) if code not in (None, NO_ERROR) else None}

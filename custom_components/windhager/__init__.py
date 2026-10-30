@@ -23,7 +23,7 @@ from .coordinator import WindhagerConfigEntry, WindhagerDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.CLIMATE, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.CLIMATE, Platform.SENSOR]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -66,6 +66,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) ->
         raise
 
     entry.runtime_data = coordinator
+    # One request at setup, in the instance's language: the error sensor names the code with it
+    coordinator.error_texts = await client.fetch_error_texts(hass.config.language)
     _async_set_heater_id(hass, entry, coordinator.data.get("heater_id"))
     # Before the platforms, so that they find their entities and devices under the new ids
     await _async_migrate_unique_ids(hass, entry, coordinator.data.get("heater_id"))

@@ -41,6 +41,8 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         self.consecutive_timeouts = 0
         # The diagnostics' API scan (diagnostics.ApiScan), started by the first download
         self.api_scan = None
+        # The heater's texts of its error codes, by code (client.fetch_error_texts)
+        self.error_texts: dict[str, str] = {}
 
     async def _async_update_data(self):
         """Fetch data from API endpoint."""

@@ -27,6 +27,12 @@
       },
       "time_until_stage_2_cleaning": {
         "default": "mdi:broom"
+      },
+      "heater_error": {
+        "default": "mdi:alert-circle-outline",
+        "state": {
+          "none": "mdi:check-circle-outline"
+        }
       }
     },
     "climate": {
