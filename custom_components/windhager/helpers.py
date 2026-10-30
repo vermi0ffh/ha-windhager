@@ -24,10 +24,7 @@ def get_oid_value(
     coordinator: Any, oid: str, prefix: str = "", default: str = "0"
 ) -> Optional[float]:
     """Get OID value with error handling."""
-    try:
-        full_path = f"{prefix}{oid}"
-        value = coordinator.data.get("oids", {}).get(full_path, default)
-        return parse_value(value, float, full_path)
-    except (ValueError, TypeError) as err:
-        _LOGGER.warning("Invalid value for %s: %s", full_path, err)
-        return None
+    full_path = f"{prefix}{oid}"
+    value = coordinator.data.get("oids", {}).get(full_path, default)
+    # parse_value turns a value that is not a number into None
+    return parse_value(value, float, full_path)
