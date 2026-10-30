@@ -88,6 +88,10 @@ heating circuit, gets its device and entities within ten minutes, without a relo
 Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
 ID as the serial number, and a link to the InfoWIN Touch's web page.
 
+A module removed from the heater keeps its device and entities, which become unavailable: the integration cannot tell
+a removed module from one that did not answer. To remove them, open the device and choose *Delete* in its menu. Only
+the device of a module the heater no longer lists can be deleted.
+
 The entities are named after their device, for example "BioWIN Heater status". The names follow Home Assistant's
 language: English, French or German. A new installation also gets its entity ids in that language (for example
 `sensor.biowin_etat_de_la_chaudiere` in French). Entity ids that already exist are kept.
@@ -220,7 +224,7 @@ are those of an English installation: find yours in each entity's settings.
   supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
-- The heater status has no name for code 16, which is undocumented: the status shows as unknown.
+- A heater status the integration does not know (beyond code 17) shows as unknown.
 - The heater reports one error at a time, the current one: an earlier error, or a second one, does not show.
 
 ## Troubleshooting
