@@ -21,6 +21,7 @@ def client() -> Iterator[MagicMock]:
     with patch.object(windhager, "WindhagerHttpClient") as client_class:
         client = client_class.return_value
         client.fetch_all = AsyncMock(return_value={"devices": [], "oids": {}})
+        client.fetch_error_texts = AsyncMock(return_value={})
         client.close = AsyncMock()
         yield client
 

@@ -33,6 +33,8 @@ class Heater:
     # What the heater answers a write with
     write_status: int = 200
     datapoints: list[bytes] = field(default_factory=list)
+    # The error texts' files it serves, by language
+    error_texts: dict[str, str] = field(default_factory=dict)
 
 
 def authorized(request: web.Request) -> bool:
@@ -64,8 +66,13 @@ async def heater(socket_enabled: None) -> AsyncIterator[Heater]:
             return web.json_response({})
         return web.json_response([{"nodeId": 15, "name": "BioWIN"}])
 
+    async def error_texts(request: web.Request) -> web.StreamResponse:
+        text = state.error_texts.get(request.match_info["language"])
+        return web.Response(status=404) if text is None else web.Response(text=text, content_type="text/xml")
+
     app = web.Application()
     app.router.add_route("*", "/api/1.0/{path:.*}", handle)
+    app.router.add_get("/res/xml/ErrorTexte_{language}.xml", error_texts)
     server = TestServer(app, host="127.0.0.1")
     await server.start_server()
     state.host = f"127.0.0.1:{server.port}"
@@ -223,3 +230,63 @@ async def test_a_datapoint_the_heater_gives_as_dashes_reads_unknown() -> None:
     data = await client.fetch_all()
 
     assert data["oids"] and all(value is None for value in data["oids"].values())
+
+
+def error_texts(lang: str, text: str) -> str:
+    """An error texts' file as the InfoWIN Touch serves it (its format on 2026-10-30)."""
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        f'<ErrorTexte lang="{lang}">\n\t<error code="42" text="{text}"/>\n</ErrorTexte>\n'
+    )
+
+
+async def test_the_error_texts_are_the_heaters_own_in_the_instance_language(heater: Heater) -> None:
+    heater.error_texts = {
+        "fr": error_texts("fr", "Relai de la turbine défectueux  Débrancher la prise."),
+        "de": error_texts("de", "Relais Saugturbine defekt"),
+    }
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    texts = await client.fetch_error_texts("fr")
+    await client.close()
+
+    # The heater's double spaces, between the fault and what to do, are one
+    assert texts == {"42": "Relai de la turbine défectueux Débrancher la prise."}
+
+
+@pytest.mark.parametrize(
+    ("served", "expected"),
+    [
+        # A language the heater does not have: English, then German
+        (
+            {"en": error_texts("en", "Suction turbine relay defective"), "de": error_texts("de", "Relais")},
+            {"42": "Suction turbine relay defective"},
+        ),
+        ({"de": error_texts("de", "Relais Saugturbine defekt")}, {"42": "Relais Saugturbine defekt"}),
+        # None readable: the error shows as its code
+        ({}, {}),
+        ({"en": "not xml <", "de": "<ErrorTexte"}, {}),
+    ],
+)
+async def test_without_the_instance_language_the_error_texts_fall_back_to_english_then_german(
+    heater: Heater, served: dict[str, str], expected: dict[str, str]
+) -> None:
+    heater.error_texts = served
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    texts = await client.fetch_error_texts("it-IT")
+    await client.close()
+
+    assert texts == expected
+
+
+async def test_a_heater_that_does_not_answer_has_no_error_texts(socket_enabled: None) -> None:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    client = WindhagerHttpClient(f"127.0.0.1:{port}", PASSWORD)
+
+    texts = await client.fetch_error_texts("en")
+    await client.close()
+
+    assert texts == {}

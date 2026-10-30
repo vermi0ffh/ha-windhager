@@ -59,6 +59,11 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "heater_problem": {
+        "name": "Problème de la chaudière"
+      }
+    },
     "sensor": {
       "current_temperature": {
         "name": "Température actuelle"
@@ -123,6 +128,17 @@
       },
       "time_until_stage_2_cleaning": {
         "name": "Durée de fonctionnement avant le nettoyage niveau 2"
+      },
+      "heater_error": {
+        "name": "Erreur de la chaudière",
+        "state": {
+          "none": "Aucune erreur"
+        },
+        "state_attributes": {
+          "code": {
+            "name": "Code"
+          }
+        }
       }
     },
     "climate": {

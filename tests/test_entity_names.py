@@ -39,10 +39,9 @@ async def test_a_new_english_installation_gets_the_entity_ids_of_the_former_name
     data = await set_up(hass, entry, client, "en")
 
     # The names the client gave the entities before they were translated made these ids
-    expected = {
-        f"{'climate' if device['type'] == 'climate' else 'sensor'}.{slugify(device['name'])}"
-        for device in data["devices"]
-    } | {"climate.circuit_without_bias"}
+    domains = {"climate": "climate", "problem": "binary_sensor"}
+    expected = {f"{domains.get(device['type'], 'sensor')}.{slugify(device['name'])}" for device in data["devices"]}
+    expected.add("climate.circuit_without_bias")
 
     # The registry: an entity disabled by default has no state
     entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
