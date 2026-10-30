@@ -27,9 +27,9 @@ MODULES = [
 ]
 
 
-async def set_up(hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock) -> None:
+async def set_up(hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, modules: list[dict] = MODULES) -> None:
     heater = WindhagerHttpClient("192.0.2.1", "secret")
-    heater.fetch = AsyncMock(side_effect=lambda url: MODULES if url == "/1" else {"value": "1"})
+    heater.fetch = AsyncMock(side_effect=lambda url: modules if url == "/1" else {"value": "1"})
     client.fetch_all.return_value = await heater.fetch_all()
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -106,3 +106,35 @@ async def test_a_device_with_entities_stays_though_its_module_did_not_answer(
     await set_up(hass, entry, client)
 
     assert device_registry.async_get(absent.id) is not None
+
+
+async def poll_with(hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, modules: list[dict]) -> None:
+    """A poll of the heater listing `modules`."""
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+    heater.fetch = AsyncMock(side_effect=lambda url: modules if url == "/1" else {"value": "1"})
+    client.fetch_all.return_value = await heater.fetch_all()
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+
+async def test_a_circuit_added_to_the_heater_gets_its_entities_without_a_reload(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up(hass, entry, client, [MODULES[1]])
+    assert hass.states.get("climate.circuit") is None
+
+    await poll_with(hass, entry, client, MODULES)
+
+    assert hass.states.get("climate.circuit").state == "heat"
+    assert device_of(hass, "climate.circuit").serial_number == CIRCUIT_ID
+
+
+async def test_the_entities_of_a_module_the_heater_no_longer_lists_are_unavailable(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up(hass, entry, client)
+
+    await poll_with(hass, entry, client, [MODULES[1]])
+
+    assert hass.states.get("climate.circuit").state == "unavailable"
+    assert hass.states.get("sensor.biowin_heater_status").state != "unavailable"

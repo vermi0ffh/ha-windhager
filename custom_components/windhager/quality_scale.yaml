@@ -60,10 +60,10 @@ rules:
   docs-troubleshooting: done
   docs-use-cases: done
   dynamic-devices:
-    status: todo
+    status: done
     comment: >
-      The heater's modules are read at startup: a module added later, such as a new heating
-      circuit, appears only after the entry is reloaded.
+      The modules are listed again every ten polls: a module added to the heater gets its
+      device and entities without a reload.
   entity-category: done
   entity-device-class:
     status: done

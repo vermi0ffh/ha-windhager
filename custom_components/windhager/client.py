@@ -13,6 +13,9 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_REQUEST_TIMEOUT_S = 20
 # A write: the same, so that a heater gone silent fails the action instead of holding it
 WRITE_TIMEOUT_S = 20
+# The modules are listed again every so many polls (ten minutes), to find a module added to
+# the heater: /1 took 0.05 to 0.18 s on 2026-10-30, against 4.6 s for a poll
+MODULES_CHECK_POLLS = 10
 # The error texts' file: about 7 kB, once at setup
 ERROR_TEXTS_TIMEOUT_S = 20
 # The languages of the InfoWIN Touch's error texts tried after the instance's: English, then
@@ -23,6 +26,24 @@ ERROR_TEXTS_FALLBACK_LANGUAGES = ("en", "de")
 def slugify(identifier_str: str) -> str:
     """An identifier as the unique ids of the entities and devices hold it."""
     return identifier_str.replace(".", "-").replace("/", "-")
+
+
+def modules_signature(json_devices: list[dict]) -> tuple:
+    """What the entities depend on in /1's list: the modules and their functions."""
+    return tuple(
+        sorted(
+            (
+                str(device.get("nodeId")),
+                tuple(
+                    sorted(
+                        (str(function.get("fctId")), str(function.get("fctType")), str(function.get("lock")))
+                        for function in device.get("functions", [])
+                    )
+                ),
+            )
+            for device in json_devices
+        )
+    )
 
 
 def heater_id(json_devices: list[dict]) -> str | None:
@@ -51,6 +72,8 @@ class WindhagerHttpClient:
         self.devices = []
         self.heater_id = None
         self._session = None
+        self._modules_signature: tuple | None = None
+        self._polls_since_modules_check = 0
 
     @property
     def id_base(self) -> str:
@@ -148,6 +171,7 @@ class WindhagerHttpClient:
         self.oids = set()
         self.devices = []
         self.heater_id = heater_id(json_devices)
+        self._modules_signature = modules_signature(json_devices)
 
         # Add devices
         for device in json_devices:
@@ -561,10 +585,32 @@ class WindhagerHttpClient:
                     }
                 )
 
+    async def _check_modules(self) -> None:
+        """Every MODULES_CHECK_POLLS polls, discover the modules again if /1 lists others."""
+        self._polls_since_modules_check += 1
+        if self._polls_since_modules_check < MODULES_CHECK_POLLS:
+            return
+        self._polls_since_modules_check = 0
+        try:
+            json_devices = await self.fetch("/1")
+            signature = modules_signature(json_devices)
+        except (InvalidAuth, CannotConnect):
+            # The heater as a whole: as a datapoint's request would
+            raise
+        except Exception as err:
+            # The modules stay as they were until the next check
+            _LOGGER.debug("Cannot list the modules again: %s", err)
+            return
+        if signature != self._modules_signature:
+            _LOGGER.info("The heater's modules changed: discovering them again")
+            self._discover(json_devices)
+
     async def fetch_all(self):
         if self.oids is None:
             # Fetch all devices on the network
             self._discover(await self.fetch("/1"))
+        else:
+            await self._check_modules()
 
         ret = {
             "devices": self.devices,
