@@ -20,6 +20,7 @@ climates for the heating circuits; some of its users drive their heating with it
 | `custom_components/windhager/binary_sensor.py`, `climate.py`, `sensor.py` | The platforms |
 | `custom_components/windhager/config_flow.py` | Adding an entry: host and password, checked against the heater |
 | `custom_components/windhager/diagnostics.py` | The diagnostics: the entry (redacted), the coordinator's data, the API scan in the background |
+| `custom_components/windhager/quality_scale.yaml` | Each rule of the quality scale: done, exempt (with the reason) or to do |
 | `custom_components/windhager/strings.json`, `translations/` | The texts, in English, French and German |
 | `tests/` | pytest-homeassistant-custom-component; `conftest.py` mocks the client |
 | `hacs.json` | HACS metadata, among them the minimum Home Assistant version |
@@ -44,6 +45,7 @@ reason.
 
 1. **Target: Gold** of the [integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/).
    A change never loses a rule already met; a rule that does not apply is exempted with its reason.
+   `quality_scale.yaml` holds each rule's status: a change that meets, loses or exempts one updates it.
 2. **Home Assistant's conventions**: nothing blocking in the event loop (the heater is reached only through the
    asynchronous `client.py`); the entities read the coordinator's data, they do not request the heater themselves;
    services are registered in `async_setup`; user-facing texts go in `strings.json` and every file of

@@ -1,0 +1,96 @@
+rules:
+  # Bronze
+  action-setup: done
+  appropriate-polling:
+    status: done
+    comment: >
+      Every minute: one poll reads about 60 datapoints one after the other, and the heater's
+      API took 44 to 100 s for 63 requests on 2026-10-28 and 29.
+  brands: done
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency:
+    status: done
+    comment: No requirement; the HTTP client is in the integration, on Home Assistant's aiohttp.
+  docs-actions: done
+  docs-conditions:
+    status: exempt
+    comment: The integration offers no condition.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: The integration offers no trigger.
+  entity-event-setup:
+    status: exempt
+    comment: The entities subscribe to nothing but the coordinator, which CoordinatorEntity handles.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters:
+    status: exempt
+    comment: The integration has no options.
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow: done
+  test-coverage: done
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery: done
+  discovery-update-info: done
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: todo
+    comment: >
+      The heater's modules are read at startup: a module added later, such as a new heating
+      circuit, appears only after the entry is reloaded.
+  entity-category: done
+  entity-device-class:
+    status: done
+    comment: >
+      The temperature corrections (K, a difference) and the pellet consumption (t, which no
+      weight unit of Home Assistant offers) have no device class.
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues:
+    status: exempt
+    comment: >
+      Nothing for the user to repair outside the existing flows: a refused password starts the
+      reauthentication, a heater at a new address is followed by its discovery.
+  stale-devices:
+    status: todo
+    comment: >
+      A device left without entities is removed at setup; a module removed from the heater keeps
+      its device and entities, and the user cannot delete it.
+
+  # Platinum
+  async-dependency: done
+  inject-websession:
+    status: todo
+    comment: >
+      The client opens its own aiohttp session for the digest authentication middleware;
+      aiohttp's per-request middlewares would let it use Home Assistant's shared session.
+  strict-typing: todo
