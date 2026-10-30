@@ -19,7 +19,7 @@
   "issue_tracker": "https://github.com/vermi0ffh/ha-windhager/issues",
   "requirements": [],
   "ssdp": [],
-  "version": "0.2.0b2",
+  "version": "0.2.0b3",
   "zeroconf": [
     {
       "type": "_workstation._tcp.local.",
