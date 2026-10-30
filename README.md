@@ -80,10 +80,17 @@ at the next poll. A change made from Home Assistant triggers a poll right after 
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
 
+Every ten minutes, the integration also lists the heater's modules again. A module added to the heater, such as a new
+heating circuit, gets its device and entities within ten minutes, without a reload.
+
 ## Devices and entities
 
 Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
 ID as the serial number, and a link to the InfoWIN Touch's web page.
+
+A module removed from the heater keeps its device and entities, which become unavailable: the integration cannot tell
+a removed module from one that did not answer. To remove them, open the device and choose *Delete* in its menu. Only
+the device of a module the heater no longer lists can be deleted.
 
 The entities are named after their device, for example "BioWIN Heater status". The names follow Home Assistant's
 language: English, French or German. A new installation also gets its entity ids in that language (for example
@@ -221,13 +228,11 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- The integration reads the heater's modules when it starts. A module added later, such as a new heating circuit,
-  appears after you reload the entry.
 - Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
   supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
-- The heater status has no name for code 16, which is undocumented: the status shows as unknown.
+- A heater status the integration does not know (beyond code 17) shows as unknown.
 - The heater reports one error at a time, the current one: an earlier error, or a second one, does not show.
 
 ## Troubleshooting

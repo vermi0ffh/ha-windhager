@@ -290,3 +290,67 @@ async def test_a_heater_that_does_not_answer_has_no_error_texts(socket_enabled: 
     await client.close()
 
     assert texts == {}
+
+
+async def polls_listing(modules: list[list[dict]], polls: int) -> tuple[WindhagerHttpClient, AsyncMock]:
+    """A client polled `polls` times after its discovery, /1 listing each list of `modules` in turn."""
+    client = WindhagerHttpClient("192.0.2.1", PASSWORD)
+    lists = iter(modules)
+    client.fetch = AsyncMock(side_effect=lambda url: next(lists) if url == "/1" else {"value": "1"})
+    await client.fetch_all()
+    for _ in range(polls):
+        await client.fetch_all()
+    return client, client.fetch
+
+
+HEATER = {**HEATER_MODULE, "functions": [{"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN"}]}
+CIRCUIT = {**CIRCUIT_MODULE, "functions": [{"fctId": 0, "fctType": 14, "lock": False, "name": "Circuit"}]}
+
+
+async def test_the_modules_are_listed_again_every_ten_polls() -> None:
+    _, fetch = await polls_listing([[HEATER], [HEATER]], polls=10)
+
+    listings = [call for call in fetch.await_args_list if call.args == ("/1",)]
+    assert len(listings) == 2
+
+
+async def test_a_module_added_to_the_heater_is_discovered_at_the_next_listing() -> None:
+    client, _ = await polls_listing([[HEATER], [HEATER, CIRCUIT]], polls=10)
+
+    data = await client.fetch_all()
+
+    assert any(device["type"] == "climate" for device in data["devices"])
+    assert "/1/15/0/0/1/0" in data["oids"]
+
+
+async def test_the_same_modules_keep_their_discovery() -> None:
+    client, _ = await polls_listing([[HEATER]], polls=0)
+    devices = client.devices
+    client.fetch = AsyncMock(side_effect=lambda url: [HEATER] if url == "/1" else {"value": "1"})
+
+    for _ in range(10):
+        await client.fetch_all()
+
+    assert client.devices is devices
+
+
+@pytest.mark.parametrize(("failure", "raised"), [(ValueError("not JSON"), None), (InvalidAuth("refused"), InvalidAuth)])
+async def test_a_listing_that_fails_keeps_the_modules_unless_the_heater_fails(
+    failure: Exception, raised: type[Exception] | None
+) -> None:
+    client, _ = await polls_listing([[HEATER]], polls=9)
+    devices = client.devices
+
+    def fetch(url: str) -> dict:
+        if url == "/1":
+            raise failure
+        return {"value": "1"}
+
+    client.fetch = AsyncMock(side_effect=fetch)
+
+    if raised:
+        with pytest.raises(raised):
+            await client.fetch_all()
+    else:
+        await client.fetch_all()
+        assert client.devices is devices

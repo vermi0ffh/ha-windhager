@@ -60,10 +60,10 @@ rules:
   docs-troubleshooting: done
   docs-use-cases: done
   dynamic-devices:
-    status: todo
+    status: done
     comment: >
-      The heater's modules are read at startup: a module added later, such as a new heating
-      circuit, appears only after the entry is reloaded.
+      The modules are listed again every ten polls: a module added to the heater gets its
+      device and entities without a reload.
   entity-category: done
   entity-device-class:
     status: done
@@ -81,10 +81,10 @@ rules:
       Nothing for the user to repair outside the existing flows: a refused password starts the
       reauthentication, a heater at a new address is followed by its discovery.
   stale-devices:
-    status: todo
+    status: done
     comment: >
-      A device left without entities is removed at setup; a module removed from the heater keeps
-      its device and entities, and the user cannot delete it.
+      A device left without entities is removed at setup; the device of a module the heater no
+      longer lists keeps its entities until the user deletes it, which the integration allows.
 
   # Platinum
   async-dependency: done

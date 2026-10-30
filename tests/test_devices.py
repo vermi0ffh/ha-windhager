@@ -4,7 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.typing import WebSocketGenerator
 
 from custom_components.windhager.client import WindhagerHttpClient
 
@@ -27,9 +29,9 @@ MODULES = [
 ]
 
 
-async def set_up(hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock) -> None:
+async def set_up(hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, modules: list[dict] = MODULES) -> None:
     heater = WindhagerHttpClient("192.0.2.1", "secret")
-    heater.fetch = AsyncMock(side_effect=lambda url: MODULES if url == "/1" else {"value": "1"})
+    heater.fetch = AsyncMock(side_effect=lambda url: modules if url == "/1" else {"value": "1"})
     client.fetch_all.return_value = await heater.fetch_all()
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -106,3 +108,71 @@ async def test_a_device_with_entities_stays_though_its_module_did_not_answer(
     await set_up(hass, entry, client)
 
     assert device_registry.async_get(absent.id) is not None
+
+
+async def remove_device(hass: HomeAssistant, hass_ws_client: WebSocketGenerator, device_id: str) -> bool:
+    """Delete the device as the user does from its page; whether Home Assistant did."""
+    assert await async_setup_component(hass, "config", {})
+    ws = await hass_ws_client(hass)
+    response = await ws.remove_device(device_id)
+    return response["success"]
+
+
+async def test_the_device_of_a_module_the_heater_no_longer_lists_can_be_deleted(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    device_registry = dr.async_get(hass)
+    entity_registry = er.async_get(hass)
+    gone = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("windhager", f"{HEATER_ID}90")}, name="Other module"
+    )
+    entity = entity_registry.async_get_or_create(
+        "sensor", "windhager", f"{HEATER_ID}-1-90-0-0-1-0", config_entry=entry, device_id=gone.id
+    )
+    await set_up(hass, entry, client)
+
+    assert await remove_device(hass, hass_ws_client, gone.id)
+    assert device_registry.async_get(gone.id) is None
+    assert entity_registry.async_get(entity.entity_id) is None
+
+
+async def test_the_device_of_a_module_the_heater_lists_cannot_be_deleted(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up(hass, entry, client)
+    circuit = device_of(hass, "climate.circuit")
+
+    assert not await remove_device(hass, hass_ws_client, circuit.id)
+    assert dr.async_get(hass).async_get(circuit.id) is not None
+
+
+async def poll_with(hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, modules: list[dict]) -> None:
+    """A poll of the heater listing `modules`."""
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+    heater.fetch = AsyncMock(side_effect=lambda url: modules if url == "/1" else {"value": "1"})
+    client.fetch_all.return_value = await heater.fetch_all()
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+
+async def test_a_circuit_added_to_the_heater_gets_its_entities_without_a_reload(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up(hass, entry, client, [MODULES[1]])
+    assert hass.states.get("climate.circuit") is None
+
+    await poll_with(hass, entry, client, MODULES)
+
+    assert hass.states.get("climate.circuit").state == "heat"
+    assert device_of(hass, "climate.circuit").serial_number == CIRCUIT_ID
+
+
+async def test_the_entities_of_a_module_the_heater_no_longer_lists_are_unavailable(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up(hass, entry, client)
+
+    await poll_with(hass, entry, client, [MODULES[1]])
+
+    assert hass.states.get("climate.circuit").state == "unavailable"
+    assert hass.states.get("sensor.biowin_heater_status").state != "unavailable"

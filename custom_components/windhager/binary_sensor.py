@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import WindhagerConfigEntry, WindhagerDataUpdateCoordinator
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_add_module_entities
 from .sensor import NO_ERROR
 
 # Read only, from the coordinator's data: no limit
@@ -19,12 +19,14 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(
     hass: HomeAssistant, entry: WindhagerConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up the heater's problem sensor from a config entry."""
+    """Set up the heater's problem sensor from a config entry, or once its module is listed."""
     coordinator = entry.runtime_data
-    async_add_entities(
-        WindhagerProblemSensor(coordinator, device_info)
-        for device_info in coordinator.data.get("devices", [])
-        if device_info.get("type") == "problem"
+    async_add_module_entities(
+        entry,
+        async_add_entities,
+        lambda device_info: (
+            [WindhagerProblemSensor(coordinator, device_info)] if device_info.get("type") == "problem" else []
+        ),
     )
 
 

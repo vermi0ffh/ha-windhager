@@ -15,7 +15,7 @@ from homeassistant.components.sensor import (
 from homeassistant.core import HomeAssistant
 
 from .coordinator import WindhagerConfigEntry
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_add_module_entities
 from .helpers import parse_value, get_oid_value
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,32 +27,14 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(
     hass: HomeAssistant, entry: WindhagerConfigEntry, async_add_entities
 ) -> None:
-    """Set up WindHager lights from a config entry."""
-    data_coordinator = entry.runtime_data
+    """Set up the Windhager sensors from a config entry, and those of a module added later."""
+    coordinator = entry.runtime_data
 
-    entities = []
+    def sensors_of(device_info: dict) -> list[WindhagerBaseSensor]:
+        sensor_class = SENSOR_CLASSES.get(device_info.get("type"))
+        return [sensor_class(coordinator, device_info)] if sensor_class else []
 
-    for deviceInfo in data_coordinator.data.get("devices"):
-        if deviceInfo.get("type") == "temperature":
-            entity = WindhagerTemperatureSensor(data_coordinator, deviceInfo)
-            entities.append(entity)
-        elif deviceInfo.get("type") == "sensor":
-            entity = WindhagerGenericSensor(data_coordinator, deviceInfo)
-            entities.append(entity)
-        elif deviceInfo.get("type") == "error":
-            entity = WindhagerErrorSensor(data_coordinator, deviceInfo)
-            entities.append(entity)
-        elif deviceInfo.get("type") == "select":
-            entity = WindhagerSelectSensor(data_coordinator, deviceInfo)
-            entities.append(entity)
-        elif (
-            deviceInfo.get("type") == "total"
-            or deviceInfo.get("type") == "total_increasing"
-        ):
-            entity = WindhagerPelletSensor(data_coordinator, deviceInfo)
-            entities.append(entity)
-
-    async_add_entities(entities)
+    async_add_module_entities(entry, async_add_entities, sensors_of)
 
 
 class WindhagerBaseSensor(WindhagerEntity, SensorEntity):
@@ -148,8 +130,9 @@ class WindhagerPelletSensor(WindhagerBaseSensor):
         return "t"
 
 
-# The heater status codes the translations name (16 is not documented)
-HEATER_STATUSES = [str(code) for code in (*range(16), 17)]
+# The heater status codes the translations name: those of the InfoWIN Touch's
+# res/xml/AufzaehlTexte_<language>.xml (2026-10-30)
+HEATER_STATUSES = [str(code) for code in range(18)]
 
 
 class WindhagerSelectSensor(WindhagerBaseSensor):
@@ -210,3 +193,14 @@ class WindhagerErrorSensor(WindhagerBaseSensor):
         """The code alone, for automations: the text depends on the heater's language."""
         code = self._code
         return {"code": parse_value(code, int, self._oid) if code not in (None, NO_ERROR) else None}
+
+
+# The sensor of each type the client describes
+SENSOR_CLASSES: dict[str | None, type[WindhagerBaseSensor]] = {
+    "temperature": WindhagerTemperatureSensor,
+    "sensor": WindhagerGenericSensor,
+    "error": WindhagerErrorSensor,
+    "select": WindhagerSelectSensor,
+    "total": WindhagerPelletSensor,
+    "total_increasing": WindhagerPelletSensor,
+}
