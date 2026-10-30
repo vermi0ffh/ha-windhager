@@ -219,7 +219,7 @@ are those of an English installation: find yours in each entity's settings.
   supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
-- The heater status has no name for code 16, which is undocumented: the status shows as unknown.
+- A heater status the integration does not know (beyond code 17) shows as unknown.
 - The heater reports one error at a time, the current one: an earlier error, or a second one, does not show.
 
 ## Troubleshooting
