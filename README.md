@@ -129,6 +129,16 @@ The presets are the circuit's programs:
 Setting a target temperature makes it a temporary target for 400 minutes (6 h 40). After that, the circuit goes back
 to its program. Choosing a preset ends a temporary target.
 
+The thermostat is *Off* while its circuit is on *Standby*, and *Heat* otherwise:
+
+- *Off* (or *Turn off*) puts the circuit on *Standby*. The heater stops heating it, and stops altogether once no
+  circuit asks for heat.
+- *Heat* (or *Turn on*) brings back the program the circuit had before *Off*. After a standby set another way (on the
+  heater, or with the *Standby* preset), it goes to *Heating program 1*.
+
+A circuit that asks for heat starts the heater by itself: a heater on standby took about 15 minutes to reach full
+power on 2026-10-30.
+
 ## Actions
 
 ### `windhager.set_current_temp_compensation`
@@ -211,8 +221,6 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- The climate's *Off* mode does nothing yet: choose the *Standby* preset to stop a circuit. The climate always shows
-  *Heat*.
 - The integration reads the heater's modules when it starts. A module added later, such as a new heating circuit,
   appears after you reload the entry.
 - Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not

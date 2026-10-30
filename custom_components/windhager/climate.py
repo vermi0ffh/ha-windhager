@@ -25,6 +25,10 @@ _LOGGER = logging.getLogger(__name__)
 # One write at a time to the heater: its API answers the requests one after the other
 PARALLEL_UPDATES = 1
 
+# The circuit's presets (/0/3/50/0) that Off and Heat write
+STANDBY = 0
+HEATING_PROGRAM_1 = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: WindhagerConfigEntry, async_add_entities
@@ -54,6 +58,8 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         self.client = self.coordinator.client
         self._prefix = device_info.get("prefix", "")
         self._preset_modes = ["0", "1", "2", "3", "4", "5", "6", "7"]
+        # The circuit's program before Off put it on standby, which Heat goes back to
+        self._mode_before_standby: int | None = None
         # Not named in the translations: the climate takes its circuit's name
         self._attr_translation_key = "windhager_climate"
 
@@ -79,8 +85,8 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
 
     @property
     def hvac_mode(self) -> str:
-        """Return hvac operation mode."""
-        return HVACMode.HEAT
+        """Off while the circuit is on standby (preset 0), else heating."""
+        return HVACMode.OFF if self.raw_selected_mode() == STANDBY else HVACMode.HEAT
 
     @property
     def hvac_modes(self) -> list[str]:
@@ -111,7 +117,7 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
     @property
     def hvac_action(self) -> str:
         """Return the current running hvac operation."""
-        if self.raw_preset_mode() == 0:
+        if self.raw_preset_mode() == STANDBY:
             return HVACAction.OFF
         return HVACAction.HEATING
 
@@ -170,9 +176,22 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
-        """Set new target hvac mode."""
-        # Implement if needed
-        pass
+        """Off puts the circuit on standby; Heat brings back its program from before.
+
+        Standby is the circuit's preset 0 (/0/3/50/0): the heater stops heating the circuit,
+        and starts again once a circuit asks for heat (2026-10-30, a circuit set to preset 4
+        took the heater from standby to modulating in about 15 minutes). Heat after a standby
+        set elsewhere (the heater, the preset) goes to Heating program 1.
+        """
+        current = self.raw_selected_mode()
+        if hvac_mode == HVACMode.OFF:
+            if current == STANDBY:
+                return
+            self._mode_before_standby = current
+            await self.async_set_preset_mode(self._preset_modes[STANDBY])
+        elif hvac_mode == HVACMode.HEAT and current == STANDBY:
+            mode = self._mode_before_standby or HEATING_PROGRAM_1
+            await self.async_set_preset_mode(self._preset_modes[mode])
 
 
 class WindhagerThermostatClimate(WindhagerBaseThermostat):
