@@ -95,6 +95,9 @@
       "combustion_chamber_temperature": {
         "name": "Combustion chamber temperature"
       },
+      "hopper_level": {
+        "name": "Hopper level"
+      },
       "heater_status": {
         "name": "Heater status",
         "state": {
