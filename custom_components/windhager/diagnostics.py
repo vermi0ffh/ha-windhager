@@ -63,11 +63,41 @@ async def async_get_config_entry_diagnostics(
             hass, _async_scan(entry, coordinator.api_scan), "windhager API scan"
         )
 
+    coordinator_data = coordinator.data or {}
+    scan = coordinator.api_scan.as_dict()
+    placeholders = _chip_id_placeholders(coordinator_data, scan)
     return {
         "entry": async_redact_data(entry.data, TO_REDACT),
-        "coordinator_data": coordinator.data,
-        "scan": coordinator.api_scan.as_dict(),
+        "coordinator_data": _replace_chip_ids(coordinator_data, placeholders),
+        "scan": _replace_chip_ids(scan, placeholders),
     }
+
+
+def _chip_id_placeholders(coordinator_data: dict[str, Any], scan: dict[str, Any]) -> dict[str, str]:
+    """A placeholder for each module's chip ID (Neuron ID): the heater's first, then sorted.
+
+    The chip IDs identify the hardware as a serial number does. The heater's starts every
+    unique id, so they are replaced inside the ids too; a placeholder per chip ID keeps
+    which entity belongs to which module readable.
+    """
+    heater = coordinator_data.get("heater_id")
+    others = {device.get("device_serial_number") for device in coordinator_data.get("devices", [])}
+    others.update(device.get("neuronId") for device in scan.get("devices", []) if isinstance(device, dict))
+    others.discard(heater)
+    ordered = ([heater] if heater else []) + sorted(chip_id for chip_id in others if isinstance(chip_id, str) and chip_id)
+    return {chip_id: f"**REDACTED_{number}**" for number, chip_id in enumerate(ordered, 1)}
+
+
+def _replace_chip_ids(value: Any, placeholders: dict[str, str]) -> Any:
+    """A copy of `value` with every chip ID replaced, inside strings too."""
+    if isinstance(value, dict):
+        return {key: _replace_chip_ids(item, placeholders) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_replace_chip_ids(item, placeholders) for item in value]
+    if isinstance(value, str):
+        for chip_id, placeholder in placeholders.items():
+            value = value.replace(chip_id, placeholder)
+    return value
 
 
 async def _async_scan(entry: WindhagerConfigEntry, scan: ApiScan) -> None:
