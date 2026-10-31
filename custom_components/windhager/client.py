@@ -39,6 +39,30 @@ CIRCUIT_DATAPOINTS = (
     ("/1/4/0", "hot_water_target_temperature", "Hot water target temperature", "temperature", True),
     ("/1/66/0", "hot_water_charging_pump", "Hot water charging pump", "running", True),
 )
+# The heater's datapoints beyond its first ones: (path, key, English name, the entity's
+# description, slow), each compared with the heater's mobile app on 2026-10-31 (BioWIN)
+HEATER_DATAPOINTS: tuple[tuple[str, str, str, dict, bool], ...] = (
+    # Kesseltemperatur Soll: 0 °C while the heater does not run
+    ("/1/7/0", "heater_target_temperature", "Heater target temperature", {"type": "temperature"}, False),
+    # Laufzeit bis Wartung: 6005 h, not listed by the lookups, next to the cleanings' 20/61 and 20/62
+    (
+        "/20/63/0",
+        "time_until_maintenance",
+        "Running time until maintenance",
+        {"type": "sensor", "device_class": "duration", "state_class": "measurement", "entity_category": "diagnostic", "unit": "h"},
+        True,
+    ),
+    # Betriebsstunden: 1707 h
+    (
+        "/2/81/0",
+        "operating_hours",
+        "Operating hours",
+        {"type": "sensor", "device_class": "duration", "state_class": "total_increasing", "unit": "h"},
+        True,
+    ),
+    # Anzahl der Brennerstarts: 482
+    ("/2/80/0", "burner_starts", "Burner starts", {"type": "sensor", "state_class": "total_increasing"}, True),
+)
 # The datapoints of the functions read beyond the heater and the circuits, by function type:
 # (path, key, English name, the entity's description, slow), each compared with the heater's
 # mobile app on 2026-10-31
@@ -692,6 +716,23 @@ class WindhagerHttpClient:
                         **module,
                     }
                 )
+
+                # What the heater's mobile app shows beyond these, each checked against it
+                for path, key, name, entity, slow in HEATER_DATAPOINTS:
+                    oid = f"{device_id}{fct_id}{path}"
+                    (self.slow_oids if slow else self.oids).add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{functions[0]['name']} {name}",
+                            "oid": oid,
+                            "device_id": self.slugify(f"{self.id_base}{str(device['nodeId'])}"),
+                            "device_name": functions[0]["name"],
+                            **module,
+                            **entity,
+                        }
+                    )
 
             # The functions the integration reads through FUNCTION_DATAPOINTS: each one a
             # device of its own, named after it, with its module as the model

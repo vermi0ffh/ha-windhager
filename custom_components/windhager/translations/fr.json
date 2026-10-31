@@ -212,6 +212,18 @@
       },
       "buffer_temperature_tpa": {
         "name": "Température tampon TPA"
+      },
+      "heater_target_temperature": {
+        "name": "Consigne de température de la chaudière"
+      },
+      "time_until_maintenance": {
+        "name": "Durée de fonctionnement avant l'entretien"
+      },
+      "operating_hours": {
+        "name": "Heures de service"
+      },
+      "burner_starts": {
+        "name": "Nombre de démarrages du brûleur"
       }
     },
     "climate": {

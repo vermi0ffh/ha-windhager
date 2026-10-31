@@ -212,6 +212,18 @@
       },
       "buffer_temperature_tpa": {
         "name": "Puffertemperatur TPA"
+      },
+      "heater_target_temperature": {
+        "name": "Kesseltemperatur Soll"
+      },
+      "time_until_maintenance": {
+        "name": "Betriebszeit bis Wartung"
+      },
+      "operating_hours": {
+        "name": "Betriebsstunden"
+      },
+      "burner_starts": {
+        "name": "Anzahl der Brennerstarts"
       }
     },
     "climate": {
