@@ -137,6 +137,10 @@ The presets are the circuit's programs:
 Setting a target temperature makes it a temporary target for 400 minutes (6 h 40). After that, the circuit goes back
 to its program. Choosing a preset ends a temporary target.
 
+The thermostat shows *Off* while the heater is switched off on its screen (its *Operating mode* is *Switched off* or
+*Shutting down*), and *Heat* otherwise. Home Assistant cannot switch the heater on or off: the heater is switched on
+and off on its own screen, so the thermostat offers no other mode. To stop a circuit, choose its *Standby* preset.
+
 ## Actions
 
 ### `windhager.set_current_temp_compensation`
@@ -234,8 +238,6 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- The climate's *Off* mode does nothing yet: choose the *Standby* preset to stop a circuit. The climate always shows
-  *Heat*.
 - Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
   supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.

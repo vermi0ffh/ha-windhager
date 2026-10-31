@@ -206,3 +206,88 @@ async def test_the_compensation_action_is_translated(
     action = "component.windhager.services.set_current_temp_compensation"
     for key in ("name", "description", "fields.compensation.name", "fields.compensation.description"):
         assert translations[f"{action}.{key}"]
+
+
+# The heater's operating mode, as the client describes it
+OPERATING_MODE_OID = "/1/60/0/2/59/0"
+OPERATING_MODE = {
+    "id": "operating_mode",
+    "key": "operating_mode",
+    "type": "operating_mode",
+    "oid": OPERATING_MODE_OID,
+    "device_id": "biowin",
+    "device_name": "BioWIN",
+}
+
+
+async def set_up_with_heater(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, operating_mode: str | None
+) -> None:
+    client.fetch_all.return_value = {
+        "devices": [CIRCUIT, OPERATING_MODE],
+        "oids": {**OIDS, OPERATING_MODE_OID: operating_mode},
+    }
+    client.update = AsyncMock()
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+# 2026-10-31: 0 once the heater was switched off on its screen, 5 once switched back on
+@pytest.mark.parametrize(
+    ("operating_mode", "hvac_mode", "action"),
+    [("5", "heat", "heating"), ("0", "off", "off"), ("1", "off", "off"), ("8", "heat", "heating")],
+)
+async def test_the_climate_is_off_while_the_heater_is_switched_off_on_its_screen(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, operating_mode: str, hvac_mode: str, action: str
+) -> None:
+    await set_up_with_heater(hass, entry, client, operating_mode)
+
+    for entity_id in ("climate.heating_circuit", "climate.heating_circuit_without_bias"):
+        state = hass.states.get(entity_id)
+        assert (state.state, state.attributes["hvac_modes"]) == (hvac_mode, [hvac_mode])
+        assert state.attributes["hvac_action"] == action
+
+
+async def test_without_the_heater_operating_mode_the_climate_heats(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up_with_heater(hass, entry, client, None)
+
+    assert hass.states.get("climate.heating_circuit").state == "heat"
+
+
+async def test_without_a_heater_module_the_climate_heats(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up_circuit(hass, entry, client)
+
+    assert hass.states.get("climate.heating_circuit").state == "heat"
+
+
+@pytest.mark.parametrize(("operating_mode", "hvac_mode"), [("5", "off"), ("0", "heat")])
+async def test_home_assistant_cannot_switch_the_heater_on_or_off(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, operating_mode: str, hvac_mode: str
+) -> None:
+    await set_up_with_heater(hass, entry, client, operating_mode)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            "climate", "set_hvac_mode", {"entity_id": "climate.heating_circuit", "hvac_mode": hvac_mode}, blocking=True
+        )
+    for service in ("turn_on", "turn_off"):
+        with pytest.raises(HomeAssistantError):
+            await hass.services.async_call("climate", service, {"entity_id": "climate.heating_circuit"}, blocking=True)
+
+    client.update.assert_not_awaited()
+
+
+async def test_choosing_the_current_mode_writes_nothing(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up_with_heater(hass, entry, client, "5")
+
+    await hass.services.async_call(
+        "climate", "set_hvac_mode", {"entity_id": "climate.heating_circuit", "hvac_mode": "heat"}, blocking=True
+    )
+
+    client.update.assert_not_awaited()
