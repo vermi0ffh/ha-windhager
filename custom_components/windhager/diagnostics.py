@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.const import CONF_HOST, CONF_PASSWORD
+from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -17,7 +17,8 @@ from .coordinator import WindhagerConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
-TO_REDACT = {CONF_HOST, CONF_PASSWORD}
+# The MAC address that discovery stores in the entry identifies the heater as its host does
+TO_REDACT = {CONF_HOST, CONF_MAC, CONF_PASSWORD}
 
 
 @dataclass
