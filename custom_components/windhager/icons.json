@@ -27,6 +27,9 @@
           "11": "mdi:wrench"
         }
       },
+      "hopper_level": {
+        "default": "mdi:storage-tank"
+      },
       "pellet_consumption": {
         "default": "mdi:grain"
       },

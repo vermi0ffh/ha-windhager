@@ -115,6 +115,7 @@ The heater has these entities:
 | Operating mode | Whether the heater is on or switched off on its screen, or in manual mode, chimney sweep function or actuator test. Home Assistant cannot change it: the heater is switched on and off on its own screen. |
 | Power factor | The burner's output, in %. |
 | Heater temperature, Fumes temperature, Combustion chamber temperature | The heater's temperatures. |
+| Hopper level | The pellets left in the heater's hopper, in %: the level the heater's mobile app shows. |
 | Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
 | Running time until stage 1 cleaning, Running time until stage 2 cleaning | The burner hours left until each cleaning. |
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |

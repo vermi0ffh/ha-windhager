@@ -95,6 +95,9 @@
       "combustion_chamber_temperature": {
         "name": "Température de la chambre de combustion"
       },
+      "hopper_level": {
+        "name": "Niveau de la trémie"
+      },
       "heater_status": {
         "name": "État de la chaudière",
         "state": {

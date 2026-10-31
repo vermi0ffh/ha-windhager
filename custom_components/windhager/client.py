@@ -389,6 +389,8 @@ class WindhagerHttpClient:
                         f"{device_id}{fct_id}/2/59/0",
                         # Error code: "-" without an error
                         f"{device_id}{fct_id}/2/0/0",
+                        # Hopper level, not listed by the heater's lookups
+                        f"{device_id}{fct_id}/43/42/0",
                         # Pellet consumption
                         f"{device_id}{fct_id}/23/100/0",
                         f"{device_id}{fct_id}/23/103/0",
@@ -525,6 +527,25 @@ class WindhagerHttpClient:
                             **module,
                         }
                     )
+                # Hopper level (%): the level the heater's mobile app shows (79 % on 2026-10-31)
+                self.devices.append(
+                    {
+                        "id": self.slugify(
+                            f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/43/42/0"
+                        ),
+                        "key": "hopper_level",
+                        "name": f"{functions[0]['name']} Hopper level",
+                        "type": "sensor",
+                        "state_class": "measurement",
+                        "unit": "%",
+                        "oid": f"{device_id}{fct_id}/43/42/0",
+                        "device_id": self.slugify(
+                            f"{self.id_base}{str(device['nodeId'])}"
+                        ),
+                        "device_name": functions[0]["name"],
+                        **module,
+                    }
+                )
                 # Pellet consumption
                 self.devices.append(
                     {

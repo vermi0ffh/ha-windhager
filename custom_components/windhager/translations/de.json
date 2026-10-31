@@ -95,6 +95,9 @@
       "combustion_chamber_temperature": {
         "name": "Brennkammertemperatur"
       },
+      "hopper_level": {
+        "name": "Füllstand Vorratsbehälter"
+      },
       "heater_status": {
         "name": "Kesselstatus",
         "state": {
