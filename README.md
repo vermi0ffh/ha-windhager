@@ -112,6 +112,7 @@ The heater has these entities:
 | Entity | Description |
 | ------ | ----------- |
 | Heater status | What the burner is doing: standby, ignition phase, modulating mode, burner blocked… |
+| Operating mode | Whether the heater is on or switched off on its screen, or in manual mode, chimney sweep function or actuator test. Home Assistant cannot change it: the heater is switched on and off on its own screen. |
 | Power factor | The burner's output, in %. |
 | Heater temperature, Fumes temperature, Combustion chamber temperature | The heater's temperatures. |
 | Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
@@ -213,7 +214,22 @@ automation:
           message: "The heater is blocked (status {{ states('sensor.biowin_heater_status') }})"
 ```
 
-In automations, the presets and the heater status are codes; Home Assistant shows them by name. The entity ids above
+Or when it is switched off on its screen, from its operating mode:
+
+```yaml
+automation:
+  - alias: "Heater switched off"
+    triggers:
+      - trigger: state
+        entity_id: sensor.biowin_operating_mode
+        to: "0"  # Switched off
+    actions:
+      - action: notify.notify
+        data:
+          message: "The heater was switched off on its screen"
+```
+
+In automations, the presets, the heater status and the operating mode are codes; Home Assistant shows them by name. The entity ids above
 are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
@@ -224,7 +240,8 @@ are those of an English installation: find yours in each entity's settings.
   supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
-- A heater status the integration does not know (beyond code 17) shows as unknown.
+- A heater status the integration does not know (beyond code 17) shows as unknown, and so does an operating mode
+  beyond code 11.
 - The heater reports one error at a time, the current one: an earlier error, or a second one, does not show.
 
 ## Troubleshooting

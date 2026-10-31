@@ -118,6 +118,23 @@
           "17": "Burnout"
         }
       },
+      "operating_mode": {
+        "name": "Operating mode",
+        "state": {
+          "0": "Switched off",
+          "1": "Shutting down",
+          "2": "Solid fuel / buffer mode",
+          "3": "Pellet feed in operation",
+          "4": "Pellet feed",
+          "5": "On",
+          "6": "Pellet feed in operation",
+          "7": "Pellet feed",
+          "8": "Manual mode",
+          "9": "Chimney sweep function",
+          "10": "Actuator test",
+          "11": "Installation procedure active"
+        }
+      },
       "pellet_consumption": {
         "name": "Pellet consumption"
       },

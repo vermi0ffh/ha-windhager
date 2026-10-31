@@ -118,6 +118,23 @@
           "17": "Ausbrand"
         }
       },
+      "operating_mode": {
+        "name": "Betriebsart",
+        "state": {
+          "0": "Ausgeschaltet",
+          "1": "Abschaltvorgang",
+          "2": "Festbrennstoff-/Pufferbetrieb",
+          "3": "Pelletszuführung in Betrieb",
+          "4": "Pelletszuführung",
+          "5": "Ein",
+          "6": "Pelletszuführung in Betrieb",
+          "7": "Pelletszuführung",
+          "8": "Handbetrieb",
+          "9": "Kaminkehrerfunktion",
+          "10": "Aktorentest",
+          "11": "Installationsvorgang aktiv"
+        }
+      },
       "pellet_consumption": {
         "name": "Pelletverbrauch"
       },
