@@ -54,7 +54,7 @@ Add the integration from *Settings → Devices & services → Add integration �
 | Parameter | Description |
 | --------- | ----------- |
 | Host      | The address of the heater's InfoWIN Touch on your network: its IP address, or its host name (`mb6620` if your router resolves it). |
-| Password  | The password of the InfoWIN Touch's web access. The integration logs in as `USER`. |
+| Password  | The password of the InfoWIN Touch's web access, not the one of your Windhager Connect account or the mobile app. The integration logs in as `USER`. |
 
 The integration has no other options.
 
@@ -267,7 +267,8 @@ log.
 
 - **Cannot connect** when adding the heater: check that the InfoWIN Touch's web page opens at `http://<host>`, and
   that Home Assistant can reach that address.
-- **Invalid authentication**: the password was refused. Log in to the InfoWIN Touch's web page with it to check it.
+- **Invalid authentication**: the password was refused. Log in to the InfoWIN Touch's web page with it to check it: the
+  password of a Windhager Connect account or of the mobile app does not work here.
 - **Entities unavailable**: the heater did not answer, and the log says why. They come back by themselves once the
   heater answers again, for example after it was switched off at the mains or the InfoWIN Touch restarted.
 - **A changed setting fails with an error**: the heater refused the change or did not answer. The message says which.
