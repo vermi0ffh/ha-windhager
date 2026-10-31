@@ -88,8 +88,9 @@ heating circuit, gets its device and entities within ten minutes, without a relo
 
 ## Devices and entities
 
-Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
-ID as the serial number, and a link to the InfoWIN Touch's web page.
+Each module of the heater is a device: the heater itself, and each heating circuit. A module that holds two heating
+circuits (an UMUMLZ, for example) gives each its own device, named after the circuit. A device shows its model, its
+chip ID as the serial number, and a link to the InfoWIN Touch's web page.
 
 A module removed from the heater keeps its device and entities, which become unavailable: the integration cannot tell
 a removed module from one that did not answer. To remove them, open the device and choose *Delete* in its menu. Only

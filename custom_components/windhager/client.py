@@ -210,16 +210,26 @@ class WindhagerHttpClient:
                 "device_serial_number": device.get("neuronId"),
             }
 
-            if len(functions) > 0:
-                fct_id = f"/{str(functions[0]['fctId'])}"
+            for index, function in enumerate(functions):
+                fct_id = f"/{str(function['fctId'])}"
+                # The module's first circuit keeps the ids and device it always had; another
+                # circuit of the module (RADIATOREN, function 1 of an UMUMLZ on 2026-10-31)
+                # is a device of its own, named after it
+                climate_id = f"{self.id_base}{device_id}" if index == 0 else f"{self.id_base}{device_id}{fct_id}"
+                circuit_device_id = (
+                    f"{self.id_base}{str(device['nodeId'])}"
+                    if index == 0
+                    else f"{self.id_base}{str(device['nodeId'])}{fct_id}"
+                )
 
                 # Climate control
                 self.devices.append(
                     {
-                        "id": self.slugify(f"{self.id_base}{device_id}"),
-                        "name": functions[0]["name"],
+                        "id": self.slugify(climate_id),
+                        "name": function["name"],
                         "type": "climate",
                         "prefix": device_id,
+                        "function": fct_id,
                         "oids": [
                             f"{fct_id}/0/1/0",
                             f"{fct_id}/1/1/0",
@@ -229,10 +239,8 @@ class WindhagerHttpClient:
                         ],
                         # The module's device, as its sensors' (it was a device of
                         # its own, without them, before 2026-10-29)
-                        "device_id": self.slugify(
-                            f"{self.id_base}{str(device['nodeId'])}"
-                        ),
-                        "device_name": functions[0]["name"],
+                        "device_id": self.slugify(circuit_device_id),
+                        "device_name": function["name"],
                         **module,
                     }
                 )
@@ -262,14 +270,12 @@ class WindhagerHttpClient:
                             f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/1/0/3/58/0"
                         ),
                         "key": "current_temperature",
-                        "name": f"{functions[0]['name']} Current Temperature",
+                        "name": f"{function['name']} Current Temperature",
                         "type": "temperature",
                         "correction_oid": f"{device_id}{fct_id}/3/58/0",
                         "oid": f"{device_id}{fct_id}/0/1/0",
-                        "device_id": self.slugify(
-                            f"{self.id_base}{str(device['nodeId'])}"
-                        ),
-                        "device_name": functions[0]["name"],
+                        "device_id": self.slugify(circuit_device_id),
+                        "device_name": function["name"],
                         **module,
                     }
                 )
@@ -281,14 +287,12 @@ class WindhagerHttpClient:
                             f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/1/0"
                         ),
                         "key": "current_temperature_real",
-                        "name": f"{functions[0]['name']} Current Temperature real",
+                        "name": f"{function['name']} Current Temperature real",
                         "type": "temperature",
                         "entity_category": "diagnostic",
                         "oid": f"{device_id}{fct_id}/0/1/0",
-                        "device_id": self.slugify(
-                            f"{self.id_base}{str(device['nodeId'])}"
-                        ),
-                        "device_name": functions[0]["name"],
+                        "device_id": self.slugify(circuit_device_id),
+                        "device_name": function["name"],
                         **module,
                     }
                 )
@@ -300,7 +304,7 @@ class WindhagerHttpClient:
                             f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/3/58/0"
                         ),
                         "key": "comfort_temperature_correction",
-                        "name": f"{functions[0]['name']} Comfort Temperature Correction",
+                        "name": f"{function['name']} Comfort Temperature Correction",
                         "type": "sensor",
                         "device_class": None,
                         "state_class": "measurement",
@@ -309,10 +313,8 @@ class WindhagerHttpClient:
                         "enabled_default": False,
                         "unit": "K",
                         "oid": f"{device_id}{fct_id}/3/58/0",
-                        "device_id": self.slugify(
-                            f"{self.id_base}{str(device['nodeId'])}"
-                        ),
-                        "device_name": functions[0]["name"],
+                        "device_id": self.slugify(circuit_device_id),
+                        "device_name": function["name"],
                         **module,
                     }
                 )
@@ -323,7 +325,7 @@ class WindhagerHttpClient:
                             f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/3/7/0"
                         ),
                         "key": "current_temperature_correction",
-                        "name": f"{functions[0]['name']} Current Temperature Correction",
+                        "name": f"{function['name']} Current Temperature Correction",
                         "type": "sensor",
                         "device_class": None,
                         "state_class": "measurement",
@@ -332,10 +334,8 @@ class WindhagerHttpClient:
                         "enabled_default": False,
                         "unit": "K",
                         "oid": f"{device_id}{fct_id}/3/7/0",
-                        "device_id": self.slugify(
-                            f"{self.id_base}{str(device['nodeId'])}"
-                        ),
-                        "device_name": functions[0]["name"],
+                        "device_id": self.slugify(circuit_device_id),
+                        "device_name": function["name"],
                         **module,
                     }
                 )
@@ -346,14 +346,12 @@ class WindhagerHttpClient:
                             f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/1/1/0"
                         ),
                         "key": "target_temperature",
-                        "name": f"{functions[0]['name']} Target Temperature",
+                        "name": f"{function['name']} Target Temperature",
                         "type": "temperature",
                         "correction_oid": f"{device_id}{fct_id}/3/58/0",
                         "oid": f"{device_id}{fct_id}/1/1/0",
-                        "device_id": self.slugify(
-                            f"{self.id_base}{str(device['nodeId'])}"
-                        ),
-                        "device_name": functions[0]["name"],
+                        "device_id": self.slugify(circuit_device_id),
+                        "device_name": function["name"],
                         **module,
                     }
                 )
@@ -364,13 +362,11 @@ class WindhagerHttpClient:
                             f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/0/0/0"
                         ),
                         "key": "outside_temperature",
-                        "name": f"{functions[0]['name']} Outside Temperature",
+                        "name": f"{function['name']} Outside Temperature",
                         "type": "temperature",
                         "oid": f"{device_id}{fct_id}/0/0/0",
-                        "device_id": self.slugify(
-                            f"{self.id_base}{str(device['nodeId'])}"
-                        ),
-                        "device_name": functions[0]["name"],
+                        "device_id": self.slugify(circuit_device_id),
+                        "device_name": function["name"],
                         **module,
                     }
                 )
