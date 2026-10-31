@@ -197,7 +197,8 @@ async def test_a_datapoint_answered_without_a_value_reads_unknown() -> None:
 
     data = await client.fetch_all()
 
-    assert data["oids"] and all(value is None for value in data["oids"].values())
+    # The datapoints read on every poll; the slow ones keep their last value until read again
+    assert client.oids and all(data["oids"][oid] is None for oid in client.oids)
 
 
 async def test_a_heater_that_does_not_answer_a_lookup_cannot_connect(socket_enabled: None) -> None:
@@ -229,7 +230,8 @@ async def test_a_datapoint_the_heater_gives_as_dashes_reads_unknown() -> None:
 
     data = await client.fetch_all()
 
-    assert data["oids"] and all(value is None for value in data["oids"].values())
+    # The datapoints read on every poll; the slow ones keep their last value until read again
+    assert client.oids and all(data["oids"][oid] is None for oid in client.oids)
 
 
 def error_texts(lang: str, text: str) -> str:
@@ -354,3 +356,45 @@ async def test_a_listing_that_fails_keeps_the_modules_unless_the_heater_fails(
     else:
         await client.fetch_all()
         assert client.devices is devices
+
+
+def slow_reads(fetch: AsyncMock) -> int:
+    """How many times the pellet consumption, a slow datapoint, was requested."""
+    return sum(1 for call in fetch.await_args_list if call.args == ("/1/60/0/23/103/0",))
+
+
+async def test_the_slow_datapoints_are_read_every_ten_polls_and_keep_their_value() -> None:
+    client = WindhagerHttpClient("192.0.2.1", PASSWORD)
+    readings = iter(["2.85", "2.86"])
+
+    def fetch(url: str) -> list | dict:
+        if url == "/1":
+            return [HEATER]
+        if url == "/1/60/0/23/103/0":
+            return {"value": next(readings)}
+        return {"value": "1"}
+
+    client.fetch = AsyncMock(side_effect=fetch)
+
+    first = await client.fetch_all()
+    between = [await client.fetch_all() for _ in range(9)]
+    eleventh = await client.fetch_all()
+
+    # Read with the first poll, then with the eleventh: in between, the last value
+    assert slow_reads(client.fetch) == 2
+    assert first["oids"]["/1/60/0/23/103/0"] == "2.85"
+    assert all(data["oids"]["/1/60/0/23/103/0"] == "2.85" for data in between)
+    assert eleventh["oids"]["/1/60/0/23/103/0"] == "2.86"
+    # The other datapoints are read on every poll
+    assert sum(1 for call in client.fetch.await_args_list if call.args == ("/1/60/0/0/7/0",)) == 11
+
+
+async def test_a_module_discovered_again_has_its_slow_datapoints_read_at_once() -> None:
+    client, fetch = await polls_listing([[HEATER], [HEATER, CIRCUIT]], polls=4)
+    assert slow_reads(fetch) == 1
+
+    # The tenth poll lists the modules again, finds the circuit, and reads the slow datapoints
+    for _ in range(6):
+        await client.fetch_all()
+
+    assert slow_reads(fetch) == 2

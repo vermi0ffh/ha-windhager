@@ -77,6 +77,9 @@ The integration polls the heater every 60 seconds. The InfoWIN Touch answers slo
 time, so the integration sends its requests one after the other. A change made on the heater shows in Home Assistant
 at the next poll. A change made from Home Assistant triggers a poll right after it.
 
+The readings that change over hours or days are read every ten minutes instead, which keeps each poll short: the
+pellet consumption and the running times until cleaning. They keep their last value in between.
+
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
 
@@ -241,7 +244,8 @@ are those of an English installation: find yours in each entity's settings.
 
 - Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
   supported yet.
-- The readings are polled every minute, so a change on the heater can take up to a minute to show.
+- The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
+  minutes for the pellet consumption and the running times until cleaning).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
 - A heater status the integration does not know (beyond code 17) shows as unknown, and so does an operating mode
   beyond code 11.
