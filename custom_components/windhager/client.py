@@ -21,6 +21,24 @@ MODULES_CHECK_POLLS = 10
 # a request of its own, 0.16 to 0.18 s on 2026-10-31 (19 datapoints in 3.0 to 3.4 s a poll),
 # and a poll must end within the coordinator's 20 s
 SLOW_VALUES_POLLS = 10
+# A heating circuit's datapoints beyond its climate's: (path, key, English name, entity type,
+# hot water only), named by the InfoWIN Touch's res/xml/VarIdentTexte_<language>.xml
+CIRCUIT_DATAPOINTS = (
+    # Vorlauftemperatur: the flow to the circuit, and its target (0 while it does not heat)
+    ("/0/2/0", "flow_temperature", "Flow temperature", "temperature", False),
+    ("/1/2/0", "flow_target_temperature", "Flow target temperature", "temperature", False),
+    # Kesseltemperatur: the water the circuit draws from (boiler or buffer), and its target
+    ("/0/7/0", "boiler_temperature", "Boiler temperature", "temperature", False),
+    ("/1/7/0", "boiler_target_temperature", "Boiler target temperature", "temperature", False),
+    # Betriebsart: heating, setback, standby at the heating limit...
+    ("/2/9/0", "circuit_operating_mode", "Operating mode", "circuit_operating_mode", False),
+    # Heizkreispumpe: 0 or 100
+    ("/1/20/0", "circuit_pump", "Circuit pump", "running", False),
+    # Warmwasser: the tank's temperature and target, and its charging pump
+    ("/0/4/0", "hot_water_temperature", "Hot water temperature", "temperature", True),
+    ("/1/4/0", "hot_water_target_temperature", "Hot water target temperature", "temperature", True),
+    ("/1/66/0", "hot_water_charging_pump", "Hot water charging pump", "running", True),
+)
 # The error texts' file: about 7 kB, once at setup
 ERROR_TEXTS_TIMEOUT_S = 20
 # The languages of the InfoWIN Touch's error texts tried after the instance's: English, then
@@ -84,6 +102,7 @@ class WindhagerHttpClient:
         # The polls left before the slow datapoints are read again: 0 reads them now
         self._polls_before_slow_read = 0
         self._slow_values: dict[str, str | None] = {}
+        self._check_required_values = False
 
     @property
     def id_base(self) -> str:
@@ -186,6 +205,8 @@ class WindhagerHttpClient:
         # The modules' slow datapoints are read with the next poll
         self._polls_before_slow_read = 0
         self._slow_values = {}
+        # The entities that need a value are checked against the next poll
+        self._check_required_values = True
 
         # Add devices
         for device in json_devices:
@@ -370,6 +391,27 @@ class WindhagerHttpClient:
                         **module,
                     }
                 )
+
+                # What the heater's mobile app shows on the circuit's Info screen, each
+                # checked against it on 2026-10-31. A circuit without hot water (RADIATOREN)
+                # answers its hot water datapoints without a value, and its lookups do not
+                # list them: those entities are kept only for a circuit that answers them
+                for path, key, name, entity_type, hot_water in CIRCUIT_DATAPOINTS:
+                    oid = f"{device_id}{fct_id}{path}"
+                    self.oids.add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{function['name']} {name}",
+                            "type": entity_type,
+                            "oid": oid,
+                            "requires_value": hot_water,
+                            "device_id": self.slugify(circuit_device_id),
+                            "device_name": function["name"],
+                            **module,
+                        }
+                    )
 
             # Filter heaters
             functions = list(
@@ -672,6 +714,10 @@ class WindhagerHttpClient:
             "oids": await self._read(self.oids),
         }
 
+        if self._check_required_values:
+            self._drop_entities_without_value(ret["oids"])
+            ret["devices"] = self.devices
+
         if self._polls_before_slow_read <= 0:
             self._slow_values = await self._read(self.slow_oids)
             self._polls_before_slow_read = SLOW_VALUES_POLLS
@@ -679,6 +725,23 @@ class WindhagerHttpClient:
         ret["oids"].update(self._slow_values)
 
         return ret
+
+    def _drop_entities_without_value(self, values: dict[str, str | None]) -> None:
+        """Drop the entities of datapoints the module does not have, after their first poll.
+
+        Such a datapoint answers without a value (a circuit's hot water, on a circuit
+        without one): it is no longer read, until the modules are discovered again.
+        """
+        missing = {
+            device["oid"]
+            for device in self.devices
+            if device.get("requires_value") and values.get(device["oid"]) is None
+        }
+        self.devices = [device for device in self.devices if device.get("oid") not in missing]
+        self.oids -= missing
+        for oid in missing:
+            values.pop(oid, None)
+        self._check_required_values = False
 
     async def _read(self, oids: set[str]) -> dict[str, str | None]:
         """The values of `oids`, one request each: None for a datapoint without a value."""

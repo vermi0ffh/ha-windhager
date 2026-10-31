@@ -110,6 +110,14 @@ Each heating circuit has these entities:
 | Target temperature | The temperature the circuit is heating to. |
 | Outside temperature | The outside sensor's temperature. |
 | Comfort temperature correction, Current temperature correction | The corrections set on the heater, in K. |
+| Flow temperature, Flow target temperature | The water sent to the circuit, and its target (0 °C while the circuit does not heat). |
+| Boiler temperature, Boiler target temperature | The water the circuit draws from, the heater's or the buffer's, and its target. |
+| Operating mode | What the circuit does, in the heater's own words: heating, setback, hot water charging, standby at the heating limit, frost protection… |
+| Circuit pump | On while the circuit's pump runs. |
+| Hot water temperature, Hot water target temperature | The hot water tank's temperature and target, for a circuit that also heats the hot water. |
+| Hot water charging pump | On while the pump charging the hot water tank runs. |
+
+A circuit without hot water has no hot water entities: the heater gives no value for them.
 
 The heater has these entities:
 
@@ -243,8 +251,8 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
-  supported yet.
+- Only the heater and heating circuit functions are read, with the hot water of a circuit that heats it. Buffers and
+  solar modules are not supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
   minutes for the pellet consumption and the running times until cleaning).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
