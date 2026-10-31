@@ -133,6 +133,12 @@ The heater has these entities:
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
 | Heater problem | On while the heater reports an error. |
 
+A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, with these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Buffer temperature TPE, Buffer temperature TPA | The buffer's temperature sensors, named as on the heater (TPE near the top, TPA lower). A sensor not connected shows as unknown. |
+
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
 until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.
@@ -251,8 +257,8 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater and heating circuit functions are read, with the hot water of a circuit that heats it. Buffers and
-  solar modules are not supported yet.
+- Only the heater, the heating circuits (with the hot water of a circuit that heats it) and the buffer tanks are
+  read. Solar modules are not supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
   minutes for the pellet consumption and the running times until cleaning).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.

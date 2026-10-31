@@ -206,6 +206,12 @@
       },
       "hot_water_target_temperature": {
         "name": "Consigne ECS"
+      },
+      "buffer_temperature_tpe": {
+        "name": "Température tampon TPE"
+      },
+      "buffer_temperature_tpa": {
+        "name": "Température tampon TPA"
       }
     },
     "climate": {

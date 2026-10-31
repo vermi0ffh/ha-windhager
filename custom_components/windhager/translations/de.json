@@ -206,6 +206,12 @@
       },
       "hot_water_target_temperature": {
         "name": "Warmwassertemperatur Sollwert"
+      },
+      "buffer_temperature_tpe": {
+        "name": "Puffertemperatur TPE"
+      },
+      "buffer_temperature_tpa": {
+        "name": "Puffertemperatur TPA"
       }
     },
     "climate": {

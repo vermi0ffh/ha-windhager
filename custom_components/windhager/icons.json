@@ -74,6 +74,12 @@
       },
       "hot_water_target_temperature": {
         "default": "mdi:water-thermometer"
+      },
+      "buffer_temperature_tpe": {
+        "default": "mdi:storage-tank-outline"
+      },
+      "buffer_temperature_tpa": {
+        "default": "mdi:storage-tank-outline"
       }
     },
     "climate": {

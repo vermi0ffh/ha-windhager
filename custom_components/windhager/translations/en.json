@@ -206,6 +206,12 @@
       },
       "hot_water_target_temperature": {
         "name": "Hot water target temperature"
+      },
+      "buffer_temperature_tpe": {
+        "name": "Buffer temperature TPE"
+      },
+      "buffer_temperature_tpa": {
+        "name": "Buffer temperature TPA"
       }
     },
     "climate": {
