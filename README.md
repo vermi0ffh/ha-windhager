@@ -281,7 +281,7 @@ diagnostics:
    because every reading is requested one after the other.
 2. Once the log says the scan has finished, download the diagnostics again: the file now holds the scan.
 
-The host and password are redacted in the file.
+The host, password and MAC address are redacted in the file.
 
 Please report issues on the [GitHub repository](https://github.com/vermi0ffh/ha-windhager/issues). Include the logs,
 the diagnostics, and the device you are trying to integrate.

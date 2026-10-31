@@ -88,6 +88,28 @@ async def test_the_first_download_starts_the_scan_the_next_one_holds_it(
     scan_client.close.assert_awaited_once()
 
 
+async def test_the_heater_mac_address_is_redacted(
+    hass: HomeAssistant, hass_client: ClientSessionGenerator, client: MagicMock
+) -> None:
+    # An entry found by discovery holds the InfoWIN Touch's MAC address (a fake one here):
+    # it identifies the heater, as its host does
+    entry = MockConfigEntry(
+        domain="windhager", data={"host": "192.0.2.1", "password": "secret", "mac": "00:23:43:00:00:01"}
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch.object(diagnostics, "WindhagerHttpClient") as scan_client_class:
+        scan_client = scan_client_class.return_value
+        scan_client.scan = AsyncMock(return_value={"devices": [], "errors": {}})
+        scan_client.close = AsyncMock()
+        result = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert result["entry"] == {"host": "**REDACTED**", "password": "**REDACTED**", "mac": "**REDACTED**"}
+
+
 async def test_a_scan_that_fails_is_reported_done_with_its_error(
     hass: HomeAssistant, hass_client: ClientSessionGenerator, entry: MockConfigEntry, client: MagicMock
 ) -> None:
