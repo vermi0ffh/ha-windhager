@@ -16,6 +16,17 @@
           "12": "mdi:door-open"
         }
       },
+      "operating_mode": {
+        "default": "mdi:power",
+        "state": {
+          "0": "mdi:power-off",
+          "1": "mdi:power-off",
+          "8": "mdi:hand-back-right",
+          "9": "mdi:wrench",
+          "10": "mdi:wrench",
+          "11": "mdi:wrench"
+        }
+      },
       "pellet_consumption": {
         "default": "mdi:grain"
       },

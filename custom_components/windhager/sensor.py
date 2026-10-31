@@ -153,7 +153,7 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
         raw_value = self.raw_value
         if raw_value is None:
             return None
-        if str(raw_value) not in HEATER_STATUSES:
+        if str(raw_value) not in self.options:
             _LOGGER.debug(
                 "Unknown status value %s for sensor %s",
                 raw_value,
@@ -161,6 +161,19 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
             )
             return None
         return str(raw_value)
+
+
+# The operating mode codes the translations name: those of the InfoWIN Touch's
+# res/xml/AufzaehlTexte_<language>.xml (2026-10-31: 0 once switched off on the
+# heater's screen, 5 once switched back on)
+OPERATING_MODES = [str(code) for code in range(12)]
+
+
+class WindhagerOperatingModeSensor(WindhagerSelectSensor):
+    """The heater's operating mode: on, switched off on its screen, manual mode…"""
+
+    _attr_translation_key = "operating_mode"
+    _attr_options = OPERATING_MODES
 
 
 # The error code's value without an error (2026-10-30: "-" before a fault, "42" during it)
@@ -201,6 +214,7 @@ SENSOR_CLASSES: dict[str | None, type[WindhagerBaseSensor]] = {
     "sensor": WindhagerGenericSensor,
     "error": WindhagerErrorSensor,
     "select": WindhagerSelectSensor,
+    "operating_mode": WindhagerOperatingModeSensor,
     "total": WindhagerPelletSensor,
     "total_increasing": WindhagerPelletSensor,
 }

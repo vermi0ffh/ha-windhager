@@ -118,6 +118,23 @@
           "17": "Extinction"
         }
       },
+      "operating_mode": {
+        "name": "Mode de fonctionnement",
+        "state": {
+          "0": "Désactivée",
+          "1": "Désactivation",
+          "2": "Mode combustible solide / tampon",
+          "3": "Alimentation en pellets active",
+          "4": "Alimentation en pellets",
+          "5": "Marche",
+          "6": "Alimentation en pellets active",
+          "7": "Alimentation en pellets",
+          "8": "Mode manuel",
+          "9": "Fonction ramonage",
+          "10": "Test des actionneurs",
+          "11": "Installation en cours"
+        }
+      },
       "pellet_consumption": {
         "name": "Consommation de granulés"
       },

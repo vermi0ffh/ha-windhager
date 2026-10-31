@@ -385,6 +385,8 @@ class WindhagerHttpClient:
                         f"{device_id}{fct_id}/0/45/0",
                         # Heater status
                         f"{device_id}{fct_id}/2/1/0",
+                        # Operating mode: on, or switched off on the heater's screen
+                        f"{device_id}{fct_id}/2/59/0",
                         # Error code: "-" without an error
                         f"{device_id}{fct_id}/2/0/0",
                         # Pellet consumption
@@ -477,6 +479,23 @@ class WindhagerHttpClient:
                         "name": f"{functions[0]['name']} Heater status",
                         "type": "select",
                         "oid": f"{device_id}{fct_id}/2/1/0",
+                        "device_id": self.slugify(
+                            f"{self.id_base}{str(device['nodeId'])}"
+                        ),
+                        "device_name": functions[0]["name"],
+                        **module,
+                    }
+                )
+                # Operating mode
+                self.devices.append(
+                    {
+                        "id": self.slugify(
+                            f"{self.id_base}/1/{str(device['nodeId'])}{fct_id}/2/59/0"
+                        ),
+                        "key": "operating_mode",
+                        "name": f"{functions[0]['name']} Operating mode",
+                        "type": "operating_mode",
+                        "oid": f"{device_id}{fct_id}/2/59/0",
                         "device_id": self.slugify(
                             f"{self.id_base}{str(device['nodeId'])}"
                         ),
