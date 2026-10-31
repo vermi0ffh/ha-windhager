@@ -224,6 +224,61 @@
       },
       "burner_starts": {
         "name": "Anzahl der Brennerstarts"
+      },
+      "heat_quantity_heating": {
+        "name": "Wärmemenge Heizen"
+      },
+      "heat_quantity_heating_today": {
+        "name": "Wärmemenge Heizen heute"
+      },
+      "heat_quantity_hot_water": {
+        "name": "Wärmemenge Warmwasser"
+      },
+      "heat_quantity_hot_water_today": {
+        "name": "Wärmemenge Warmwasser heute"
+      },
+      "operating_hours_heating": {
+        "name": "Betriebsstunden Heizen"
+      },
+      "operating_hours_heating_today": {
+        "name": "Betriebsstunden Heizen heute"
+      },
+      "operating_hours_hot_water": {
+        "name": "Betriebsstunden Warmwasser"
+      },
+      "operating_hours_hot_water_today": {
+        "name": "Betriebsstunden Warmwasser heute"
+      },
+      "heat_pump_starts": {
+        "name": "Anzahl Starts"
+      },
+      "cop_heating_today": {
+        "name": "Ø COP Heizen heute"
+      },
+      "cop_hot_water_today": {
+        "name": "Ø COP Warmwasser heute"
+      },
+      "heat_pump_output": {
+        "name": "Aktuelle Leistung"
+      },
+      "heat_pump_phase": {
+        "name": "Betriebsphase",
+        "state": {
+          "3": "Standby",
+          "4": "Heizen"
+        }
+      },
+      "outdoor_temperature_control": {
+        "name": "Aussentemperatur Regelung"
+      },
+      "sg_ready_state": {
+        "name": "SG Ready Status",
+        "state": {
+          "1": "Zustand 1",
+          "2": "Zustand 2",
+          "3": "Zustand 3",
+          "4": "Zustand 4"
+        }
       }
     },
     "climate": {

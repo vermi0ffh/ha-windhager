@@ -194,6 +194,29 @@ NO_ERROR = "-"
 MAX_STATE_LENGTH = 255
 
 
+# A heat pump's operating phase codes: its "Betriebsphase" enumerates 0 to 15 (the API's
+# scan, 2026-10-31); the translations name those seen in the heater's app (3 Standby, 4
+# Heizen), and Home Assistant shows the others as their code
+HEAT_PUMP_PHASES = [str(code) for code in range(16)]
+
+
+class WindhagerHeatPumpPhaseSensor(WindhagerSelectSensor):
+    """A heat pump's operating phase: standby, heating…"""
+
+    _attr_options = HEAT_PUMP_PHASES
+
+
+# The SG Ready state codes: the datapoint enumerates 0 to 15 (the API's scan, 2026-10-31);
+# the translations name SG Ready's four states, as the heater's app does ("Zustand 2")
+SG_READY_STATES = [str(code) for code in range(16)]
+
+
+class WindhagerSgReadySensor(WindhagerSelectSensor):
+    """The SG Ready state the hybrid manager runs in: the signal of an energy manager."""
+
+    _attr_options = SG_READY_STATES
+
+
 class WindhagerErrorSensor(WindhagerBaseSensor):
     """The heater's error: its code and the heater's own text for it, or none."""
 
@@ -228,6 +251,8 @@ SENSOR_CLASSES: dict[str | None, type[WindhagerBaseSensor]] = {
     "select": WindhagerSelectSensor,
     "operating_mode": WindhagerOperatingModeSensor,
     "circuit_operating_mode": WindhagerCircuitOperatingModeSensor,
+    "heat_pump_phase": WindhagerHeatPumpPhaseSensor,
+    "sg_ready_state": WindhagerSgReadySensor,
     "total": WindhagerPelletSensor,
     "total_increasing": WindhagerPelletSensor,
 }

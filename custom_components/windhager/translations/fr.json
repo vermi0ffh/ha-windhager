@@ -224,6 +224,61 @@
       },
       "burner_starts": {
         "name": "Nombre de démarrages du brûleur"
+      },
+      "heat_quantity_heating": {
+        "name": "Quantité de chaleur chauffage"
+      },
+      "heat_quantity_heating_today": {
+        "name": "Quantité de chaleur chauffage aujourd'hui"
+      },
+      "heat_quantity_hot_water": {
+        "name": "Quantité de chaleur ECS"
+      },
+      "heat_quantity_hot_water_today": {
+        "name": "Quantité de chaleur ECS aujourd'hui"
+      },
+      "operating_hours_heating": {
+        "name": "Heures de service chauffage"
+      },
+      "operating_hours_heating_today": {
+        "name": "Heures de service chauffage aujourd'hui"
+      },
+      "operating_hours_hot_water": {
+        "name": "Heures de service ECS"
+      },
+      "operating_hours_hot_water_today": {
+        "name": "Heures de service ECS aujourd'hui"
+      },
+      "heat_pump_starts": {
+        "name": "Nombre de démarrages"
+      },
+      "cop_heating_today": {
+        "name": "COP moyen chauffage aujourd'hui"
+      },
+      "cop_hot_water_today": {
+        "name": "COP moyen ECS aujourd'hui"
+      },
+      "heat_pump_output": {
+        "name": "Puissance actuelle"
+      },
+      "heat_pump_phase": {
+        "name": "Phase de fonctionnement",
+        "state": {
+          "3": "Veille",
+          "4": "Chauffage"
+        }
+      },
+      "outdoor_temperature_control": {
+        "name": "Température extérieure de régulation"
+      },
+      "sg_ready_state": {
+        "name": "État SG Ready",
+        "state": {
+          "1": "État 1",
+          "2": "État 2",
+          "3": "État 3",
+          "4": "État 4"
+        }
       }
     },
     "climate": {

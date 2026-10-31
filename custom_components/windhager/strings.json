@@ -224,6 +224,61 @@
       },
       "burner_starts": {
         "name": "Burner starts"
+      },
+      "heat_quantity_heating": {
+        "name": "Heat quantity heating"
+      },
+      "heat_quantity_heating_today": {
+        "name": "Heat quantity heating today"
+      },
+      "heat_quantity_hot_water": {
+        "name": "Heat quantity hot water"
+      },
+      "heat_quantity_hot_water_today": {
+        "name": "Heat quantity hot water today"
+      },
+      "operating_hours_heating": {
+        "name": "Operating hours heating"
+      },
+      "operating_hours_heating_today": {
+        "name": "Operating hours heating today"
+      },
+      "operating_hours_hot_water": {
+        "name": "Operating hours hot water"
+      },
+      "operating_hours_hot_water_today": {
+        "name": "Operating hours hot water today"
+      },
+      "heat_pump_starts": {
+        "name": "Starts"
+      },
+      "cop_heating_today": {
+        "name": "Average COP heating today"
+      },
+      "cop_hot_water_today": {
+        "name": "Average COP hot water today"
+      },
+      "heat_pump_output": {
+        "name": "Output"
+      },
+      "heat_pump_phase": {
+        "name": "Operating phase",
+        "state": {
+          "3": "Standby",
+          "4": "Heating"
+        }
+      },
+      "outdoor_temperature_control": {
+        "name": "Outdoor temperature control"
+      },
+      "sg_ready_state": {
+        "name": "SG Ready state",
+        "state": {
+          "1": "State 1",
+          "2": "State 2",
+          "3": "State 3",
+          "4": "State 4"
+        }
       }
     },
     "climate": {

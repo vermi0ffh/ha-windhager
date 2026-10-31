@@ -20,9 +20,11 @@ The integration talks only to the InfoWIN Touch, with no cloud. It polls the hea
 | Device                                                                                  | Status | Notes                              |
 | --------------------------------------------------------------------------------------- | :----: | ---------------------------------- |
 | [BioWIN2](https://www.windhager.com/en/products/pellet-heating-systems/biowin2-3-33kw/) |   ✅   | Infowin Touch (1.0.2), API (1.0.0) |
+| BioWIN Hybrid (BioWIN with an AeroWIN heat pump)                                        |   ✅   | REST RC7030 API (1.0.3)            |
 
-The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN) and the heating circuits (a
-UMUMLZ module, for instance). Other Windhager heaters behind an InfoWIN Touch may work if their modules expose the
+The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN), the heating circuits (a
+UMUMLZ module, for instance, which can hold two), a buffer tank (WFBPK), and a BioWIN Hybrid's heat pump and hybrid
+manager. Other Windhager heaters behind an InfoWIN Touch may work if their modules expose the
 same functions. The diagnostics (see [Troubleshooting](#troubleshooting)) show what yours exposes.
 
 ## Installation using HACS
@@ -78,8 +80,8 @@ time, so the integration sends its requests one after the other. A change made o
 at the next poll. A change made from Home Assistant triggers a poll right after it.
 
 The readings that change over hours or days are read every ten minutes instead, which keeps each poll short: the
-pellet consumption, the running times until cleaning and maintenance, the operating hours and the burner starts.
-They keep their last value in between.
+pellet consumption, the running times until cleaning and maintenance, the operating hours and the burner starts,
+and the heat pump's heat quantities, operating hours, starts and average COPs. They keep their last value in between.
 
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
@@ -142,6 +144,25 @@ A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, wi
 | Entity | Description |
 | ------ | ----------- |
 | Buffer temperature TPE, Buffer temperature TPA | The buffer's temperature sensors, named as on the heater (TPE near the top, TPA lower). A sensor not connected shows as unknown. |
+
+A BioWIN Hybrid's heat pump (AeroWIN) is a device of its own, with these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Heat quantity heating, Heat quantity hot water | The heat it produced for the heating and for the hot water, in MWh: growing totals, for the energy dashboard. |
+| Heat quantity heating today, Heat quantity hot water today | The same since midnight, in kWh. |
+| Operating hours heating, Operating hours hot water (and *today*) | Its running hours for each, in total and since midnight. |
+| Starts | Its number of starts. |
+| Average COP heating today, Average COP hot water today | Its average coefficient of performance since midnight. |
+| Output | Its current output, in %. |
+| Operating phase | What it does: *Standby* and *Heating* are named; a phase not seen yet shows as its code. |
+
+Its hybrid manager, which chooses between the heat pump and the pellet boiler, is a device too:
+
+| Entity | Description |
+| ------ | ----------- |
+| Outdoor temperature control | The outdoor temperature it decides with. |
+| SG Ready state | The SG Ready state it runs in (*State 1* to *State 4*), set by an energy manager. |
 
 These entities are diagnostics: the two temperature corrections, Current temperature real, the running times
 until cleaning and until maintenance, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
@@ -261,8 +282,10 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater, the heating circuits (with the hot water of a circuit that heats it) and the buffer tanks are
-  read. Solar modules are not supported yet.
+- Only the heater, the heating circuits (with the hot water of a circuit that heats it), the buffer tanks and a
+  BioWIN Hybrid's heat pump and hybrid manager are read. Solar modules are not supported yet.
+- A heat pump's current COP, its operating mode (*Eco-Betrieb* in the app) and its flow temperatures are not read
+  yet: they could not be matched with certainty (see #78).
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
   minutes for the readings read every ten minutes, see [Data updates](#data-updates)).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.

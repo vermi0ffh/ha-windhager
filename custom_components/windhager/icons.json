@@ -92,6 +92,54 @@
       },
       "burner_starts": {
         "default": "mdi:fire"
+      },
+      "heat_quantity_heating": {
+        "default": "mdi:radiator"
+      },
+      "heat_quantity_heating_today": {
+        "default": "mdi:radiator"
+      },
+      "heat_quantity_hot_water": {
+        "default": "mdi:water-boiler"
+      },
+      "heat_quantity_hot_water_today": {
+        "default": "mdi:water-boiler"
+      },
+      "operating_hours_heating": {
+        "default": "mdi:timer-outline"
+      },
+      "operating_hours_heating_today": {
+        "default": "mdi:timer-outline"
+      },
+      "operating_hours_hot_water": {
+        "default": "mdi:timer-outline"
+      },
+      "operating_hours_hot_water_today": {
+        "default": "mdi:timer-outline"
+      },
+      "heat_pump_starts": {
+        "default": "mdi:counter"
+      },
+      "cop_heating_today": {
+        "default": "mdi:heat-pump-outline"
+      },
+      "cop_hot_water_today": {
+        "default": "mdi:heat-pump-outline"
+      },
+      "heat_pump_output": {
+        "default": "mdi:heat-pump"
+      },
+      "heat_pump_phase": {
+        "default": "mdi:heat-pump",
+        "state": {
+          "3": "mdi:power-sleep"
+        }
+      },
+      "outdoor_temperature_control": {
+        "default": "mdi:home-thermometer-outline"
+      },
+      "sg_ready_state": {
+        "default": "mdi:transmission-tower"
       }
     },
     "climate": {
