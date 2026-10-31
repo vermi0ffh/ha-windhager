@@ -18,12 +18,16 @@ from .coordinator import WindhagerConfigEntry
 from .entity import WindhagerEntity, async_add_module_entities
 from .const import DOMAIN
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
-from .helpers import get_oid_value
+from .helpers import get_oid_value, parse_value
 
 _LOGGER = logging.getLogger(__name__)
 
 # One write at a time to the heater: its API answers the requests one after the other
 PARALLEL_UPDATES = 1
+
+# The heater's operating modes while it is switched off on its screen, or switching off
+# (2026-10-31: 0 once switched off, 5 once switched back on)
+HEATER_OFF_MODES = (0, 1)
 
 
 async def async_setup_entry(
@@ -63,27 +67,34 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
     @property
     def supported_features(self) -> int:
         """Return the list of supported features."""
-        return (
-            ClimateEntityFeature.TARGET_TEMPERATURE
-            | ClimateEntityFeature.PRESET_MODE
-            | ClimateEntityFeature.TURN_ON
-            | ClimateEntityFeature.TURN_OFF
-        )
+        # No turning on or off: the heater is switched on and off on its own screen
+        return ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
 
     @property
     def target_temperature_step(self) -> float:
         """Return the supported step of target temperature."""
         return 0.5
 
+    def heater_operating_mode(self) -> int | None:
+        """The operating mode of the heater, None if unknown or without a heater module."""
+        data = self.coordinator.data
+        for device in data.get("devices", []):
+            if device.get("key") == "operating_mode":
+                oid = device["oid"]
+                return parse_value(data.get("oids", {}).get(oid), int, oid)
+        return None
+
     @property
     def hvac_mode(self) -> str:
-        """Return hvac operation mode."""
+        """Off while the heater is switched off on its screen, else heat."""
+        if self.heater_operating_mode() in HEATER_OFF_MODES:
+            return HVACMode.OFF
         return HVACMode.HEAT
 
     @property
     def hvac_modes(self) -> list[str]:
-        """Return the list of available hvac operation modes."""
-        return [HVACMode.HEAT, HVACMode.OFF]
+        """Only the current mode: Home Assistant cannot switch the heater on or off."""
+        return [self.hvac_mode]
 
     @property
     def preset_modes(self) -> list[str]:
@@ -109,7 +120,7 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
     @property
     def hvac_action(self) -> str:
         """Return the current running hvac operation."""
-        if self.raw_preset_mode() == 0:
+        if self.hvac_mode == HVACMode.OFF or self.raw_preset_mode() == 0:
             return HVACAction.OFF
         return HVACAction.HEATING
 
@@ -168,9 +179,7 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
-        """Set new target hvac mode."""
-        # Implement if needed
-        pass
+        """Nothing to write: Home Assistant only accepts the current mode."""
 
 
 class WindhagerThermostatClimate(WindhagerBaseThermostat):
