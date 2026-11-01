@@ -64,7 +64,7 @@ async def test_the_first_download_starts_the_scan_the_next_one_holds_it(
     # The scan lasts until the first download is served, as a real one (about 100 s on 2026-10-28)
     first_served = asyncio.Event()
 
-    async def scan() -> dict:
+    async def scan(language: str | None = None) -> dict:
         await first_served.wait()
         return {"devices": [{"nodeId": 15}], "errors": {}}
 

@@ -73,8 +73,6 @@ def label_level(texts: dict[str, dict], function_type: int, level: dict) -> None
     if label := texts["levels"].get(f"{function_type}/{level.get('id')}"):
         level["label"] = label
     for reading in level.get("readings", []):
-        if not isinstance(reading, dict):
-            continue
         key = "/".join(str(reading.get("OID", "")).strip("/").split("/")[3:5])
         if label := texts["datapoints"].get(key):
             reading["label"] = label
