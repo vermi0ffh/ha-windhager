@@ -4,9 +4,10 @@ rules:
   appropriate-polling:
     status: done
     comment: >
-      Every minute, up to every 5 minutes while the heater does not answer: one poll reads
-      about 60 datapoints one after the other, and the heater's API took 44 to 100 s for 63
-      requests on 2026-10-28 and 29.
+      Every minute, up to every 5 minutes while the heater does not answer. A poll reads its
+      datapoints one after the other, as the heater's API took 44 to 100 s for 63 requests
+      on 2026-10-28 and 29; the readings that change over hours (the pellet consumption, the
+      running times) are read only once every ten polls, which keeps the other polls short.
   brands: done
   common-modules: done
   config-flow: done
