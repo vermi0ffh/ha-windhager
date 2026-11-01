@@ -89,9 +89,9 @@ def _chip_id_placeholders(coordinator_data: dict[str, Any], scan: dict[str, Any]
 
 
 def _replace_chip_ids(value: Any, placeholders: dict[str, str]) -> Any:
-    """A copy of `value` with every chip ID replaced, inside strings too."""
+    """A copy of `value` with every chip ID replaced, inside strings and dict keys too."""
     if isinstance(value, dict):
-        return {key: _replace_chip_ids(item, placeholders) for key, item in value.items()}
+        return {_replace_chip_ids(key, placeholders): _replace_chip_ids(item, placeholders) for key, item in value.items()}
     if isinstance(value, list):
         return [_replace_chip_ids(item, placeholders) for item in value]
     if isinstance(value, str):

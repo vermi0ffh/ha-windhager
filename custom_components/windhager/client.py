@@ -103,6 +103,8 @@ class WindhagerHttpClient:
         self._polls_before_slow_read = 0
         self._slow_values: dict[str, str | None] = {}
         self._check_required_values = False
+        # The slow datapoints whose request failed: read again with the next poll
+        self._slow_retry: set[str] = set()
 
     @property
     def id_base(self) -> str:
@@ -207,6 +209,7 @@ class WindhagerHttpClient:
         self._slow_values = {}
         # The entities that need a value are checked against the next poll
         self._check_required_values = True
+        self._slow_retry = set()
 
         # Add devices
         for device in json_devices:
@@ -719,8 +722,14 @@ class WindhagerHttpClient:
             ret["devices"] = self.devices
 
         if self._polls_before_slow_read <= 0:
-            self._slow_values = await self._read(self.slow_oids)
+            self._slow_retry = set()
+            self._slow_values = await self._read(self.slow_oids, self._slow_retry)
             self._polls_before_slow_read = SLOW_VALUES_POLLS
+        elif self._slow_retry:
+            # A failed request (a timeout) is not left unknown for ten minutes; a datapoint
+            # answered without a value is
+            retry, self._slow_retry = self._slow_retry, set()
+            self._slow_values.update(await self._read(retry, self._slow_retry))
         self._polls_before_slow_read -= 1
         ret["oids"].update(self._slow_values)
 
@@ -743,8 +752,12 @@ class WindhagerHttpClient:
             values.pop(oid, None)
         self._check_required_values = False
 
-    async def _read(self, oids: set[str]) -> dict[str, str | None]:
-        """The values of `oids`, one request each: None for a datapoint without a value."""
+    async def _read(self, oids: set[str], failed: set[str] | None = None) -> dict[str, str | None]:
+        """The values of `oids`, one request each: None for a datapoint without a value.
+
+        The datapoints whose request failed, rather than answering without a value, are
+        added to `failed`.
+        """
         values: dict[str, str | None] = {}
         for oid in oids:
             try:
@@ -761,6 +774,8 @@ class WindhagerHttpClient:
             except Exception as e:
                 # On every poll while it lasts: debug, the entity reads unknown
                 values[oid] = None
+                if failed is not None:
+                    failed.add(oid)
                 _LOGGER.debug("Error while fetching OID %s: %s", oid, str(e))
         return values
 
