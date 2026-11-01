@@ -35,6 +35,10 @@ class Heater:
     datapoints: list[bytes] = field(default_factory=list)
     # The error texts' files it serves, by language
     error_texts: dict[str, str] = field(default_factory=dict)
+    # What it answers a lookup with, by path after /lookup: (status, JSON body)
+    lookups: dict[str, tuple[int, object]] = field(default_factory=dict)
+    # The paths of the lookups it answered
+    looked_up: list[str] = field(default_factory=list)
 
 
 def authorized(request: web.Request) -> bool:
@@ -64,6 +68,11 @@ async def heater(socket_enabled: None) -> AsyncIterator[Heater]:
                 return web.Response(status=state.write_status)
             state.datapoints.append(await request.read())
             return web.json_response({})
+        path = request.path.removeprefix("/api/1.0/lookup")
+        state.looked_up.append(path)
+        if path in state.lookups:
+            status, body = state.lookups[path]
+            return web.json_response(body, status=status)
         return web.json_response([{"nodeId": 15, "name": "BioWIN"}])
 
     async def error_texts(request: web.Request) -> web.StreamResponse:
@@ -428,3 +437,20 @@ async def test_a_slow_datapoint_whose_request_failed_is_read_again_with_the_next
     requested = [call.args[0] for call in client.fetch.await_args_list]
     assert requested.count("/1/60/0/23/103/0") == 2
     assert requested.count("/1/60/0/23/100/0") == 1
+
+
+async def test_a_slow_datapoint_the_heater_refuses_with_409_waits_for_the_next_slow_read(heater: Heater) -> None:
+    # A datapoint a function does not have, or has locked, is refused with a 409 and a
+    # JSON body, the same every time (read on a BioWIN Hybrid on 2026-11-01): an answer,
+    # not a failed request, so it is not requested again with the next poll
+    refused = {"code": 409, "message": "Conflict", "reason": "Target returns invalid Identifier: 63-127"}
+    heater.lookups = {"/1": (200, [HEATER]), "/1/60/0/23/103/0": (409, refused)}
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    first = await client.fetch_all()
+    for _ in range(9):
+        await client.fetch_all()
+    await client.close()
+
+    assert first["oids"]["/1/60/0/23/103/0"] is None
+    assert heater.looked_up.count("/1/60/0/23/103/0") == 1
