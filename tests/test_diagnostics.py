@@ -4,6 +4,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.components.diagnostics import get_diagnostics_for_config_entry
 from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
@@ -108,6 +109,67 @@ async def test_the_heater_mac_address_is_redacted(
         await hass.async_block_till_done(wait_background_tasks=True)
 
     assert result["entry"] == {"host": "**REDACTED**", "password": "**REDACTED**", "mac": "**REDACTED**"}
+
+
+async def test_the_modules_chip_ids_are_redacted_everywhere(
+    hass: HomeAssistant, hass_client: ClientSessionGenerator, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    # Two modules (fake chip IDs): the heater's ID starts every unique id, each module's is
+    # its device's serial number, and the scan lists both
+    heater, circuit = "0a0000000060", "0a0000000015"
+    client.fetch_all.return_value = {
+        "heater_id": heater,
+        "devices": [
+            {
+                "id": f"{heater}-1-60-0-0-7-0",
+                "key": "heater_temperature",
+                "type": "temperature",
+                "oid": "/1/60/0/0/7/0",
+                "device_id": f"{heater}60",
+                "device_name": "BioWIN",
+                "device_serial_number": heater,
+            },
+            {
+                "id": f"{heater}-1-15-0-0-1-0",
+                "key": "current_temperature_real",
+                "type": "temperature",
+                "oid": "/1/15/0/0/1/0",
+                "device_id": f"{heater}15",
+                "device_name": "Circuit",
+                "device_serial_number": circuit,
+            },
+        ],
+        "oids": {"/1/60/0/0/7/0": "40.5", "/1/15/0/0/1/0": "22.0"},
+    }
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch.object(diagnostics, "WindhagerHttpClient") as scan_client_class:
+        scan_client = scan_client_class.return_value
+        scan_client.scan = AsyncMock(
+            return_value={
+                "devices": [{"nodeId": 60, "neuronId": heater}, {"nodeId": 15, "neuronId": circuit}],
+                # A mapping keyed by an id holding a chip ID: its keys are redacted too
+                "errors": {f"{heater}-1-60": "TimeoutError()"},
+            }
+        )
+        scan_client.close = AsyncMock()
+        await get_diagnostics_for_config_entry(hass, hass_client, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
+        result = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+
+    assert heater not in str(result)
+    assert circuit not in str(result)
+    # Each chip ID has a placeholder of its own: which entity belongs to which module stays readable
+    data = result["coordinator_data"]
+    assert data["heater_id"] == "**REDACTED_1**"
+    assert [device["device_serial_number"] for device in data["devices"]] == ["**REDACTED_1**", "**REDACTED_2**"]
+    assert data["devices"][1]["id"] == "**REDACTED_1**-1-15-0-0-1-0"
+    assert [device["neuronId"] for device in result["scan"]["devices"]] == ["**REDACTED_1**", "**REDACTED_2**"]
+    assert result["scan"]["errors"] == {"**REDACTED_1**-1-60": "TimeoutError()"}
+    # Only the diagnostics are redacted: the entities keep their unique ids, and their values
+    assert er.async_get(hass).async_get("sensor.biowin_heater_temperature").unique_id == f"{heater}-1-60-0-0-7-0"
+    assert hass.states.get("sensor.biowin_heater_temperature").state == "40.5"
 
 
 async def test_a_scan_that_fails_is_reported_done_with_its_error(
