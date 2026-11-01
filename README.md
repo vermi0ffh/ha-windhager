@@ -81,6 +81,10 @@ While the heater does not answer, the integration polls it less often, so that a
 busy gets time to recover: it waits twice as long after each failed poll, up to five minutes, and polls every minute
 again as soon as the heater answers.
 
+The readings that change over hours or days are read every ten minutes instead, which keeps each poll short: the
+pellet consumption and the running times until cleaning. They keep their last value in between.
+A reading whose request failed (a timeout, a connection error) is read again with the next poll, until it answers.
+
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
 
@@ -89,8 +93,9 @@ heating circuit, gets its device and entities within ten minutes, without a relo
 
 ## Devices and entities
 
-Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
-ID as the serial number, and a link to the InfoWIN Touch's web page.
+Each module of the heater is a device: the heater itself, and each heating circuit. A module that holds two heating
+circuits (an UMUMLZ, for example) gives each its own device, named after the circuit. A device shows its model, its
+chip ID as the serial number, and a link to the InfoWIN Touch's web page.
 
 A module removed from the heater keeps its device and entities, which become unavailable: the integration cannot tell
 a removed module from one that did not answer. To remove them, open the device and choose *Delete* in its menu. Only
@@ -245,7 +250,8 @@ are those of an English installation: find yours in each entity's settings.
 
 - Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
   supported yet.
-- The readings are polled every minute, so a change on the heater can take up to a minute to show.
+- The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
+  minutes for the pellet consumption and the running times until cleaning).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
 - A heater status the integration does not know (beyond code 17) shows as unknown, and so does an operating mode
   beyond code 11.
