@@ -23,6 +23,7 @@ climates for the heating circuits; some of its users drive their heating with it
 | `custom_components/windhager/quality_scale.yaml` | Each rule of the quality scale: done, exempt (with the reason) or to do |
 | `custom_components/windhager/strings.json`, `translations/` | The texts, in English, French and German |
 | `tests/` | pytest-homeassistant-custom-component; `conftest.py` mocks the client |
+| `docs/operating-levels.md` | The heater's operating levels (operation, operator, service) mapped to the API's levels, per function type (rule 16) |
 | `hacs.json` | HACS metadata, among them the minimum Home Assistant version |
 
 ## Commands
@@ -97,3 +98,15 @@ reason.
 15. **Agents**: commit only when asked, push only when asked, never change the git configuration, never rewrite
     published history, no tool attribution in commits or pull requests (no `Co-Authored-By:` for the agent, no
     "Generated with …", no session link). A person who co-wrote a change is credited with `Co-authored-by:`.
+
+### What Home Assistant may change
+
+16. **Home Assistant changes only what a user changes on the heater's screen**: the operation level of the InfoWIN
+    Touch's own menu (the detail view's quick buttons, such as the operating mode or Eco / Comfort). A value of the
+    operator level is read at most, as a sensor; a value of the service level at most as a diagnostic sensor,
+    disabled by default; the service level and the actuator test are never written. The level is the one the
+    heater's manual gives the setting, and a setting whose level is unsure counts as service level.
+    [docs/operating-levels.md](docs/operating-levels.md) maps the API's levels to the heater's, per function type as
+    they are checked. The one exception is the comfort correction (operator level), kept as the
+    `set_current_temp_compensation` action (#92). Rules 4 and 5 still apply to every write; a write that can start
+    the burner (a one-time hot water charge, for example) says so in its risk.
