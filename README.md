@@ -123,7 +123,9 @@ Each heating circuit has these entities:
 | Hot water temperature, Hot water target temperature | The hot water tank's temperature and target, for a circuit that also heats the hot water. |
 | Hot water charging pump | On while the pump charging the hot water tank runs. |
 
-A circuit without hot water has no hot water entities: the heater gives no value for them.
+A circuit has hot water entities only if it is configured with hot water on the heater: its *DHW circuit* setting,
+read when the integration starts and when the modules change. If that setting cannot be read, they are kept only if
+the heater gives them a value.
 
 The heater has these entities:
 
