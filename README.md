@@ -77,12 +77,13 @@ The integration polls the heater every 60 seconds. The InfoWIN Touch answers slo
 time, so the integration sends its requests one after the other. A change made on the heater shows in Home Assistant
 at the next poll. A change made from Home Assistant triggers a poll right after it.
 
-The readings that change over hours or days are read every ten minutes instead, which keeps each poll short: the
-pellet consumption and the running times until cleaning. They keep their last value in between.
-
 While the heater does not answer, the integration polls it less often, so that an InfoWIN Touch that restarts or is
 busy gets time to recover: it waits twice as long after each failed poll, up to five minutes, and polls every minute
 again as soon as the heater answers.
+
+The readings that change over hours or days are read every ten minutes instead, which keeps each poll short: the
+pellet consumption and the running times until cleaning. They keep their last value in between.
+A reading whose request failed (a timeout, a connection error) is read again with the next poll, until it answers.
 
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
