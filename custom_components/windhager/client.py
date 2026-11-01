@@ -72,8 +72,24 @@ HEATER_DATAPOINTS: tuple[tuple[str, str, str, dict, bool], ...] = (
 )
 # The descriptions of the heat pump's sensors
 HEAT_MWH = {"type": "sensor", "device_class": "energy", "state_class": "total_increasing", "unit": "MWh"}
-HEAT_KWH = {"type": "sensor", "device_class": "energy", "state_class": "total_increasing", "unit": "kWh"}
-HOURS = {"type": "sensor", "device_class": "duration", "state_class": "total_increasing", "unit": "h"}
+# Since midnight: Home Assistant can derive them from the totals (a utility meter), so they
+# are disabled on a new installation
+HEAT_KWH = {
+    "type": "sensor",
+    "device_class": "energy",
+    "state_class": "total_increasing",
+    "unit": "kWh",
+    "enabled_default": False,
+}
+# Counters for maintenance rather than for a dashboard: diagnostics
+HOURS = {
+    "type": "sensor",
+    "device_class": "duration",
+    "state_class": "total_increasing",
+    "unit": "h",
+    "entity_category": "diagnostic",
+}
+HOURS_TODAY = {**HOURS, "enabled_default": False}
 COP = {"type": "sensor", "state_class": "measurement"}
 # The datapoints of the functions read beyond the heater and the circuits, by function type:
 # (path, key, English name, the entity's description, slow), each compared with the heater's
@@ -97,11 +113,17 @@ FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
         ("/52/62/0", "heat_quantity_hot_water_today", "Heat quantity hot water today", HEAT_KWH, True),
         # Betriebsstunden Heizen / Warmwasser, in total and today: 5046 h, 5.5 h, 893 h, 1.9 h
         ("/52/50/0", "operating_hours_heating", "Operating hours heating", HOURS, True),
-        ("/52/51/0", "operating_hours_heating_today", "Operating hours heating today", HOURS, True),
+        ("/52/51/0", "operating_hours_heating_today", "Operating hours heating today", HOURS_TODAY, True),
         ("/52/52/0", "operating_hours_hot_water", "Operating hours hot water", HOURS, True),
-        ("/52/53/0", "operating_hours_hot_water_today", "Operating hours hot water today", HOURS, True),
+        ("/52/53/0", "operating_hours_hot_water_today", "Operating hours hot water today", HOURS_TODAY, True),
         # Anzahl Starts: 13786, then 13787 when it started
-        ("/52/56/0", "heat_pump_starts", "Starts", {"type": "sensor", "state_class": "total_increasing"}, True),
+        (
+            "/52/56/0",
+            "heat_pump_starts",
+            "Starts",
+            {"type": "sensor", "state_class": "total_increasing", "entity_category": "diagnostic"},
+            True,
+        ),
         # Ø COP Heizen / Warmwasser heute: 3.8 and 3.9
         ("/52/87/0", "cop_heating_today", "Average COP heating today", COP, True),
         ("/52/89/0", "cop_hot_water_today", "Average COP hot water today", COP, True),
@@ -119,9 +141,16 @@ FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
     # The hybrid manager, choosing between the heat pump and the pellet boiler
     HYBRID_FUNCTION_TYPE: (
         # Aussentemperatur Regelung: the outdoor temperature it decides with, 7.9 °C
-        ("/52/10/0", "outdoor_temperature_control", "Outdoor temperature control", {"type": "temperature"}, False),
+        # Disabled on a new installation: most have an outdoor sensor already (the circuits')
+        (
+            "/52/10/0",
+            "outdoor_temperature_control",
+            "Outdoor temperature control",
+            {"type": "temperature", "enabled_default": False},
+            False,
+        ),
         # SG Ready Status: "Zustand 2" in the app, 2
-        ("/54/49/0", "sg_ready_state", "SG Ready state", {"type": "sg_ready_state"}, False),
+        ("/54/49/0", "sg_ready_state", "SG Ready state", {"type": "sg_ready_state", "entity_category": "diagnostic"}, False),
     ),
 }
 # The error texts' file: about 7 kB, once at setup

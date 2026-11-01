@@ -164,6 +164,10 @@ Its hybrid manager, which chooses between the heat pump and the pellet boiler, i
 | Outdoor temperature control | The outdoor temperature it decides with. |
 | SG Ready state | The SG Ready state it runs in (*State 1* to *State 4*), set by an energy manager. |
 
+The heat pump's operating hours and starts, and the SG Ready state, are diagnostics. The *today* values and the
+outdoor temperature control are disabled on a new installation (Home Assistant can derive the daily values from the
+totals with a utility meter): to follow them, enable them in the entity's settings.
+
 These entities are diagnostics: the two temperature corrections, Current temperature real, the running times
 until cleaning and until maintenance, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.

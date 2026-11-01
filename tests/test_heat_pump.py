@@ -42,6 +42,24 @@ READINGS = {
 }
 
 
+# Disabled on a new installation: (unique id, entity id)
+DISABLED = {
+    ("0a0000000060-1-60-1-52-60-0", "aerowin_heat_quantity_heating_today"),
+    ("0a0000000060-1-60-1-52-62-0", "aerowin_heat_quantity_hot_water_today"),
+    ("0a0000000060-1-60-1-52-51-0", "aerowin_operating_hours_heating_today"),
+    ("0a0000000060-1-60-1-52-53-0", "aerowin_operating_hours_hot_water_today"),
+    ("0a0000000060-1-60-2-52-10-0", "hybrid_outdoor_temperature_control"),
+}
+
+
+def enable_disabled_entities(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+    """As a user enabling them in their settings: their entries exist before the setup."""
+    for unique_id, object_id in DISABLED:
+        er.async_get(hass).async_get_or_create(
+            "sensor", "windhager", unique_id, config_entry=entry, suggested_object_id=object_id
+        )
+
+
 async def set_up(hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock) -> WindhagerHttpClient:
     heater = WindhagerHttpClient("192.0.2.1", "secret")
     heater.fetch = AsyncMock(side_effect=lambda url: MODULES if url == "/1" else {"value": READINGS.get(url, "1")})
@@ -59,6 +77,7 @@ def state(hass: HomeAssistant, entity_id: str) -> tuple[str, str | None]:
 async def test_the_heat_pump_shows_its_heat_quantities_for_the_energy_dashboard(
     hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
 ) -> None:
+    enable_disabled_entities(hass, entry)
     await set_up(hass, entry, client)
 
     assert state(hass, "sensor.aerowin_heat_quantity_heating") == ("50.22", "MWh")
@@ -72,6 +91,7 @@ async def test_the_heat_pump_shows_its_heat_quantities_for_the_energy_dashboard(
 async def test_the_heat_pump_shows_its_hours_starts_cop_and_output(
     hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
 ) -> None:
+    enable_disabled_entities(hass, entry)
     await set_up(hass, entry, client)
 
     assert state(hass, "sensor.aerowin_operating_hours_heating") == ("5046.0", "h")
@@ -103,6 +123,7 @@ async def test_the_heat_pump_phase_is_named_when_known_and_its_code_otherwise(
 async def test_the_hybrid_manager_shows_its_outdoor_temperature_and_sg_ready_state(
     hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
 ) -> None:
+    enable_disabled_entities(hass, entry)
     await set_up(hass, entry, client)
 
     assert state(hass, "sensor.hybrid_outdoor_temperature_control") == ("7.9", "°C")
@@ -142,3 +163,27 @@ async def test_the_heat_pump_totals_are_read_every_ten_polls_its_output_every_po
     requested = [call.args[0] for call in heater.fetch.await_args_list]
     assert requested.count("/1/60/1/52/59/0") == requested.count("/1/60/1/52/87/0") == 2
     assert requested.count("/1/60/1/50/26/0") == requested.count("/1/60/2/52/10/0") == SLOW_VALUES_POLLS + 1
+
+
+async def test_the_counters_are_diagnostics_and_the_daily_values_disabled_on_a_new_installation(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up(hass, entry, client)
+    entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    heat_pump = [entity for entity in entities if entity.entity_id.startswith(("sensor.aerowin", "sensor.hybrid"))]
+
+    assert {entity.entity_id for entity in heat_pump if entity.entity_category == "diagnostic"} == {
+        "sensor.aerowin_operating_hours_heating",
+        "sensor.aerowin_operating_hours_heating_today",
+        "sensor.aerowin_operating_hours_hot_water",
+        "sensor.aerowin_operating_hours_hot_water_today",
+        "sensor.aerowin_starts",
+        "sensor.hybrid_sg_ready_state",
+    }
+    assert {entity.entity_id for entity in heat_pump if entity.disabled_by is not None} == {
+        f"sensor.{object_id}" for _, object_id in DISABLED
+    }
+    # The totals for the energy dashboard, the output and the phase: as they were
+    assert hass.states.get("sensor.aerowin_heat_quantity_heating") is not None
+    assert hass.states.get("sensor.aerowin_output") is not None
+    assert hass.states.get("sensor.aerowin_operating_phase") is not None
