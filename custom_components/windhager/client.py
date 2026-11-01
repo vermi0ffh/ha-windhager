@@ -16,9 +16,9 @@ WRITE_TIMEOUT_S = 20
 # The modules are listed again every so many polls (ten minutes), to find a module added to
 # the heater: /1 took 0.05 to 0.18 s on 2026-10-30, against 4.6 s for a poll
 MODULES_CHECK_POLLS = 10
-# The error texts' file: about 7 kB, once at setup
+# A text file of the InfoWIN Touch: about 7 kB for the error texts, once at setup
 ERROR_TEXTS_TIMEOUT_S = 20
-# The languages of the InfoWIN Touch's error texts tried after the instance's: English, then
+# The languages of the InfoWIN Touch's text files tried after the instance's: English, then
 # German, the manufacturer's
 ERROR_TEXTS_FALLBACK_LANGUAGES = ("en", "de")
 
@@ -140,29 +140,38 @@ class WindhagerHttpClient:
         integration does not keep a copy of them. Empty if no file could be read: the
         error then shows as its code.
         """
+        root = await self._fetch_texts("ErrorTexte", language)
+        if root is None:
+            return {}
+        return {
+            error.get("code"): " ".join(error.get("text", "").split())
+            for error in root.iter("error")
+            if error.get("code")
+        }
+
+    async def _fetch_texts(self, name: str, language: str) -> ET.Element | None:
+        """One of the InfoWIN Touch's text files (res/xml/<name>_<language>.xml), parsed.
+
+        In `language` if the heater has it, else in English, then German. None if no file
+        could be read.
+        """
         languages = [language.split("-")[0].lower()]
         languages += [other for other in ERROR_TEXTS_FALLBACK_LANGUAGES if other not in languages]
         await self._ensure_session()
         for lang in languages:
-            url = f"http://{self.host}/res/xml/ErrorTexte_{lang}.xml"
+            url = f"http://{self.host}/res/xml/{name}_{lang}.xml"
             try:
                 async with (
                     asyncio.timeout(ERROR_TEXTS_TIMEOUT_S),
                     self._session.get(url) as ret,
                 ):
                     if not ret.ok:
-                        _LOGGER.debug("No error texts at %s: %s", url, ret.status)
+                        _LOGGER.debug("No texts at %s: %s", url, ret.status)
                         continue
-                    root = ET.fromstring(await ret.text())
+                    return ET.fromstring(await ret.text())
             except (aiohttp.ClientError, TimeoutError, ET.ParseError) as err:
-                _LOGGER.debug("Cannot read the error texts at %s: %s", url, err)
-                continue
-            return {
-                error.get("code"): " ".join(error.get("text", "").split())
-                for error in root.iter("error")
-                if error.get("code")
-            }
-        return {}
+                _LOGGER.debug("Cannot read the texts at %s: %s", url, err)
+        return None
 
     slugify = staticmethod(slugify)
 
