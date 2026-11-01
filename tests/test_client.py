@@ -509,3 +509,37 @@ async def test_without_the_heaters_texts_the_scan_is_unlabelled(heater: Heater) 
     assert "label" not in module_functions
     assert module_functions["readings"] == SCANNED["/1/15/0/103"]
     assert scan["errors"] == {}
+
+
+async def test_a_reading_that_is_not_a_datapoint_stays_unlabelled_and_the_scan_goes_on(heater: Heater) -> None:
+    heater.texts = SCAN_TEXTS
+    heater.enum_texts = {"de": SCAN_ENUM_TEXTS}
+    # A level answering with something else than datapoint objects, next to a normal one
+    odd = {**SCANNED, "/1/15/0/0": ["not a datapoint", 42]}
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    with patch.object(client, "fetch", AsyncMock(side_effect=lambda url: copy.deepcopy(odd[url]))):
+        scan = await client.scan("de")
+    await client.close()
+
+    assert "error" not in scan
+    [module_functions, odd_level] = scan["devices"][0]["functions"][0]["sensors"]
+    assert module_functions["readings"][0]["label"] == "Heizkreis"
+    assert odd_level["readings"] == ["not a datapoint", 42]
+
+
+async def test_each_text_file_labels_on_its_own(heater: Heater) -> None:
+    # The level names and the enums' texts, but no datapoint names (VarIdentTexte: 404)
+    heater.texts = {"EbenenTexte_de": SCAN_TEXTS["EbenenTexte_de"]}
+    heater.enum_texts = {"de": SCAN_ENUM_TEXTS}
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    with patch.object(client, "fetch", AsyncMock(side_effect=lambda url: copy.deepcopy(SCANNED[url]))):
+        scan = await client.scan("de")
+    await client.close()
+
+    [module_functions, _] = scan["devices"][0]["functions"][0]["sensors"]
+    assert module_functions["label"] == "Modulfunktionen"
+    [circuit, _] = module_functions["readings"]
+    assert "label" not in circuit
+    assert circuit["value_label"] == "Mischer Fussboden"

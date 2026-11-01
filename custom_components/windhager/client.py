@@ -63,8 +63,24 @@ def heater_id(json_devices: list[dict]) -> str | None:
     return modules[0]["neuronId"] if modules else None
 
 
+def texts_by_ids(root: ET.Element | None, parent: str, child: str) -> dict[str, str]:
+    """A text file's texts by "<parent id>/<child id>", their whitespace normalised.
+
+    The InfoWIN Touch's EbenenTexte (fcttyp/ebene) and VarIdentTexte (gn/mn) share this
+    shape. Empty without the file; an empty text is left out.
+    """
+    if root is None:
+        return {}
+    return {
+        f"{parent_tag.get('id')}/{child_tag.get('id')}": text
+        for parent_tag in root.iter(parent)
+        for child_tag in parent_tag.iter(child)
+        if (text := " ".join((child_tag.text or "").split()))
+    }
+
+
 def label_level(texts: dict[str, dict], function_type: int, level: dict) -> None:
-    """A scanned level and its readings, labelled with the heater's names (scan_texts).
+    """A scanned level and its readings, labelled with the heater's names (_scan_texts).
 
     A level is named by its function type and id ("14/103": "Modulfunktionen"), a reading
     by the group and member of its OID (/subnet/node/function/group/member/instance:
@@ -73,12 +89,18 @@ def label_level(texts: dict[str, dict], function_type: int, level: dict) -> None
     """
     if label := texts["levels"].get(f"{function_type}/{level.get('id')}"):
         level["label"] = label
-    for reading in level.get("readings", []):
-        key = "/".join(str(reading.get("OID", "")).strip("/").split("/")[3:5])
-        if label := texts["datapoints"].get(key):
-            reading["label"] = label
-        if value_label := texts["enums"].get(key, {}).get(str(reading.get("value"))):
-            reading["value_label"] = value_label
+    readings = level.get("readings")
+    for reading in readings if isinstance(readings, list) else []:
+        try:
+            key = "/".join(str(reading.get("OID", "")).strip("/").split("/")[3:5])
+            if label := texts["datapoints"].get(key):
+                reading["label"] = label
+            if value_label := texts["enums"].get(key, {}).get(str(reading.get("value"))):
+                reading["value_label"] = value_label
+        except AttributeError:
+            # Not a datapoint object: left as the API gave it. The labels are cosmetic, and
+            # one odd answer must not end the scan, as the scan promises
+            continue
 
 
 class WindhagerHttpClient:
@@ -741,10 +763,10 @@ class WindhagerHttpClient:
 
         With a `language`, the levels and readings also get the heater's own names for
         them in a "label", and an enumerated reading the text of its value in a
-        "value_label" (scan_texts): the scan then tells what "00-045" is.
+        "value_label" (_scan_texts): the scan then tells what "00-045" is.
         """
         errors = {}
-        texts = await self.scan_texts(language) if language else None
+        texts = await self._scan_texts(language) if language else None
 
         async def fetch_or_record(url):
             try:
@@ -770,7 +792,7 @@ class WindhagerHttpClient:
 
         return {"devices": devices, "errors": errors}
 
-    async def scan_texts(self, language: str) -> dict[str, dict]:
+    async def _scan_texts(self, language: str) -> dict[str, dict]:
         """The heater's own names of its levels and datapoints, and its enums' texts.
 
         The InfoWIN Touch's web page names them from its files, which follow its firmware
@@ -779,20 +801,8 @@ class WindhagerHttpClient:
         group/member; AufzaehlTexte, about 10 kB). Read only for the diagnostics' scan: they
         are not kept. A file that cannot be read leaves its names out.
         """
-        levels = await self._fetch_texts("EbenenTexte", language)
-        datapoints = await self._fetch_texts("VarIdentTexte", language)
         return {
-            "levels": {} if levels is None else {
-                f"{function_type.get('id')}/{level.get('id')}": text
-                for function_type in levels.iter("fcttyp")
-                for level in function_type.iter("ebene")
-                if (text := " ".join((level.text or "").split()))
-            },
-            "datapoints": {} if datapoints is None else {
-                f"{group.get('id')}/{member.get('id')}": text
-                for group in datapoints.iter("gn")
-                for member in group.iter("mn")
-                if (text := " ".join((member.text or "").split()))
-            },
+            "levels": texts_by_ids(await self._fetch_texts("EbenenTexte", language), "fcttyp", "ebene"),
+            "datapoints": texts_by_ids(await self._fetch_texts("VarIdentTexte", language), "gn", "mn"),
             "enums": await self.fetch_enum_texts(language),
         }
