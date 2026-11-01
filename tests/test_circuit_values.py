@@ -134,3 +134,28 @@ async def test_a_circuit_operating_mode_is_named_by_the_heater_texts(
     # The InfoWIN Touch's own texts, as the heater's app shows them
     assert translations[f"{key}.8"] == "Standby Heizgrenze"
     assert translations[f"{key}.1"] == "Heizbetrieb"
+
+
+async def test_a_hot_water_request_failing_on_the_first_poll_keeps_its_entities(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+    failures = iter([TimeoutError()])
+
+    def flaky(url: str) -> list | dict:
+        # The first request of BOILER/FBH's hot water temperature times out
+        if url == "/1/15/0/0/4/0" and (failure := next(failures, None)):
+            raise failure
+        return answer(url)
+
+    heater.fetch = AsyncMock(side_effect=flaky)
+    first = await heater.fetch_all()
+    second = await heater.fetch_all()
+    client.fetch_all.return_value = second
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert any(device.get("oid") == "/1/15/0/0/4/0" for device in first["devices"])
+    assert hass.states.get("sensor.boiler_fbh_hot_water_temperature").state == "52.7"
+    # RADIATOREN answered without a value: it has no hot water, as before
+    assert hass.states.get("sensor.radiatoren_hot_water_temperature") is None
