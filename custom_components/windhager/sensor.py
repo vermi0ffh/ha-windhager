@@ -176,6 +176,18 @@ class WindhagerOperatingModeSensor(WindhagerSelectSensor):
     _attr_options = OPERATING_MODES
 
 
+# A heating circuit's operating mode codes the translations name: those of the InfoWIN
+# Touch's res/xml/AufzaehlTexte_<language>.xml for group 2, member 9 (2026-10-31: 1
+# Heizbetrieb on a heating circuit, 8 Standby Heizgrenze on one at its heating limit)
+CIRCUIT_OPERATING_MODES = [str(code) for code in range(17)]
+
+
+class WindhagerCircuitOperatingModeSensor(WindhagerSelectSensor):
+    """A heating circuit's operating mode: heating, setback, standby at its heating limit…"""
+
+    _attr_options = CIRCUIT_OPERATING_MODES
+
+
 # The error code's value without an error (2026-10-30: "-" before a fault, "42" during it)
 NO_ERROR = "-"
 # Home Assistant's limit for a state
@@ -215,6 +227,7 @@ SENSOR_CLASSES: dict[str | None, type[WindhagerBaseSensor]] = {
     "error": WindhagerErrorSensor,
     "select": WindhagerSelectSensor,
     "operating_mode": WindhagerOperatingModeSensor,
+    "circuit_operating_mode": WindhagerCircuitOperatingModeSensor,
     "total": WindhagerPelletSensor,
     "total_increasing": WindhagerPelletSensor,
 }

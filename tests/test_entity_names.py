@@ -39,7 +39,7 @@ async def test_a_new_english_installation_gets_the_entity_ids_of_the_former_name
     data = await set_up(hass, entry, client, "en")
 
     # The names the client gave the entities before they were translated made these ids
-    domains = {"climate": "climate", "problem": "binary_sensor"}
+    domains = {"climate": "climate", "problem": "binary_sensor", "running": "binary_sensor"}
     expected = {f"{domains.get(device['type'], 'sensor')}.{slugify(device['name'])}" for device in data["devices"]}
     expected.add("climate.circuit_without_bias")
 
