@@ -91,8 +91,9 @@ reason.
 13. **No secret or personal data in the repository**: no password, token, real heater address or unredacted
     diagnostics file. The diagnostics redact the host and the password.
 14. **One topic per pull request** (they are squash-merged): the title and the commit messages are an English
-    `Summary` with no prefix, the body explains why and what with the measured facts. The README changes in the
-    same pull request as the behavior it describes.
+    summary, which may open with the topic it changes (`Diagnostics: the heater's MAC address redacted`), but with no
+    tag (`[feature]`, `[AR]`: the author is the commit's); the body explains why and what with the measured facts.
+    The README changes in the same pull request as the behavior it describes.
 15. **Agents**: commit only when asked, push only when asked, never change the git configuration, never rewrite
     published history, no tool attribution in commits or pull requests (no `Co-Authored-By:` for the agent, no
     "Generated with …", no session link). A person who co-wrote a change is credited with `Co-authored-by:`.
