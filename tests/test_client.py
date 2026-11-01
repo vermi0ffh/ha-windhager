@@ -1,5 +1,6 @@
 """The HTTP client against a heater asking for digest authentication (RFC 7616, MD5, qop=auth)."""
 
+import asyncio
 import copy
 import hashlib
 import re
@@ -358,6 +359,35 @@ async def test_a_heater_that_does_not_answer_has_no_error_texts(socket_enabled: 
     await client.close()
 
     assert texts == {}
+
+
+async def test_a_heater_that_accepts_but_does_not_answer_is_not_asked_the_next_languages(
+    socket_enabled: None,
+) -> None:
+    # It holds every request open: without an answer, asking it in English, then German,
+    # would hold the setup for the timeout three times per file
+    requested: list[str] = []
+    never = asyncio.Event()
+
+    async def silent(request: web.Request) -> web.StreamResponse:
+        requested.append(request.path)
+        await never.wait()
+        return web.Response(status=404)
+
+    app = web.Application()
+    app.router.add_get("/res/xml/{file}.xml", silent)
+    server = TestServer(app, host="127.0.0.1")
+    await server.start_server()
+    client = WindhagerHttpClient(f"127.0.0.1:{server.port}", PASSWORD)
+
+    with patch("custom_components.windhager.client.TEXTS_TIMEOUT_S", 0.1):
+        texts = await client.fetch_error_texts("fr")
+    await client.close()
+    never.set()
+    await server.close()
+
+    assert texts == {}
+    assert requested == ["/res/xml/ErrorTexte_fr.xml"]
 
 
 async def polls_listing(modules: list[list[dict]], polls: int) -> tuple[WindhagerHttpClient, AsyncMock]:

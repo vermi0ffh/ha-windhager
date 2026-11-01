@@ -16,11 +16,12 @@ WRITE_TIMEOUT_S = 20
 # The modules are listed again every so many polls (ten minutes), to find a module added to
 # the heater: /1 took 0.05 to 0.18 s on 2026-10-30, against 4.6 s for a poll
 MODULES_CHECK_POLLS = 10
-# A text file of the InfoWIN Touch: about 7 kB for the error texts, once at setup
-ERROR_TEXTS_TIMEOUT_S = 20
+# A text file of the InfoWIN Touch: about 7 kB for the error texts and 10 kB for the enum
+# texts, each read once at setup
+TEXTS_TIMEOUT_S = 20
 # The languages of the InfoWIN Touch's text files tried after the instance's: English, then
 # German, the manufacturer's
-ERROR_TEXTS_FALLBACK_LANGUAGES = ("en", "de")
+TEXTS_FALLBACK_LANGUAGES = ("en", "de")
 
 
 def slugify(identifier_str: str) -> str:
@@ -192,23 +193,28 @@ class WindhagerHttpClient:
         """One of the InfoWIN Touch's text files (res/xml/<name>_<language>.xml), parsed.
 
         In `language` if the heater has it, else in English, then German. None if no file
-        could be read.
+        could be read. A heater that does not answer is not asked again in the next
+        language: the texts are optional, and a silent heater would otherwise hold the setup
+        for TEXTS_TIMEOUT_S per language.
         """
         languages = [language.split("-")[0].lower()]
-        languages += [other for other in ERROR_TEXTS_FALLBACK_LANGUAGES if other not in languages]
+        languages += [other for other in TEXTS_FALLBACK_LANGUAGES if other not in languages]
         await self._ensure_session()
         for lang in languages:
             url = f"http://{self.host}/res/xml/{name}_{lang}.xml"
             try:
                 async with (
-                    asyncio.timeout(ERROR_TEXTS_TIMEOUT_S),
+                    asyncio.timeout(TEXTS_TIMEOUT_S),
                     self._session.get(url) as ret,
                 ):
                     if not ret.ok:
                         _LOGGER.debug("No texts at %s: %s", url, ret.status)
                         continue
                     return ET.fromstring(await ret.text())
-            except (aiohttp.ClientError, TimeoutError, ET.ParseError) as err:
+            except TimeoutError:
+                _LOGGER.debug("No answer for the texts at %s", url)
+                return None
+            except (aiohttp.ClientError, ET.ParseError) as err:
                 _LOGGER.debug("Cannot read the texts at %s: %s", url, err)
         return None
 
