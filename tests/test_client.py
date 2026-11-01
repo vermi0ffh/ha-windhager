@@ -398,3 +398,33 @@ async def test_a_module_discovered_again_has_its_slow_datapoints_read_at_once() 
         await client.fetch_all()
 
     assert slow_reads(fetch) == 2
+
+
+async def test_a_slow_datapoint_whose_request_failed_is_read_again_with_the_next_poll() -> None:
+    client = WindhagerHttpClient("192.0.2.1", PASSWORD)
+    answers = iter([ValueError("timed out"), {"value": "2.85"}])
+
+    def fetch(url: str) -> list | dict:
+        if url == "/1":
+            return [HEATER]
+        if url == "/1/60/0/23/103/0":
+            answer = next(answers)
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+        if url == "/1/60/0/23/100/0":
+            # Answered without a value: left as it is until the next slow read
+            return {"OID": url}
+        return {"value": "1"}
+
+    client.fetch = AsyncMock(side_effect=fetch)
+
+    first = await client.fetch_all()
+    second = await client.fetch_all()
+    await client.fetch_all()
+
+    assert first["oids"]["/1/60/0/23/103/0"] is None
+    assert second["oids"]["/1/60/0/23/103/0"] == "2.85"
+    requested = [call.args[0] for call in client.fetch.await_args_list]
+    assert requested.count("/1/60/0/23/103/0") == 2
+    assert requested.count("/1/60/0/23/100/0") == 1
