@@ -291,6 +291,10 @@ diagnostics:
    because every reading is requested one after the other.
 2. Once the log says the scan has finished, download the diagnostics again: the file now holds the scan.
 
+The scan names what it found with the heater's own texts, in Home Assistant's language when the heater has it, else in
+English or German: each level gets a `label` (for example "Puffertemperaturen"), each reading a `label` (for example
+"TPE" for `21-065`), and a reading whose value is a code also a `value_label` (for example "Mischer Fussboden").
+
 The host, password and MAC address are redacted in the file, and so are the modules' chip IDs, replaced by
 `**REDACTED_1**` (the heater's), `**REDACTED_2**`… even inside the entities' ids.
 
