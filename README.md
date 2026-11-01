@@ -168,6 +168,12 @@ Its hybrid manager, which chooses between the heat pump and the pellet boiler, i
 | Outdoor temperature control | The outdoor temperature it decides with. |
 | SG Ready state | The SG Ready state it runs in (*State 1* to *State 4*), set by an energy manager. |
 
+The heat quantity totals change in steps of 10 kWh (the heater gives them in MWh with two decimals), so the energy
+dashboard shows the heat of an hour as 0 or 10 kWh, and the right amount over a day.
+
+The heat quantities, operating hours, starts, average COPs and the outdoor temperature control are not listed by
+the heater's own lookups: their entities are created only for a heat pump that has them.
+
 The heat pump's operating hours and starts, and the SG Ready state, are diagnostics. The *today* values and the
 outdoor temperature control are disabled on a new installation (Home Assistant can derive the daily values from the
 totals with a utility meter): to follow them, enable them in the entity's settings.

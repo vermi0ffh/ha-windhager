@@ -187,3 +187,58 @@ async def test_the_counters_are_diagnostics_and_the_daily_values_disabled_on_a_n
     assert hass.states.get("sensor.aerowin_heat_quantity_heating") is not None
     assert hass.states.get("sensor.aerowin_output") is not None
     assert hass.states.get("sensor.aerowin_operating_phase") is not None
+
+
+async def test_a_heat_pump_without_the_unlisted_group_has_no_entities_for_it(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+
+    def answer(url: str) -> list | dict:
+        if url == "/1":
+            return MODULES
+        # A heat pump without group 52: a missing datapoint answers a 409 with no value
+        if "/52/" in url:
+            return {"error": 409}
+        return {"value": READINGS.get(url, "1")}
+
+    heater.fetch = AsyncMock(side_effect=answer)
+    client.fetch_all.return_value = await heater.fetch_all()
+    for _ in range(SLOW_VALUES_POLLS):
+        await heater.fetch_all()
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get("sensor.aerowin_heat_quantity_heating") is None
+    assert hass.states.get("sensor.aerowin_starts") is None
+    assert hass.states.get("sensor.aerowin_average_cop_heating_today") is None
+    assert er.async_get(hass).async_get_entity_id("sensor", "windhager", "0a0000000060-1-60-2-52-10-0") is None
+    # The datapoints it has
+    assert hass.states.get("sensor.aerowin_output").state == "100.0"
+    assert hass.states.get("sensor.hybrid_sg_ready_state").state == "2"
+    # Group 52 is not read again, even at the next slow read
+    requested = [call.args[0] for call in heater.fetch.await_args_list]
+    assert requested.count("/1/60/1/52/59/0") == requested.count("/1/60/2/52/10/0") == 1
+
+
+async def test_a_heat_pump_total_whose_request_failed_keeps_its_entity(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+    failures = iter([TimeoutError()])
+
+    def flaky(url: str) -> list | dict:
+        if url == "/1":
+            return MODULES
+        # The first request of the heating total times out
+        if url == "/1/60/1/52/59/0" and (failure := next(failures, None)):
+            raise failure
+        return {"value": READINGS.get(url, "1")}
+
+    heater.fetch = AsyncMock(side_effect=flaky)
+    await heater.fetch_all()
+    client.fetch_all.return_value = await heater.fetch_all()
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert state(hass, "sensor.aerowin_heat_quantity_heating") == ("50.22", "MWh")

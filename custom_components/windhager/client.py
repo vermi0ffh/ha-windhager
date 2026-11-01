@@ -70,8 +70,18 @@ HEATER_DATAPOINTS: tuple[tuple[str, str, str, dict, bool], ...] = (
     # Anzahl der Brennerstarts: 482
     ("/2/80/0", "burner_starts", "Burner starts", {"type": "sensor", "state_class": "total_increasing"}, True),
 )
+# A datapoint of a group the lookups do not list (the heat pump's 52, found by a sweep on
+# 2026-10-31): another heat pump may not have it. A missing datapoint answers a 409 with no
+# value (2026-11-01), so its entity is not created rather than left unknown
+UNLISTED = {"requires_value": True}
 # The descriptions of the heat pump's sensors
-HEAT_MWH = {"type": "sensor", "device_class": "energy", "state_class": "total_increasing", "unit": "MWh"}
+HEAT_MWH = {
+    "type": "sensor",
+    "device_class": "energy",
+    "state_class": "total_increasing",
+    "unit": "MWh",
+    **UNLISTED,
+}
 # Since midnight: Home Assistant can derive them from the totals (a utility meter), so they
 # are disabled on a new installation
 HEAT_KWH = {
@@ -80,6 +90,7 @@ HEAT_KWH = {
     "state_class": "total_increasing",
     "unit": "kWh",
     "enabled_default": False,
+    **UNLISTED,
 }
 # Counters for maintenance rather than for a dashboard: diagnostics
 HOURS = {
@@ -88,9 +99,10 @@ HOURS = {
     "state_class": "total_increasing",
     "unit": "h",
     "entity_category": "diagnostic",
+    **UNLISTED,
 }
 HOURS_TODAY = {**HOURS, "enabled_default": False}
-COP = {"type": "sensor", "state_class": "measurement"}
+COP = {"type": "sensor", "state_class": "measurement", **UNLISTED}
 # The datapoints of the functions read beyond the heater and the circuits, by function type:
 # (path, key, English name, the entity's description, slow), each compared with the heater's
 # mobile app on 2026-10-31
@@ -121,7 +133,7 @@ FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
             "/52/56/0",
             "heat_pump_starts",
             "Starts",
-            {"type": "sensor", "state_class": "total_increasing", "entity_category": "diagnostic"},
+            {"type": "sensor", "state_class": "total_increasing", "entity_category": "diagnostic", **UNLISTED},
             True,
         ),
         # Ø COP Heizen / Warmwasser heute: 3.8 and 3.9
@@ -146,11 +158,17 @@ FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
             "/52/10/0",
             "outdoor_temperature_control",
             "Outdoor temperature control",
-            {"type": "temperature", "enabled_default": False},
+            {"type": "temperature", "enabled_default": False, **UNLISTED},
             False,
         ),
         # SG Ready Status: "Zustand 2" in the app, 2
-        ("/54/49/0", "sg_ready_state", "SG Ready state", {"type": "sg_ready_state", "entity_category": "diagnostic"}, False),
+        (
+            "/54/49/0",
+            "sg_ready_state",
+            "SG Ready state",
+            {"type": "sg_ready_state", "entity_category": "diagnostic"},
+            False,
+        ),
     ),
 }
 # The error texts' file: about 7 kB, once at setup
@@ -867,15 +885,7 @@ class WindhagerHttpClient:
             await self._check_modules()
 
         failed: set[str] = set()
-        ret = {
-            "devices": self.devices,
-            "heater_id": self.heater_id,
-            "oids": await self._read(self.oids, failed),
-        }
-
-        if self._check_required_values:
-            self._drop_entities_without_value(ret["oids"], failed)
-            ret["devices"] = self.devices
+        values = await self._read(self.oids, failed)
 
         if self._polls_before_slow_read <= 0:
             self._slow_retry = set()
@@ -887,9 +897,14 @@ class WindhagerHttpClient:
             retry, self._slow_retry = self._slow_retry, set()
             self._slow_values.update(await self._read(retry, self._slow_retry))
         self._polls_before_slow_read -= 1
-        ret["oids"].update(self._slow_values)
+        values.update(self._slow_values)
 
-        return ret
+        # After the slow datapoints: a datapoint read every ten minutes may need a value too
+        # (the heat pump's group 52)
+        if self._check_required_values:
+            self._drop_entities_without_value(values, failed | self._slow_retry)
+
+        return {"devices": self.devices, "heater_id": self.heater_id, "oids": values}
 
     def _drop_entities_without_value(self, values: dict[str, str | None], failed: set[str]) -> None:
         """Drop the entities of datapoints the module does not have.
@@ -908,8 +923,10 @@ class WindhagerHttpClient:
             _LOGGER.info("No value for %s: their entities are not created", ", ".join(sorted(missing)))
         self.devices = [device for device in self.devices if device.get("oid") not in missing]
         self.oids -= missing
+        self.slow_oids -= missing
         for oid in missing:
             values.pop(oid, None)
+            self._slow_values.pop(oid, None)
         self._check_required_values = any(
             device.get("requires_value") and device["oid"] in failed for device in self.devices
         )
