@@ -46,12 +46,12 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         # The heater's texts of its error codes, by code (client.fetch_error_texts)
         self.error_texts: dict[str, str] = {}
 
-    def _poll_again_soon(self) -> None:
+    def _reset_interval(self) -> None:
         """Back to the usual interval once the heater answers."""
         self.consecutive_failures = 0
         self.update_interval = timedelta(seconds=UPDATE_INTERVAL)
 
-    def _poll_again_later(self) -> None:
+    def _back_off(self) -> None:
         """Wait twice as long after each failed poll, up to MAX_UPDATE_INTERVAL.
 
         The InfoWIN Touch handles one request at a time: polled every minute while it restarts or is
@@ -67,17 +67,17 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             data = await self._fetch()
         except UpdateFailed:
-            self._poll_again_later()
+            self._back_off()
             raise
         if self.consecutive_timeouts:
             # A timeout that keeps the last values is still a poll the heater did not answer
-            self._poll_again_later()
+            self._back_off()
         else:
-            self._poll_again_soon()
+            self._reset_interval()
         return data
 
     async def _fetch(self):
-        """Fetch data from API endpoint."""
+        """The raw poll, which keeps the last values on the first timeouts."""
         try:
             _LOGGER.debug("Starting data update from Windhager device")
             async with asyncio.timeout(20):

@@ -3,6 +3,7 @@
 from datetime import timedelta
 from unittest.mock import MagicMock
 
+import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
@@ -90,3 +91,44 @@ async def test_no_request_reaches_the_heater_before_the_longer_wait(
     async_fire_time_changed(hass, start + timedelta(seconds=125))
     await hass.async_block_till_done()
     assert client.fetch_all.await_count == polls + 1
+
+
+@pytest.mark.parametrize(
+    ("outcomes", "states", "waits"),
+    [
+        # The third timeout in a row fails the poll: one more failure, not two
+        ([TimeoutError, TimeoutError, TimeoutError], ["3", "3", "unavailable"], [120, 240, 480]),
+        ([TimeoutError, None], ["3", "3"], [120, 60]),
+    ],
+    ids=["three_timeouts_in_a_row", "a_timeout_then_an_answer"],
+)
+async def test_the_heater_sees_the_wait_after_each_poll(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    client: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+    outcomes: list,
+    states: list[str],
+    waits: list[int],
+) -> None:
+    # A longest wait above the third one, so that a failure counted twice shows in the wait
+    monkeypatch.setattr("custom_components.windhager.coordinator.MAX_UPDATE_INTERVAL", 600)
+    coordinator = await set_up(hass, entry, client)
+    client.fetch_all.side_effect = outcomes[0]
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    # Each wait is followed by one poll, whose outcome is the next one (an answer after the last)
+    for state, wait, outcome in zip(states, waits, [*outcomes[1:], None], strict=True):
+        assert hass.states.get("sensor.biowin_heater_status").state == state
+        client.fetch_all.side_effect = outcome
+        polls = client.fetch_all.await_count
+        now = dt_util.utcnow()
+
+        async_fire_time_changed(hass, now + timedelta(seconds=wait - 10))
+        await hass.async_block_till_done()
+        assert client.fetch_all.await_count == polls
+
+        async_fire_time_changed(hass, now + timedelta(seconds=wait + 5))
+        await hass.async_block_till_done()
+        assert client.fetch_all.await_count == polls + 1
