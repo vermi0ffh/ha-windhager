@@ -54,7 +54,9 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         """Initialize the thermostat."""
         super().__init__(coordinator, device_info)
         self.client = self.coordinator.client
-        self._prefix = device_info.get("prefix", "")
+        # The circuit's datapoints: its module's prefix, then its function (a module may hold
+        # two circuits, as functions 0 and 1 of an UMUMLZ on 2026-10-31)
+        self._prefix = f"{device_info.get('prefix', '')}{device_info.get('function', '/0')}"
         self._preset_modes = ["0", "1", "2", "3", "4", "5", "6", "7"]
         # Not named in the translations: the climate takes its circuit's name
         self._attr_translation_key = "windhager_climate"
@@ -102,16 +104,16 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         return self._preset_modes
 
     def get_oid_value(self, path: str, default: str = "0") -> Optional[float]:
-        """Get OID value with error handling."""
+        """The value of the circuit's datapoint at `path` (group, member, instance)."""
         return get_oid_value(self.coordinator, path, self._prefix, default)
 
     def raw_selected_mode(self) -> Optional[int]:
         """Get raw selected mode value."""
-        return int(self.get_oid_value("/0/3/50/0") or 0)
+        return int(self.get_oid_value("/3/50/0") or 0)
 
     def raw_custom_temp_remaining_time(self) -> Optional[int]:
         """Get raw custom temperature remaining time."""
-        return int(self.get_oid_value("/0/2/10/0") or 0)
+        return int(self.get_oid_value("/2/10/0") or 0)
 
     def raw_preset_mode(self) -> Optional[int]:
         """Get raw preset mode."""
@@ -156,10 +158,10 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
         id_mode = self._preset_modes.index(preset_mode)
-        await self._async_write("/0/3/50/0", str(id_mode))
+        await self._async_write("/3/50/0", str(id_mode))
 
         if self.raw_custom_temp_remaining_time() > 0:
-            await self._async_write("/0/2/10/0", "0")
+            await self._async_write("/2/10/0", "0")
         await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs) -> None:
@@ -167,15 +169,15 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         # Home Assistant refuses a range (target_temp_low / high) before calling it: the
         # entity does not support TARGET_TEMPERATURE_RANGE
         temp = kwargs[ATTR_TEMPERATURE]
-        await self._async_write("/0/3/4/0", str(temp))
-        await self._async_write("/0/2/10/0", "400")
+        await self._async_write("/3/4/0", str(temp))
+        await self._async_write("/2/10/0", "400")
         await self.coordinator.async_request_refresh()
 
     async def set_current_temp_compensation(self, compensation: float) -> None:
         """Set the temperature compensation value."""
         # The circuit's own correction: both climates of a circuit write the same one (the
         # action targets either of them)
-        await self._async_write("/0/3/58/0", str(compensation))
+        await self._async_write("/3/58/0", str(compensation))
         await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
@@ -188,8 +190,8 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
     @property
     def current_temperature(self) -> float | None:
         """Return the current temperature."""
-        current = self.get_oid_value("/0/0/1/0")
-        bias = self.get_oid_value("/0/3/58/0")
+        current = self.get_oid_value("/0/1/0")
+        bias = self.get_oid_value("/3/58/0")
 
         if current is None or bias is None:
             return None
@@ -199,8 +201,8 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
     @property
     def target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
-        target = self.get_oid_value("/0/1/1/0")
-        bias = self.get_oid_value("/0/3/58/0")
+        target = self.get_oid_value("/1/1/0")
+        bias = self.get_oid_value("/3/58/0")
 
         if target is None or bias is None:
             return None
@@ -221,9 +223,9 @@ class WindhagerThermostatClimateWithoutBias(WindhagerBaseThermostat):
     @property
     def current_temperature(self) -> float | None:
         """Return the current temperature."""
-        return self.get_oid_value("/0/0/1/0")
+        return self.get_oid_value("/0/1/0")
 
     @property
     def target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
-        return self.get_oid_value("/0/1/1/0")
+        return self.get_oid_value("/1/1/0")
