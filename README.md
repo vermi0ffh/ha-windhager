@@ -81,6 +81,10 @@ The readings that change over hours or days are read every ten minutes instead, 
 pellet consumption, the running times until cleaning and maintenance, the operating hours and the burner starts.
 They keep their last value in between.
 
+While the heater does not answer, the integration polls it less often, so that an InfoWIN Touch that restarts or is
+busy gets time to recover: it waits twice as long after each failed poll, up to five minutes, and polls every minute
+again as soon as the heater answers.
+
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
 
@@ -293,7 +297,8 @@ log.
 - **Invalid authentication**: the password was refused. Log in to the InfoWIN Touch's web page with it to check it: the
   password of a Windhager Connect account or of the mobile app does not work here.
 - **Entities unavailable**: the heater did not answer, and the log says why. They come back by themselves once the
-  heater answers again, for example after it was switched off at the mains or the InfoWIN Touch restarted.
+  heater answers again, for example after it was switched off at the mains or the InfoWIN Touch restarted. After a
+  long outage this can take up to five minutes, the longest wait between two polls.
 - **A changed setting fails with an error**: the heater refused the change or did not answer. The message says which.
 
 To see everything your heater exposes (to add a sensor, or for a model that is not supported yet), download the

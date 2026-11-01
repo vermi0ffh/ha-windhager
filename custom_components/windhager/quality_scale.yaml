@@ -4,8 +4,9 @@ rules:
   appropriate-polling:
     status: done
     comment: >
-      Every minute: one poll reads about 60 datapoints one after the other, and the heater's
-      API took 44 to 100 s for 63 requests on 2026-10-28 and 29.
+      Every minute, up to every 5 minutes while the heater does not answer: one poll reads
+      about 60 datapoints one after the other, and the heater's API took 44 to 100 s for 63
+      requests on 2026-10-28 and 29.
   brands: done
   common-modules: done
   config-flow: done
