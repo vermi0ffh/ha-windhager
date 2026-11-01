@@ -149,6 +149,27 @@ class WindhagerHttpClient:
             if error.get("code")
         }
 
+    async def fetch_enum_texts(self, language: str) -> dict[str, dict[str, str]]:
+        """The heater's own texts of its enumerated values, by "group/member", then by code.
+
+        The InfoWIN Touch's web page names a datapoint's codes from its file
+        (res/xml/AufzaehlTexte_<language>.xml, 2026-11-01: 50 enumerations, among them the
+        heater status 2/1 and the operating mode 2/59), which follows its firmware. Empty
+        if no file could be read: the enum sensors then know only the translated codes.
+        """
+        root = await self._fetch_texts("AufzaehlTexte", language)
+        if root is None:
+            return {}
+        return {
+            f"{group.get('id')}/{member.get('id')}": {
+                enum.get("id"): " ".join((enum.text or "").split())
+                for enum in member.iter("enum")
+                if enum.get("id")
+            }
+            for group in root.iter("gn")
+            for member in group.iter("mn")
+        }
+
     async def _fetch_texts(self, name: str, language: str) -> ET.Element | None:
         """One of the InfoWIN Touch's text files (res/xml/<name>_<language>.xml), parsed.
 

@@ -135,6 +135,15 @@ class WindhagerPelletSensor(WindhagerBaseSensor):
 HEATER_STATUSES = [str(code) for code in range(18)]
 
 
+def enum_key(oid: str | None) -> str:
+    """The "group/member" of a datapoint's OID (/subnet/node/function/group/member/instance).
+
+    The key of its codes' texts in the InfoWIN Touch's AufzaehlTexte (2026-11-01: "2/1" for
+    the heater status /1/60/0/2/1/0).
+    """
+    return "/".join((oid or "").strip("/").split("/")[3:5])
+
+
 class WindhagerSelectSensor(WindhagerBaseSensor):
     """Select sensor implementation."""
 
@@ -143,6 +152,21 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
     # ones in the automation editor
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = HEATER_STATUSES
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        # The heater's own texts of this datapoint's codes, which follow its firmware
+        self._heater_texts = coordinator.enum_texts.get(enum_key(self._oid), {})
+        # A code the heater names but the translations do not (a newer firmware's) is a
+        # state too, rather than unknown: its text is in the heater_text attribute
+        codes = set(self._attr_options) | {code for code in self._heater_texts if code.isdigit()}
+        self._attr_options = sorted(codes, key=int)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The heater's own text for the code, in its language: for the codes the translations do not name."""
+        value = self.native_value
+        return {"heater_text": self._heater_texts.get(value) if value is not None else None}
 
     @property
     def raw_value(self) -> int | None:

@@ -45,6 +45,9 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         self.api_scan = None
         # The heater's texts of its error codes, by code (client.fetch_error_texts)
         self.error_texts: dict[str, str] = {}
+        # The heater's texts of its enumerated values, by "group/member" then code
+        # (client.fetch_enum_texts)
+        self.enum_texts: dict[str, dict[str, str]] = {}
 
     def _reset_interval(self) -> None:
         """Back to the usual interval once the heater answers."""

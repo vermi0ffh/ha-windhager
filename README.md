@@ -123,6 +123,10 @@ The heater has these entities:
 | Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
 | Running time until stage 1 cleaning, Running time until stage 2 cleaning | The burner hours left until each cleaning. |
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
+
+The *Heater status* and *Operating mode* also carry the heater's own text for their code in their `heater_text`
+attribute, in Home Assistant's language when the heater has it, else in English or German. A code the integration
+does not know yet, from a newer firmware, is still a state, with its text in that attribute.
 | Heater problem | On while the heater reports an error. |
 
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
