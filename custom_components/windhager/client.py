@@ -711,14 +711,15 @@ class WindhagerHttpClient:
         else:
             await self._check_modules()
 
+        failed: set[str] = set()
         ret = {
             "devices": self.devices,
             "heater_id": self.heater_id,
-            "oids": await self._read(self.oids),
+            "oids": await self._read(self.oids, failed),
         }
 
         if self._check_required_values:
-            self._drop_entities_without_value(ret["oids"])
+            self._drop_entities_without_value(ret["oids"], failed)
             ret["devices"] = self.devices
 
         if self._polls_before_slow_read <= 0:
@@ -735,22 +736,28 @@ class WindhagerHttpClient:
 
         return ret
 
-    def _drop_entities_without_value(self, values: dict[str, str | None]) -> None:
-        """Drop the entities of datapoints the module does not have, after their first poll.
+    def _drop_entities_without_value(self, values: dict[str, str | None], failed: set[str]) -> None:
+        """Drop the entities of datapoints the module does not have.
 
         Such a datapoint answers without a value (a circuit's hot water, on a circuit
-        without one): it is no longer read, until the modules are discovered again.
+        without one, answered with no "value" on 2026-10-31): it is no longer read, until
+        the modules are discovered again. A datapoint whose request failed (a timeout)
+        tells nothing: it is checked again with the next poll.
         """
         missing = {
             device["oid"]
             for device in self.devices
-            if device.get("requires_value") and values.get(device["oid"]) is None
+            if device.get("requires_value") and values.get(device["oid"]) is None and device["oid"] not in failed
         }
+        if missing:
+            _LOGGER.info("No value for %s: their entities are not created", ", ".join(sorted(missing)))
         self.devices = [device for device in self.devices if device.get("oid") not in missing]
         self.oids -= missing
         for oid in missing:
             values.pop(oid, None)
-        self._check_required_values = False
+        self._check_required_values = any(
+            device.get("requires_value") and device["oid"] in failed for device in self.devices
+        )
 
     async def _read(self, oids: set[str], failed: set[str] | None = None) -> dict[str, str | None]:
         """The values of `oids`, one request each: None for a datapoint without a value.
