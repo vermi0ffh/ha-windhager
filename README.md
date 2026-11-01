@@ -20,9 +20,11 @@ The integration talks only to the InfoWIN Touch, with no cloud. It polls the hea
 | Device                                                                                  | Status | Notes                              |
 | --------------------------------------------------------------------------------------- | :----: | ---------------------------------- |
 | [BioWIN2](https://www.windhager.com/en/products/pellet-heating-systems/biowin2-3-33kw/) |   ✅   | Infowin Touch (1.0.2), API (1.0.0) |
+| BioWIN Hybrid (BioWIN with an AeroWIN heat pump)                                        |   ✅   | REST RC7030 API (1.0.3)            |
 
-The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN) and the heating circuits (a
-UMUMLZ module, for instance). Other Windhager heaters behind an InfoWIN Touch may work if their modules expose the
+The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN), the heating circuits (a
+UMUMLZ module, for instance, which can hold two), a buffer tank (WFBPK), and a BioWIN Hybrid's heat pump and hybrid
+manager. Other Windhager heaters behind an InfoWIN Touch may work if their modules expose the
 same functions. The diagnostics (see [Troubleshooting](#troubleshooting)) show what yours exposes.
 
 ## Installation using HACS
@@ -81,6 +83,11 @@ While the heater does not answer, the integration polls it less often, so that a
 busy gets time to recover: it waits twice as long after each failed poll, up to five minutes, and polls every minute
 again as soon as the heater answers.
 
+The readings that change over hours or days are read every ten minutes instead, which keeps each poll short: the
+pellet consumption, the running times until cleaning and maintenance, the operating hours and the burner starts,
+and the heat pump's heat quantities, operating hours, starts and average COPs. They keep their last value in between.
+A reading whose request failed (a timeout, a connection error) is read again with the next poll, until it answers.
+
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
 page.
 
@@ -89,8 +96,9 @@ heating circuit, gets its device and entities within ten minutes, without a relo
 
 ## Devices and entities
 
-Each module of the heater is a device: the heater itself, and each heating circuit. A device shows its model, its chip
-ID as the serial number, and a link to the InfoWIN Touch's web page.
+Each module of the heater is a device: the heater itself, and each heating circuit. A module that holds two heating
+circuits (an UMUMLZ, for example) gives each its own device, named after the circuit. A device shows its model, its
+chip ID as the serial number, and a link to the InfoWIN Touch's web page.
 
 A module removed from the heater keeps its device and entities, which become unavailable: the integration cannot tell
 a removed module from one that did not answer. To remove them, open the device and choose *Delete* in its menu. Only
@@ -110,6 +118,16 @@ Each heating circuit has these entities:
 | Target temperature | The temperature the circuit is heating to. |
 | Outside temperature | The outside sensor's temperature. |
 | Comfort temperature correction, Current temperature correction | The corrections set on the heater, in K. |
+| Flow temperature, Flow target temperature | The water sent to the circuit, and its target (0 °C while the circuit does not heat). |
+| Boiler temperature, Boiler target temperature | The water the circuit draws from, the heater's or the buffer's, and its target. |
+| Operating mode | What the circuit does, in the heater's own words: heating, setback, hot water charging, standby at the heating limit, frost protection… |
+| Circuit pump | On while the circuit's pump runs. |
+| Hot water temperature, Hot water target temperature | The hot water tank's temperature and target, for a circuit that also heats the hot water. |
+| Hot water charging pump | On while the pump charging the hot water tank runs. |
+
+A circuit has hot water entities only if it is configured with hot water on the heater: its *DHW circuit* setting,
+read when the integration starts and when the modules change. If that setting cannot be read, they are kept only if
+the heater gives them a value.
 
 The heater has these entities:
 
@@ -122,11 +140,49 @@ The heater has these entities:
 | Hopper level | The pellets left in the heater's hopper, in %: the level the heater's mobile app shows. |
 | Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
 | Running time until stage 1 cleaning, Running time until stage 2 cleaning | The burner hours left until each cleaning. |
+| Running time until maintenance | The hours left until the heater's maintenance. |
+| Operating hours, Burner starts | The burner's running hours and its number of starts, both growing totals. |
+| Heater target temperature | The temperature the heater is heating to (0 °C while it does not run). |
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
 | Heater problem | On while the heater reports an error. |
 
-These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
-until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
+A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, with these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Buffer temperature TPE, Buffer temperature TPA | The buffer's temperature sensors, named as on the heater (TPE near the top, TPA lower). A sensor not connected shows as unknown. |
+
+A BioWIN Hybrid's heat pump (AeroWIN) is a device of its own, with these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Heat quantity heating, Heat quantity hot water | The heat it produced for the heating and for the hot water, in MWh: growing totals, for the energy dashboard. |
+| Heat quantity heating today, Heat quantity hot water today | The same since midnight, in kWh. |
+| Operating hours heating, Operating hours hot water (and *today*) | Its running hours for each, in total and since midnight. |
+| Starts | Its number of starts. |
+| Average COP heating today, Average COP hot water today | Its average coefficient of performance since midnight. |
+| Output | Its current output, in %. |
+| Operating phase | What it does: *Standby* and *Heating* are named; a phase not seen yet shows as its code. |
+
+Its hybrid manager, which chooses between the heat pump and the pellet boiler, is a device too:
+
+| Entity | Description |
+| ------ | ----------- |
+| Outdoor temperature control | The outdoor temperature it decides with. |
+| SG Ready state | The SG Ready state it runs in (*State 1* to *State 4*), set by an energy manager. |
+
+The heat quantity totals change in steps of 10 kWh (the heater gives them in MWh with two decimals), so the energy
+dashboard shows the heat of an hour as 0 or 10 kWh, and the right amount over a day.
+
+The heat quantities, operating hours, starts, average COPs and the outdoor temperature control are not listed by
+the heater's own lookups: their entities are created only for a heat pump that has them.
+
+The heat pump's operating hours and starts, and the SG Ready state, are diagnostics. The *today* values and the
+outdoor temperature control are disabled on a new installation (Home Assistant can derive the daily values from the
+totals with a utility meter): to follow them, enable them in the entity's settings.
+
+These entities are diagnostics: the two temperature corrections, Current temperature real, the running times
+until cleaning and until maintenance, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.
 
 ### Thermostat
@@ -243,9 +299,12 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
-  supported yet.
-- The readings are polled every minute, so a change on the heater can take up to a minute to show.
+- Only the heater, the heating circuits (with the hot water of a circuit that heats it), the buffer tanks and a
+  BioWIN Hybrid's heat pump and hybrid manager are read. Solar modules are not supported yet.
+- A heat pump's current COP, its operating mode (*Eco-Betrieb* in the app) and its flow temperatures are not read
+  yet: they could not be matched with certainty (see #78).
+- The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
+  minutes for the readings read every ten minutes, see [Data updates](#data-updates)).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
 - A heater status the integration does not know (beyond code 17) shows as unknown, and so does an operating mode
   beyond code 11.

@@ -62,6 +62,12 @@
     "binary_sensor": {
       "heater_problem": {
         "name": "Kesselproblem"
+      },
+      "circuit_pump": {
+        "name": "Heizkreispumpe"
+      },
+      "hot_water_charging_pump": {
+        "name": "Warmwasser-Ladepumpe"
       }
     },
     "sensor": {
@@ -159,6 +165,119 @@
           "code": {
             "name": "Code"
           }
+        }
+      },
+      "flow_temperature": {
+        "name": "Vorlauftemperatur"
+      },
+      "flow_target_temperature": {
+        "name": "Vorlauftemperatur Sollwert"
+      },
+      "boiler_temperature": {
+        "name": "Kesseltemperatur"
+      },
+      "boiler_target_temperature": {
+        "name": "Kesseltemperatur Soll"
+      },
+      "circuit_operating_mode": {
+        "name": "Betriebsart",
+        "state": {
+          "0": "Standby",
+          "1": "Heizbetrieb",
+          "2": "Absenkbetrieb",
+          "3": "WW-Ladung",
+          "4": "ECO / Party",
+          "5": "Ferienprogramm",
+          "6": "Estrich",
+          "7": "Frostschutz",
+          "8": "Standby Heizgrenze",
+          "9": "Handbetrieb",
+          "10": "Testbetrieb",
+          "11": "Kaminkehrerbetrieb",
+          "12": "Brenner Aus",
+          "13": "Brenner Ein",
+          "14": "Automatik-Kessel",
+          "15": "FB-Kessel",
+          "16": "Pufferspeicher"
+        }
+      },
+      "hot_water_temperature": {
+        "name": "Warmwassertemperatur"
+      },
+      "hot_water_target_temperature": {
+        "name": "Warmwassertemperatur Sollwert"
+      },
+      "buffer_temperature_tpe": {
+        "name": "Puffertemperatur TPE"
+      },
+      "buffer_temperature_tpa": {
+        "name": "Puffertemperatur TPA"
+      },
+      "heater_target_temperature": {
+        "name": "Kesseltemperatur Soll"
+      },
+      "time_until_maintenance": {
+        "name": "Betriebszeit bis Wartung"
+      },
+      "operating_hours": {
+        "name": "Betriebsstunden"
+      },
+      "burner_starts": {
+        "name": "Anzahl der Brennerstarts"
+      },
+      "heat_quantity_heating": {
+        "name": "Wärmemenge Heizen"
+      },
+      "heat_quantity_heating_today": {
+        "name": "Wärmemenge Heizen heute"
+      },
+      "heat_quantity_hot_water": {
+        "name": "Wärmemenge Warmwasser"
+      },
+      "heat_quantity_hot_water_today": {
+        "name": "Wärmemenge Warmwasser heute"
+      },
+      "operating_hours_heating": {
+        "name": "Betriebsstunden Heizen"
+      },
+      "operating_hours_heating_today": {
+        "name": "Betriebsstunden Heizen heute"
+      },
+      "operating_hours_hot_water": {
+        "name": "Betriebsstunden Warmwasser"
+      },
+      "operating_hours_hot_water_today": {
+        "name": "Betriebsstunden Warmwasser heute"
+      },
+      "heat_pump_starts": {
+        "name": "Anzahl Starts"
+      },
+      "cop_heating_today": {
+        "name": "Ø COP Heizen heute"
+      },
+      "cop_hot_water_today": {
+        "name": "Ø COP Warmwasser heute"
+      },
+      "heat_pump_output": {
+        "name": "Aktuelle Leistung"
+      },
+      "heat_pump_phase": {
+        "name": "Betriebsphase",
+        "state": {
+          "3": "Standby",
+          "4": "Heizen"
+        }
+      },
+      "outdoor_temperature_control": {
+        "name": "Aussentemperatur Regelung"
+      },
+      "sg_ready_state": {
+        "name": "SG Ready Status",
+        "state": {
+          "1": "Zustand 1",
+          "2": "Zustand 2",
+          "3": "Zustand 3",
+          "4": "Zustand 4"
         }
       }
     },

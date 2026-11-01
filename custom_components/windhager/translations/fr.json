@@ -62,6 +62,12 @@
     "binary_sensor": {
       "heater_problem": {
         "name": "Problème de la chaudière"
+      },
+      "circuit_pump": {
+        "name": "Pompe du circuit de chauffe"
+      },
+      "hot_water_charging_pump": {
+        "name": "Pompe de charge ECS"
       }
     },
     "sensor": {
@@ -159,6 +165,119 @@
           "code": {
             "name": "Code"
           }
+        }
+      },
+      "flow_temperature": {
+        "name": "Température de départ"
+      },
+      "flow_target_temperature": {
+        "name": "Consigne de température de départ"
+      },
+      "boiler_temperature": {
+        "name": "Température de la chaudière"
+      },
+      "boiler_target_temperature": {
+        "name": "Consigne de température de la chaudière"
+      },
+      "circuit_operating_mode": {
+        "name": "Mode de fonctionnement",
+        "state": {
+          "0": "Veille",
+          "1": "Mode chauffage",
+          "2": "Mode réduit",
+          "3": "Charge E.C.S",
+          "4": "ECO / Fête",
+          "5": "Programme congés",
+          "6": "Séchage chape",
+          "7": "Antigel",
+          "8": "T° mise en veille",
+          "9": "Mode manuel",
+          "10": "Mode test",
+          "11": "Mode ramoneur",
+          "12": "Brûleur Arrêt",
+          "13": "Brûleur Marche",
+          "14": "Chaudière automatique",
+          "15": "CD-Chaudière",
+          "16": "Tampon réserve"
+        }
+      },
+      "hot_water_temperature": {
+        "name": "Température ECS"
+      },
+      "hot_water_target_temperature": {
+        "name": "Consigne ECS"
+      },
+      "buffer_temperature_tpe": {
+        "name": "Température tampon TPE"
+      },
+      "buffer_temperature_tpa": {
+        "name": "Température tampon TPA"
+      },
+      "heater_target_temperature": {
+        "name": "Consigne de température de la chaudière"
+      },
+      "time_until_maintenance": {
+        "name": "Durée de fonctionnement avant l'entretien"
+      },
+      "operating_hours": {
+        "name": "Heures de service"
+      },
+      "burner_starts": {
+        "name": "Nombre de démarrages du brûleur"
+      },
+      "heat_quantity_heating": {
+        "name": "Quantité de chaleur chauffage"
+      },
+      "heat_quantity_heating_today": {
+        "name": "Quantité de chaleur chauffage aujourd'hui"
+      },
+      "heat_quantity_hot_water": {
+        "name": "Quantité de chaleur ECS"
+      },
+      "heat_quantity_hot_water_today": {
+        "name": "Quantité de chaleur ECS aujourd'hui"
+      },
+      "operating_hours_heating": {
+        "name": "Heures de service chauffage"
+      },
+      "operating_hours_heating_today": {
+        "name": "Heures de service chauffage aujourd'hui"
+      },
+      "operating_hours_hot_water": {
+        "name": "Heures de service ECS"
+      },
+      "operating_hours_hot_water_today": {
+        "name": "Heures de service ECS aujourd'hui"
+      },
+      "heat_pump_starts": {
+        "name": "Nombre de démarrages"
+      },
+      "cop_heating_today": {
+        "name": "COP moyen chauffage aujourd'hui"
+      },
+      "cop_hot_water_today": {
+        "name": "COP moyen ECS aujourd'hui"
+      },
+      "heat_pump_output": {
+        "name": "Puissance actuelle"
+      },
+      "heat_pump_phase": {
+        "name": "Phase de fonctionnement",
+        "state": {
+          "3": "Veille",
+          "4": "Chauffage"
+        }
+      },
+      "outdoor_temperature_control": {
+        "name": "Température extérieure de régulation"
+      },
+      "sg_ready_state": {
+        "name": "État SG Ready",
+        "state": {
+          "1": "État 1",
+          "2": "État 2",
+          "3": "État 3",
+          "4": "État 4"
         }
       }
     },

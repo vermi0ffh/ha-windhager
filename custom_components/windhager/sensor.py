@@ -176,10 +176,45 @@ class WindhagerOperatingModeSensor(WindhagerSelectSensor):
     _attr_options = OPERATING_MODES
 
 
+# A heating circuit's operating mode codes the translations name: those of the InfoWIN
+# Touch's res/xml/AufzaehlTexte_<language>.xml for group 2, member 9 (2026-10-31: 1
+# Heizbetrieb on a heating circuit, 8 Standby Heizgrenze on one at its heating limit)
+CIRCUIT_OPERATING_MODES = [str(code) for code in range(17)]
+
+
+class WindhagerCircuitOperatingModeSensor(WindhagerSelectSensor):
+    """A heating circuit's operating mode: heating, setback, standby at its heating limit…"""
+
+    _attr_options = CIRCUIT_OPERATING_MODES
+
+
 # The error code's value without an error (2026-10-30: "-" before a fault, "42" during it)
 NO_ERROR = "-"
 # Home Assistant's limit for a state
 MAX_STATE_LENGTH = 255
+
+
+# A heat pump's operating phase codes: its "Betriebsphase" enumerates 0 to 15 (the API's
+# scan, 2026-10-31); the translations name those seen in the heater's app (3 Standby, 4
+# Heizen), and Home Assistant shows the others as their code
+HEAT_PUMP_PHASES = [str(code) for code in range(16)]
+
+
+class WindhagerHeatPumpPhaseSensor(WindhagerSelectSensor):
+    """A heat pump's operating phase: standby, heating…"""
+
+    _attr_options = HEAT_PUMP_PHASES
+
+
+# The SG Ready state codes: the datapoint enumerates 0 to 15 (the API's scan, 2026-10-31);
+# the translations name SG Ready's four states, as the heater's app does ("Zustand 2")
+SG_READY_STATES = [str(code) for code in range(16)]
+
+
+class WindhagerSgReadySensor(WindhagerSelectSensor):
+    """The SG Ready state the hybrid manager runs in: the signal of an energy manager."""
+
+    _attr_options = SG_READY_STATES
 
 
 class WindhagerErrorSensor(WindhagerBaseSensor):
@@ -215,6 +250,9 @@ SENSOR_CLASSES: dict[str | None, type[WindhagerBaseSensor]] = {
     "error": WindhagerErrorSensor,
     "select": WindhagerSelectSensor,
     "operating_mode": WindhagerOperatingModeSensor,
+    "circuit_operating_mode": WindhagerCircuitOperatingModeSensor,
+    "heat_pump_phase": WindhagerHeatPumpPhaseSensor,
+    "sg_ready_state": WindhagerSgReadySensor,
     "total": WindhagerPelletSensor,
     "total_increasing": WindhagerPelletSensor,
 }

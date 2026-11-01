@@ -62,6 +62,12 @@
     "binary_sensor": {
       "heater_problem": {
         "name": "Heater problem"
+      },
+      "circuit_pump": {
+        "name": "Circuit pump"
+      },
+      "hot_water_charging_pump": {
+        "name": "Hot water charging pump"
       }
     },
     "sensor": {
@@ -159,6 +165,119 @@
           "code": {
             "name": "Code"
           }
+        }
+      },
+      "flow_temperature": {
+        "name": "Flow temperature"
+      },
+      "flow_target_temperature": {
+        "name": "Flow target temperature"
+      },
+      "boiler_temperature": {
+        "name": "Boiler temperature"
+      },
+      "boiler_target_temperature": {
+        "name": "Boiler target temperature"
+      },
+      "circuit_operating_mode": {
+        "name": "Operating mode",
+        "state": {
+          "0": "Standby",
+          "1": "Heating",
+          "2": "Setback",
+          "3": "Hot water charging",
+          "4": "ECO / Party",
+          "5": "Holiday program",
+          "6": "Screed drying",
+          "7": "Frost protection",
+          "8": "Standby (heating limit)",
+          "9": "Manual mode",
+          "10": "Test mode",
+          "11": "Chimney sweep mode",
+          "12": "Burner off",
+          "13": "Burner on",
+          "14": "Automatic boiler",
+          "15": "Solid fuel boiler",
+          "16": "Buffer"
+        }
+      },
+      "hot_water_temperature": {
+        "name": "Hot water temperature"
+      },
+      "hot_water_target_temperature": {
+        "name": "Hot water target temperature"
+      },
+      "buffer_temperature_tpe": {
+        "name": "Buffer temperature TPE"
+      },
+      "buffer_temperature_tpa": {
+        "name": "Buffer temperature TPA"
+      },
+      "heater_target_temperature": {
+        "name": "Heater target temperature"
+      },
+      "time_until_maintenance": {
+        "name": "Running time until maintenance"
+      },
+      "operating_hours": {
+        "name": "Operating hours"
+      },
+      "burner_starts": {
+        "name": "Burner starts"
+      },
+      "heat_quantity_heating": {
+        "name": "Heat quantity heating"
+      },
+      "heat_quantity_heating_today": {
+        "name": "Heat quantity heating today"
+      },
+      "heat_quantity_hot_water": {
+        "name": "Heat quantity hot water"
+      },
+      "heat_quantity_hot_water_today": {
+        "name": "Heat quantity hot water today"
+      },
+      "operating_hours_heating": {
+        "name": "Operating hours heating"
+      },
+      "operating_hours_heating_today": {
+        "name": "Operating hours heating today"
+      },
+      "operating_hours_hot_water": {
+        "name": "Operating hours hot water"
+      },
+      "operating_hours_hot_water_today": {
+        "name": "Operating hours hot water today"
+      },
+      "heat_pump_starts": {
+        "name": "Starts"
+      },
+      "cop_heating_today": {
+        "name": "Average COP heating today"
+      },
+      "cop_hot_water_today": {
+        "name": "Average COP hot water today"
+      },
+      "heat_pump_output": {
+        "name": "Output"
+      },
+      "heat_pump_phase": {
+        "name": "Operating phase",
+        "state": {
+          "3": "Standby",
+          "4": "Heating"
+        }
+      },
+      "outdoor_temperature_control": {
+        "name": "Outdoor temperature control"
+      },
+      "sg_ready_state": {
+        "name": "SG Ready state",
+        "state": {
+          "1": "State 1",
+          "2": "State 2",
+          "3": "State 3",
+          "4": "State 4"
         }
       }
     },
