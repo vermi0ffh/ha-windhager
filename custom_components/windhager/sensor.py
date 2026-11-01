@@ -164,7 +164,7 @@ class WindhagerSelectSensor(WindhagerBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """The heater's own text for the code, in its language: for the codes the translations do not name."""
+        """The heater's own text for the current code, in Home Assistant's language when the heater has it."""
         value = self.native_value
         return {"heater_text": self._heater_texts.get(value) if value is not None else None}
 
