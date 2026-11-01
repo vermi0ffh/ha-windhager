@@ -46,6 +46,11 @@ CIRCUIT_DATAPOINTS = (
     ("/1/4/0", "hot_water_target_temperature", "Hot water target temperature", "temperature", True),
     ("/1/66/0", "hot_water_charging_pump", "Hot water charging pump", "running", True),
 )
+# A circuit's hot water as configured on the heater: "WW-Kreis" of its level 103,
+# "Modulfunktionen", 0 inactive, 1 pump, 2 valve. Read once per circuit at discovery (0.17 and
+# 0.33 s on 2026-11-01): a circuit without hot water answers its charging pump with 0, a
+# value, so the datapoints alone cannot tell (a BioWIN 2 with three UMUMLZ, 2026-11-01)
+HOT_WATER_CIRCUIT = "/5/76/0"
 # The heater's datapoints beyond its first ones: (path, key, English name, the entity's
 # description, slow), each compared with the heater's mobile app on 2026-10-31 (BioWIN)
 HEATER_DATAPOINTS: tuple[tuple[str, str, str, dict, bool], ...] = (
@@ -176,6 +181,15 @@ ERROR_TEXTS_TIMEOUT_S = 20
 # The languages of the InfoWIN Touch's error texts tried after the instance's: English, then
 # German, the manufacturer's
 ERROR_TEXTS_FALLBACK_LANGUAGES = ("en", "de")
+
+
+def parse_hot_water_circuit(value: object) -> bool:
+    """Whether a circuit's "WW-Kreis" value means hot water: 1 pump, 2 valve; 0 inactive."""
+    try:
+        return int(str(value)) > 0
+    except ValueError:
+        # No value: a circuit that cannot have hot water (function 1 of an UMUMLZ)
+        return False
 
 
 def slugify(identifier_str: str) -> str:
@@ -329,8 +343,48 @@ class WindhagerHttpClient:
 
     slugify = staticmethod(slugify)
 
-    def _discover(self, json_devices: list[dict]) -> None:
-        """The entities and datapoints of the modules /1 lists."""
+    async def _circuits_hot_water(self, json_devices: list[dict]) -> dict[str, bool]:
+        """Whether each circuit of `json_devices` heats hot water, as configured on the heater.
+
+        A circuit whose configuration could not be read is left out: its hot water datapoints
+        are then kept only if they answer with a value.
+        """
+        circuits: dict[str, bool] = {}
+        for device in json_devices:
+            for function in device.get("functions", []):
+                if function.get("fctType") != CLIMATE_FUNCTION_TYPE or function.get("lock") is not False:
+                    continue
+                circuit = f"/1/{device['nodeId']}/{function['fctId']}"
+                try:
+                    level = await self.fetch(f"{circuit}/103")
+                except (InvalidAuth, CannotConnect):
+                    raise
+                except Exception as err:
+                    _LOGGER.debug("Cannot read the configuration of circuit %s: %s", circuit, err)
+                    continue
+                if not isinstance(level, list):
+                    # A level the module does not have answers a 409 with a JSON body
+                    _LOGGER.debug("No configuration for circuit %s: %s", circuit, level)
+                    continue
+                # A circuit without hot water may not list it at all (function 1 of an UMUMLZ)
+                value = next(
+                    (
+                        datapoint.get("value")
+                        for datapoint in level
+                        if isinstance(datapoint, dict) and str(datapoint.get("OID", "")).endswith(HOT_WATER_CIRCUIT)
+                    ),
+                    None,
+                )
+                circuits[circuit] = parse_hot_water_circuit(value)
+        return circuits
+
+    def _discover(self, json_devices: list[dict], hot_water: dict[str, bool] | None = None) -> None:
+        """The entities and datapoints of the modules /1 lists.
+
+        `hot_water` tells, for each circuit whose configuration was read, whether it heats
+        hot water.
+        """
+        hot_water = hot_water or {}
         self.oids = set()
         self.slow_oids = set()
         self.devices = []
@@ -528,10 +582,13 @@ class WindhagerHttpClient:
                 )
 
                 # What the heater's mobile app shows on the circuit's Info screen, each
-                # checked against it on 2026-10-31. A circuit without hot water (RADIATOREN)
-                # answers its hot water datapoints without a value, and its lookups do not
-                # list them: those entities are kept only for a circuit that answers them
-                for path, key, name, entity_type, hot_water in CIRCUIT_DATAPOINTS:
+                # checked against it on 2026-10-31. Its hot water ones only for a circuit
+                # configured with hot water; if its configuration could not be read, only if
+                # they answer with a value (RADIATOREN answers its temperature without one)
+                configured = hot_water.get(f"{device_id}{fct_id}")
+                for path, key, name, entity_type, is_hot_water in CIRCUIT_DATAPOINTS:
+                    if is_hot_water and configured is False:
+                        continue
                     oid = f"{device_id}{fct_id}{path}"
                     self.oids.add(oid)
                     self.devices.append(
@@ -541,7 +598,7 @@ class WindhagerHttpClient:
                             "name": f"{function['name']} {name}",
                             "type": entity_type,
                             "oid": oid,
-                            "requires_value": hot_water,
+                            "requires_value": is_hot_water and configured is None,
                             "device_id": self.slugify(circuit_device_id),
                             "device_name": function["name"],
                             **module,
@@ -875,12 +932,13 @@ class WindhagerHttpClient:
             return
         if signature != self._modules_signature:
             _LOGGER.info("The heater's modules changed: discovering them again")
-            self._discover(json_devices)
+            self._discover(json_devices, await self._circuits_hot_water(json_devices))
 
     async def fetch_all(self):
         if self.oids is None:
             # Fetch all devices on the network
-            self._discover(await self.fetch("/1"))
+            json_devices = await self.fetch("/1")
+            self._discover(json_devices, await self._circuits_hot_water(json_devices))
         else:
             await self._check_modules()
 
