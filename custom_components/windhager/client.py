@@ -62,6 +62,26 @@ def heater_id(json_devices: list[dict]) -> str | None:
     return modules[0]["neuronId"] if modules else None
 
 
+def label_level(texts: dict[str, dict], function_type: int, level: dict) -> None:
+    """A scanned level and its readings, labelled with the heater's names (scan_texts).
+
+    A level is named by its function type and id ("14/103": "Modulfunktionen"), a reading
+    by the group and member of its OID (/subnet/node/function/group/member/instance:
+    "7/76": "Heizkreis"), and an enumerated value by those and its code ("2": "Mischer
+    Fussboden"). Names the heater does not have are left out.
+    """
+    if label := texts["levels"].get(f"{function_type}/{level.get('id')}"):
+        level["label"] = label
+    for reading in level.get("readings", []):
+        if not isinstance(reading, dict):
+            continue
+        key = "/".join(str(reading.get("OID", "")).strip("/").split("/")[3:5])
+        if label := texts["datapoints"].get(key):
+            reading["label"] = label
+        if value_label := texts["enums"].get(key, {}).get(str(reading.get("value"))):
+            reading["value_label"] = value_label
+
+
 class WindhagerHttpClient:
     """Raw API HTTP requests"""
 
@@ -708,14 +728,19 @@ class WindhagerHttpClient:
 
         return ret
 
-    async def scan(self):
+    async def scan(self, language: str | None = None):
         """Everything the API exposes: each device, its functions, their sensors and readings.
 
         For the diagnostics: what a heater offers beyond the entities created. A request
         that fails is recorded under "errors" and the scan goes on, so that one
         unreadable function does not hide the rest.
+
+        With a `language`, the levels and readings also get the heater's own names for
+        them in a "label", and an enumerated reading the text of its value in a
+        "value_label" (scan_texts): the scan then tells what "00-045" is.
         """
         errors = {}
+        texts = await self.scan_texts(language) if language else None
 
         async def fetch_or_record(url):
             try:
@@ -736,5 +761,34 @@ class WindhagerHttpClient:
                 function["sensors"] = await fetch_or_record(function_url)
                 for sensor in function["sensors"]:
                     sensor["readings"] = await fetch_or_record(f"{function_url}/{sensor['id']}")
+                    if texts:
+                        label_level(texts, function["fctType"], sensor)
 
         return {"devices": devices, "errors": errors}
+
+    async def scan_texts(self, language: str) -> dict[str, dict]:
+        """The heater's own names of its levels and datapoints, and its enums' texts.
+
+        The InfoWIN Touch's web page names them from its files, which follow its firmware
+        (2026-11-01, on a BioWIN 2: res/xml/EbenenTexte_<language>.xml, about 4 kB, the
+        levels of each function type; VarIdentTexte, about 90 kB, 1858 names by
+        group/member; AufzaehlTexte, about 10 kB). Read only for the diagnostics' scan: they
+        are not kept. A file that cannot be read leaves its names out.
+        """
+        levels = await self._fetch_texts("EbenenTexte", language)
+        datapoints = await self._fetch_texts("VarIdentTexte", language)
+        return {
+            "levels": {} if levels is None else {
+                f"{function_type.get('id')}/{level.get('id')}": text
+                for function_type in levels.iter("fcttyp")
+                for level in function_type.iter("ebene")
+                if (text := " ".join((level.text or "").split()))
+            },
+            "datapoints": {} if datapoints is None else {
+                f"{group.get('id')}/{member.get('id')}": text
+                for group in datapoints.iter("gn")
+                for member in group.iter("mn")
+                if (text := " ".join((member.text or "").split()))
+            },
+            "enums": await self.fetch_enum_texts(language),
+        }

@@ -1,11 +1,12 @@
 """The HTTP client against a heater asking for digest authentication (RFC 7616, MD5, qop=auth)."""
 
+import copy
 import hashlib
 import re
 import socket
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp import web
@@ -37,6 +38,8 @@ class Heater:
     error_texts: dict[str, str] = field(default_factory=dict)
     # The enum texts' files it serves, by language
     enum_texts: dict[str, str] = field(default_factory=dict)
+    # Its other text files, by file name ("VarIdentTexte_de")
+    texts: dict[str, str] = field(default_factory=dict)
 
 
 def authorized(request: web.Request) -> bool:
@@ -76,10 +79,15 @@ async def heater(socket_enabled: None) -> AsyncIterator[Heater]:
         text = state.enum_texts.get(request.match_info["language"])
         return web.Response(status=404) if text is None else web.Response(text=text, content_type="text/xml")
 
+    async def other_texts(request: web.Request) -> web.StreamResponse:
+        text = state.texts.get(request.match_info["file"])
+        return web.Response(status=404) if text is None else web.Response(text=text, content_type="text/xml")
+
     app = web.Application()
     app.router.add_route("*", "/api/1.0/{path:.*}", handle)
     app.router.add_get("/res/xml/ErrorTexte_{language}.xml", error_texts)
     app.router.add_get("/res/xml/AufzaehlTexte_{language}.xml", enum_texts)
+    app.router.add_get("/res/xml/{file}.xml", other_texts)
     server = TestServer(app, host="127.0.0.1")
     await server.start_server()
     state.host = f"127.0.0.1:{server.port}"
@@ -414,3 +422,60 @@ async def test_a_listing_that_fails_keeps_the_modules_unless_the_heater_fails(
     else:
         await client.fetch_all()
         assert client.devices is devices
+
+
+# A heating circuit's module functions, as a BioWIN 2 answered them on 2026-11-01: the
+# circuit's type (7/76) and its hot water's (5/76), and a reading the heater has no name for
+SCANNED = {
+    "/1": [{"nodeId": 15, "functions": [{"fctId": 0, "fctType": 14, "name": "Circuit"}]}],
+    "/1/15/0": [{"id": 103, "count": 2}, {"id": 0, "count": 1}],
+    "/1/15/0/103": [
+        {"OID": "/1/15/0/7/76/0", "name": "07-076", "value": "2"},
+        {"OID": "/1/15/0/5/76/0", "name": "05-076", "value": "0"},
+    ],
+    "/1/15/0/0": [{"OID": "/1/15/0/0/45/0", "name": "00-045", "value": "612.3"}],
+}
+# The heater's names for them, in its files' format on 2026-11-01
+SCAN_TEXTS = {
+    "EbenenTexte_de": '<EbenenTexte lang="de"><fcttyp id="14"><ebene id="103">Modulfunktionen</ebene></fcttyp></EbenenTexte>',
+    "VarIdentTexte_de": (
+        '<VarIdentTexte lang="de"><gn id="5"><mn id="76">WW-Kreis</mn></gn>'
+        '<gn id="7"><mn id="76">Heizkreis</mn></gn></VarIdentTexte>'
+    ),
+}
+SCAN_ENUM_TEXTS = (
+    '<AufzaehlTexte lang="de"><gn id="5"><mn id="76"><enum id="0">inaktiv</enum></mn></gn>'
+    '<gn id="7"><mn id="76"><enum id="2">Mischer Fussboden</enum></mn></gn></AufzaehlTexte>'
+)
+
+
+async def test_the_scan_names_the_levels_and_readings_with_the_heaters_texts(heater: Heater) -> None:
+    heater.texts = SCAN_TEXTS
+    heater.enum_texts = {"de": SCAN_ENUM_TEXTS}
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    with patch.object(client, "fetch", AsyncMock(side_effect=lambda url: copy.deepcopy(SCANNED[url]))):
+        scan = await client.scan("de")
+    await client.close()
+
+    [module_functions, unnamed_level] = scan["devices"][0]["functions"][0]["sensors"]
+    assert module_functions["label"] == "Modulfunktionen"
+    [circuit, hot_water] = module_functions["readings"]
+    assert (circuit["label"], circuit["value_label"]) == ("Heizkreis", "Mischer Fussboden")
+    assert (hot_water["label"], hot_water["value_label"]) == ("WW-Kreis", "inaktiv")
+    # What the heater does not name stays as the API gives it
+    assert "label" not in unnamed_level
+    assert unnamed_level["readings"] == SCANNED["/1/15/0/0"]
+
+
+async def test_without_the_heaters_texts_the_scan_is_unlabelled(heater: Heater) -> None:
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    with patch.object(client, "fetch", AsyncMock(side_effect=lambda url: copy.deepcopy(SCANNED[url]))):
+        scan = await client.scan("de")
+    await client.close()
+
+    [module_functions, _] = scan["devices"][0]["functions"][0]["sensors"]
+    assert "label" not in module_functions
+    assert module_functions["readings"] == SCANNED["/1/15/0/103"]
+    assert scan["errors"] == {}
