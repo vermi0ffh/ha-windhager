@@ -62,6 +62,12 @@
     "binary_sensor": {
       "heater_problem": {
         "name": "Heater problem"
+      },
+      "circuit_pump": {
+        "name": "Circuit pump"
+      },
+      "hot_water_charging_pump": {
+        "name": "Hot water charging pump"
       }
     },
     "sensor": {
@@ -160,6 +166,46 @@
             "name": "Code"
           }
         }
+      },
+      "flow_temperature": {
+        "name": "Flow temperature"
+      },
+      "flow_target_temperature": {
+        "name": "Flow target temperature"
+      },
+      "boiler_temperature": {
+        "name": "Boiler temperature"
+      },
+      "boiler_target_temperature": {
+        "name": "Boiler target temperature"
+      },
+      "circuit_operating_mode": {
+        "name": "Operating mode",
+        "state": {
+          "0": "Standby",
+          "1": "Heating",
+          "2": "Setback",
+          "3": "Hot water charging",
+          "4": "ECO / Party",
+          "5": "Holiday program",
+          "6": "Screed drying",
+          "7": "Frost protection",
+          "8": "Standby (heating limit)",
+          "9": "Manual mode",
+          "10": "Test mode",
+          "11": "Chimney sweep mode",
+          "12": "Burner off",
+          "13": "Burner on",
+          "14": "Automatic boiler",
+          "15": "Solid fuel boiler",
+          "16": "Buffer"
+        }
+      },
+      "hot_water_temperature": {
+        "name": "Hot water temperature"
+      },
+      "hot_water_target_temperature": {
+        "name": "Hot water target temperature"
       }
     },
     "climate": {

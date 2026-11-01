@@ -62,6 +62,12 @@
     "binary_sensor": {
       "heater_problem": {
         "name": "Kesselproblem"
+      },
+      "circuit_pump": {
+        "name": "Heizkreispumpe"
+      },
+      "hot_water_charging_pump": {
+        "name": "Warmwasser-Ladepumpe"
       }
     },
     "sensor": {
@@ -160,6 +166,46 @@
             "name": "Code"
           }
         }
+      },
+      "flow_temperature": {
+        "name": "Vorlauftemperatur"
+      },
+      "flow_target_temperature": {
+        "name": "Vorlauftemperatur Sollwert"
+      },
+      "boiler_temperature": {
+        "name": "Kesseltemperatur"
+      },
+      "boiler_target_temperature": {
+        "name": "Kesseltemperatur Soll"
+      },
+      "circuit_operating_mode": {
+        "name": "Betriebsart",
+        "state": {
+          "0": "Standby",
+          "1": "Heizbetrieb",
+          "2": "Absenkbetrieb",
+          "3": "WW-Ladung",
+          "4": "ECO / Party",
+          "5": "Ferienprogramm",
+          "6": "Estrich",
+          "7": "Frostschutz",
+          "8": "Standby Heizgrenze",
+          "9": "Handbetrieb",
+          "10": "Testbetrieb",
+          "11": "Kaminkehrerbetrieb",
+          "12": "Brenner Aus",
+          "13": "Brenner Ein",
+          "14": "Automatik-Kessel",
+          "15": "FB-Kessel",
+          "16": "Pufferspeicher"
+        }
+      },
+      "hot_water_temperature": {
+        "name": "Warmwassertemperatur"
+      },
+      "hot_water_target_temperature": {
+        "name": "Warmwassertemperatur Sollwert"
       }
     },
     "climate": {
