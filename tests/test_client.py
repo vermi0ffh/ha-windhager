@@ -1,11 +1,12 @@
 """The HTTP client against a heater asking for digest authentication (RFC 7616, MD5, qop=auth)."""
 
+import asyncio
 import hashlib
 import re
 import socket
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp import web
@@ -35,6 +36,8 @@ class Heater:
     datapoints: list[bytes] = field(default_factory=list)
     # The error texts' files it serves, by language
     error_texts: dict[str, str] = field(default_factory=dict)
+    # The enum texts' files it serves, by language
+    enum_texts: dict[str, str] = field(default_factory=dict)
 
 
 def authorized(request: web.Request) -> bool:
@@ -70,9 +73,14 @@ async def heater(socket_enabled: None) -> AsyncIterator[Heater]:
         text = state.error_texts.get(request.match_info["language"])
         return web.Response(status=404) if text is None else web.Response(text=text, content_type="text/xml")
 
+    async def enum_texts(request: web.Request) -> web.StreamResponse:
+        text = state.enum_texts.get(request.match_info["language"])
+        return web.Response(status=404) if text is None else web.Response(text=text, content_type="text/xml")
+
     app = web.Application()
     app.router.add_route("*", "/api/1.0/{path:.*}", handle)
     app.router.add_get("/res/xml/ErrorTexte_{language}.xml", error_texts)
+    app.router.add_get("/res/xml/AufzaehlTexte_{language}.xml", enum_texts)
     server = TestServer(app, host="127.0.0.1")
     await server.start_server()
     state.host = f"127.0.0.1:{server.port}"
@@ -280,6 +288,59 @@ async def test_without_the_instance_language_the_error_texts_fall_back_to_englis
     assert texts == expected
 
 
+def enum_texts(lang: str, status_3: str) -> str:
+    """An enum texts' file as the InfoWIN Touch serves it (its format on 2026-11-01)."""
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        "<!-- Created by GenerateEnumTextsInXML.php -->\n"
+        f'<AufzaehlTexte lang="{lang}">\n'
+        '\t<gn id="2">\n'
+        f'\t\t<mn id="1">\n\t\t\t<enum id="3">{status_3}</enum>\n\t\t\t<enum id="16">Schichtladung</enum>\n\t\t</mn>\n'
+        '\t\t<mn id="59">\n\t\t\t<enum id="5">Ein</enum>\n\t\t</mn>\n'
+        "\t</gn>\n"
+        "</AufzaehlTexte>\n"
+    )
+
+
+async def test_the_enum_texts_are_the_heaters_own_by_group_and_member(heater: Heater) -> None:
+    heater.enum_texts = {"fr": enum_texts("fr", "Veille"), "de": enum_texts("de", "Standby")}
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    texts = await client.fetch_enum_texts("fr")
+    await client.close()
+
+    assert texts == {"2/1": {"3": "Veille", "16": "Schichtladung"}, "2/59": {"5": "Ein"}}
+
+
+@pytest.mark.parametrize(
+    ("served", "expected"),
+    [
+        ({"en": enum_texts("en", "Stand-by"), "de": enum_texts("de", "Standby")}, "Stand-by"),
+        ({"de": enum_texts("de", "Standby")}, "Standby"),
+    ],
+)
+async def test_without_the_instance_language_the_enum_texts_fall_back_to_english_then_german(
+    heater: Heater, served: dict[str, str], expected: str
+) -> None:
+    heater.enum_texts = served
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    texts = await client.fetch_enum_texts("es")
+    await client.close()
+
+    assert texts["2/1"]["3"] == expected
+
+
+async def test_without_a_readable_file_there_are_no_enum_texts(heater: Heater) -> None:
+    heater.enum_texts = {"en": "not xml <"}
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    texts = await client.fetch_enum_texts("en")
+    await client.close()
+
+    assert texts == {}
+
+
 async def test_a_heater_that_does_not_answer_has_no_error_texts(socket_enabled: None) -> None:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
@@ -290,6 +351,35 @@ async def test_a_heater_that_does_not_answer_has_no_error_texts(socket_enabled: 
     await client.close()
 
     assert texts == {}
+
+
+async def test_a_heater_that_accepts_but_does_not_answer_is_not_asked_the_next_languages(
+    socket_enabled: None,
+) -> None:
+    # It holds every request open: without an answer, asking it in English, then German,
+    # would hold the setup for the timeout three times per file
+    requested: list[str] = []
+    never = asyncio.Event()
+
+    async def silent(request: web.Request) -> web.StreamResponse:
+        requested.append(request.path)
+        await never.wait()
+        return web.Response(status=404)
+
+    app = web.Application()
+    app.router.add_get("/res/xml/{file}.xml", silent)
+    server = TestServer(app, host="127.0.0.1")
+    await server.start_server()
+    client = WindhagerHttpClient(f"127.0.0.1:{server.port}", PASSWORD)
+
+    with patch("custom_components.windhager.client.TEXTS_TIMEOUT_S", 0.1):
+        texts = await client.fetch_error_texts("fr")
+    await client.close()
+    never.set()
+    await server.close()
+
+    assert texts == {}
+    assert requested == ["/res/xml/ErrorTexte_fr.xml"]
 
 
 async def polls_listing(modules: list[list[dict]], polls: int) -> tuple[WindhagerHttpClient, AsyncMock]:

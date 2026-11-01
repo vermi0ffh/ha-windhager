@@ -68,6 +68,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: WindhagerConfigEntry) ->
     entry.runtime_data = coordinator
     # One request at setup, in the instance's language: the error sensor names the code with it
     coordinator.error_texts = await client.fetch_error_texts(hass.config.language)
+    # And one more (about 10 kB): the enum sensors take the codes the heater names, with its text
+    coordinator.enum_texts = await client.fetch_enum_texts(hass.config.language)
     _async_set_heater_id(hass, entry, coordinator.data.get("heater_id"))
     # Before the platforms, so that they find their entities and devices under the new ids
     await _async_migrate_unique_ids(hass, entry, coordinator.data.get("heater_id"))

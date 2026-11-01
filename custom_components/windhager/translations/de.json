@@ -119,6 +119,11 @@
           "15": "Vorwärmung läuft",
           "16": "Schichtladung",
           "17": "Ausbrand"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
         }
       },
       "operating_mode": {
@@ -136,6 +141,11 @@
           "9": "Kaminkehrerfunktion",
           "10": "Aktorentest",
           "11": "Installationsvorgang aktiv"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
         }
       },
       "pellet_consumption": {

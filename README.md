@@ -125,6 +125,10 @@ The heater has these entities:
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
 | Heater problem | On while the heater reports an error. |
 
+The *Heater status* and *Operating mode* also carry the heater's own text for their code in their `heater_text`
+attribute, in Home Assistant's language when the heater has it, else in English or German. A code the integration
+does not know yet, from a newer firmware, is still a state, with its text in that attribute.
+
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
 until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.
@@ -247,8 +251,9 @@ are those of an English installation: find yours in each entity's settings.
   supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show.
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
-- A heater status the integration does not know (beyond code 17) shows as unknown, and so does an operating mode
-  beyond code 11.
+- A heater status the integration does not know (beyond code 17), or an operating mode beyond code 11, shows as its
+  code with the heater's text in `heater_text`. It shows as unknown only when the heater does not name the code, or
+  its texts could not be read.
 - The heater reports one error at a time, the current one: an earlier error, or a second one, does not show.
 
 ## Troubleshooting

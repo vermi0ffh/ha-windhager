@@ -119,6 +119,11 @@
           "15": "Préchauffage en cours",
           "16": "Charge en couche",
           "17": "Extinction"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
         }
       },
       "operating_mode": {
@@ -136,6 +141,11 @@
           "9": "Fonction ramonage",
           "10": "Test des actionneurs",
           "11": "Installation en cours"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
         }
       },
       "pellet_consumption": {
