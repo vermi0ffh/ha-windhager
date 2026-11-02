@@ -44,11 +44,12 @@ CIRCUIT_DATAPOINTS = (
 # 0.33 s on 2026-11-01): a circuit without hot water answers its charging pump with 0, a
 # value, so the datapoints alone cannot tell (a BioWIN 2 with three UMUMLZ, 2026-11-01)
 HOT_WATER_CIRCUIT = "/5/76/0"
-# The error texts' file: about 7 kB, once at setup
-ERROR_TEXTS_TIMEOUT_S = 20
-# The languages of the InfoWIN Touch's error texts tried after the instance's: English, then
+# A text file of the InfoWIN Touch: about 7 kB for the error texts and 10 kB for the enum
+# texts, each read once at setup
+TEXTS_TIMEOUT_S = 20
+# The languages of the InfoWIN Touch's text files tried after the instance's: English, then
 # German, the manufacturer's
-ERROR_TEXTS_FALLBACK_LANGUAGES = ("en", "de")
+TEXTS_FALLBACK_LANGUAGES = ("en", "de")
 
 
 def parse_hot_water_circuit(value: object) -> bool:
@@ -97,6 +98,46 @@ def heater_id(json_devices: list[dict]) -> str | None:
         ):
             return device["neuronId"]
     return modules[0]["neuronId"] if modules else None
+
+
+def texts_by_ids(root: ET.Element | None, parent: str, child: str) -> dict[str, str]:
+    """A text file's texts by "<parent id>/<child id>", their whitespace normalised.
+
+    The InfoWIN Touch's EbenenTexte (fcttyp/ebene) and VarIdentTexte (gn/mn) share this
+    shape. Empty without the file; an empty text is left out.
+    """
+    if root is None:
+        return {}
+    return {
+        f"{parent_tag.get('id')}/{child_tag.get('id')}": text
+        for parent_tag in root.iter(parent)
+        for child_tag in parent_tag.iter(child)
+        if (text := " ".join((child_tag.text or "").split()))
+    }
+
+
+def label_level(texts: dict[str, dict], function_type: int, level: dict) -> None:
+    """A scanned level and its readings, labelled with the heater's names (_scan_texts).
+
+    A level is named by its function type and id ("14/103": "Modulfunktionen"), a reading
+    by the group and member of its OID (/subnet/node/function/group/member/instance:
+    "7/76": "Heizkreis"), and an enumerated value by those and its code ("2": "Mischer
+    Fussboden"). Names the heater does not have are left out.
+    """
+    if label := texts["levels"].get(f"{function_type}/{level.get('id')}"):
+        level["label"] = label
+    readings = level.get("readings")
+    for reading in readings if isinstance(readings, list) else []:
+        try:
+            key = "/".join(str(reading.get("OID", "")).strip("/").split("/")[3:5])
+            if label := texts["datapoints"].get(key):
+                reading["label"] = label
+            if value_label := texts["enums"].get(key, {}).get(str(reading.get("value"))):
+                reading["value_label"] = value_label
+        except AttributeError:
+            # Not a datapoint object: left as the API gave it. The labels are cosmetic, and
+            # one odd answer must not end the scan, as the scan promises
+            continue
 
 
 class WindhagerHttpClient:
@@ -185,29 +226,64 @@ class WindhagerHttpClient:
         integration does not keep a copy of them. Empty if no file could be read: the
         error then shows as its code.
         """
+        root = await self._fetch_texts("ErrorTexte", language)
+        if root is None:
+            return {}
+        return {
+            error.get("code"): " ".join(error.get("text", "").split())
+            for error in root.iter("error")
+            if error.get("code")
+        }
+
+    async def fetch_enum_texts(self, language: str) -> dict[str, dict[str, str]]:
+        """The heater's own texts of its enumerated values, by "group/member", then by code.
+
+        The InfoWIN Touch's web page names a datapoint's codes from its file
+        (res/xml/AufzaehlTexte_<language>.xml, 2026-11-01: 50 enumerations, among them the
+        heater status 2/1 and the operating mode 2/59), which follows its firmware. Empty
+        if no file could be read: the enum sensors then know only the translated codes.
+        """
+        root = await self._fetch_texts("AufzaehlTexte", language)
+        if root is None:
+            return {}
+        return {
+            f"{group.get('id')}/{member.get('id')}": {
+                enum.get("id"): " ".join((enum.text or "").split())
+                for enum in member.iter("enum")
+                if enum.get("id")
+            }
+            for group in root.iter("gn")
+            for member in group.iter("mn")
+        }
+
+    async def _fetch_texts(self, name: str, language: str) -> ET.Element | None:
+        """One of the InfoWIN Touch's text files (res/xml/<name>_<language>.xml), parsed.
+
+        In `language` if the heater has it, else in English, then German. None if no file
+        could be read. A heater that does not answer is not asked again in the next
+        language: the texts are optional, and a silent heater would otherwise hold the setup
+        for TEXTS_TIMEOUT_S per language.
+        """
         languages = [language.split("-")[0].lower()]
-        languages += [other for other in ERROR_TEXTS_FALLBACK_LANGUAGES if other not in languages]
+        languages += [other for other in TEXTS_FALLBACK_LANGUAGES if other not in languages]
         await self._ensure_session()
         for lang in languages:
-            url = f"http://{self.host}/res/xml/ErrorTexte_{lang}.xml"
+            url = f"http://{self.host}/res/xml/{name}_{lang}.xml"
             try:
                 async with (
-                    asyncio.timeout(ERROR_TEXTS_TIMEOUT_S),
+                    asyncio.timeout(TEXTS_TIMEOUT_S),
                     self._session.get(url) as ret,
                 ):
                     if not ret.ok:
-                        _LOGGER.debug("No error texts at %s: %s", url, ret.status)
+                        _LOGGER.debug("No texts at %s: %s", url, ret.status)
                         continue
-                    root = ET.fromstring(await ret.text())
-            except (aiohttp.ClientError, TimeoutError, ET.ParseError) as err:
-                _LOGGER.debug("Cannot read the error texts at %s: %s", url, err)
-                continue
-            return {
-                error.get("code"): " ".join(error.get("text", "").split())
-                for error in root.iter("error")
-                if error.get("code")
-            }
-        return {}
+                    return ET.fromstring(await ret.text())
+            except TimeoutError:
+                _LOGGER.debug("No answer for the texts at %s", url)
+                return None
+            except (aiohttp.ClientError, ET.ParseError) as err:
+                _LOGGER.debug("Cannot read the texts at %s: %s", url, err)
+        return None
 
     slugify = staticmethod(slugify)
 
@@ -844,14 +920,19 @@ class WindhagerHttpClient:
                 _LOGGER.debug("Error while fetching OID %s: %s", oid, str(e))
         return values
 
-    async def scan(self):
+    async def scan(self, language: str | None = None):
         """Everything the API exposes: each device, its functions, their sensors and readings.
 
         For the diagnostics: what a heater offers beyond the entities created. A request
         that fails is recorded under "errors" and the scan goes on, so that one
         unreadable function does not hide the rest.
+
+        With a `language`, the levels and readings also get the heater's own names for
+        them in a "label", and an enumerated reading the text of its value in a
+        "value_label" (_scan_texts): the scan then tells what "00-045" is.
         """
         errors = {}
+        texts = await self._scan_texts(language) if language else None
 
         async def fetch_or_record(url):
             try:
@@ -872,5 +953,22 @@ class WindhagerHttpClient:
                 function["sensors"] = await fetch_or_record(function_url)
                 for sensor in function["sensors"]:
                     sensor["readings"] = await fetch_or_record(f"{function_url}/{sensor['id']}")
+                    if texts:
+                        label_level(texts, function["fctType"], sensor)
 
         return {"devices": devices, "errors": errors}
+
+    async def _scan_texts(self, language: str) -> dict[str, dict]:
+        """The heater's own names of its levels and datapoints, and its enums' texts.
+
+        The InfoWIN Touch's web page names them from its files, which follow its firmware
+        (2026-11-01, on a BioWIN 2: res/xml/EbenenTexte_<language>.xml, about 4 kB, the
+        levels of each function type; VarIdentTexte, about 90 kB, 1858 names by
+        group/member; AufzaehlTexte, about 10 kB). Read only for the diagnostics' scan: they
+        are not kept. A file that cannot be read leaves its names out.
+        """
+        return {
+            "levels": texts_by_ids(await self._fetch_texts("EbenenTexte", language), "fcttyp", "ebene"),
+            "datapoints": texts_by_ids(await self._fetch_texts("VarIdentTexte", language), "gn", "mn"),
+            "enums": await self.fetch_enum_texts(language),
+        }
