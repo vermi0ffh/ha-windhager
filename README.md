@@ -141,8 +141,8 @@ The heater has these entities:
 | Heater problem | On while the heater reports an error. |
 
 The *Heater status* and *Operating mode*, and a circuit's *Operating mode*, also carry the heater's own text for their
-code in their `heater_text` attribute, in Home Assistant's language when the heater has it, else in English or German. A code the integration
-does not know yet, from a newer firmware, is still a state, with its text in that attribute.
+code in their `heater_text` attribute, in Home Assistant's language when the heater has it, else in English or German.
+A code the integration does not know yet, from a newer firmware, is still a state, with its text in that attribute.
 
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
 until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
