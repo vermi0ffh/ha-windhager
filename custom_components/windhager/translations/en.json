@@ -281,6 +281,11 @@
         "state": {
           "3": "Standby",
           "4": "Heating"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Heater's text"
+          }
         }
       },
       "outdoor_temperature_control": {
@@ -293,6 +298,11 @@
           "2": "State 2",
           "3": "State 3",
           "4": "State 4"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Heater's text"
+          }
         }
       }
     },

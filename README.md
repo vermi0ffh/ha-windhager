@@ -146,9 +146,10 @@ The heater has these entities:
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
 | Heater problem | On while the heater reports an error. |
 
-The *Heater status* and *Operating mode*, and a circuit's *Operating mode*, also carry the heater's own text for their
-code in their `heater_text` attribute, in Home Assistant's language when the heater has it, else in English or German. A code the integration
-does not know yet, from a newer firmware, is still a state, with its text in that attribute.
+The *Heater status* and *Operating mode*, a circuit's *Operating mode*, the heat pump's *Operating phase* and the
+hybrid manager's *SG Ready state* also carry the heater's own text for their code in their `heater_text` attribute, in
+Home Assistant's language when the heater has it, else in English or German. A code the integration does not know yet,
+from a newer firmware, is still a state, with its text in that attribute.
 
 A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, with these entities:
 

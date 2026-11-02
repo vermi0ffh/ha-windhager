@@ -281,6 +281,11 @@
         "state": {
           "3": "Veille",
           "4": "Chauffage"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
         }
       },
       "outdoor_temperature_control": {
@@ -293,6 +298,11 @@
           "2": "État 2",
           "3": "État 3",
           "4": "État 4"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
         }
       }
     },

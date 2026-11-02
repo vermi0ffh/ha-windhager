@@ -281,6 +281,11 @@
         "state": {
           "3": "Standby",
           "4": "Heizen"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
         }
       },
       "outdoor_temperature_control": {
@@ -293,6 +298,11 @@
           "2": "Zustand 2",
           "3": "Zustand 3",
           "4": "Zustand 4"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
         }
       }
     },
