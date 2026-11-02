@@ -23,6 +23,7 @@ climates for the heating circuits; some of its users drive their heating with it
 | `custom_components/windhager/quality_scale.yaml` | Each rule of the quality scale: done, exempt (with the reason) or to do |
 | `custom_components/windhager/strings.json`, `translations/` | The texts, in English, French and German |
 | `tests/` | pytest-homeassistant-custom-component; `conftest.py` mocks the client |
+| `docs/operating-levels.md` | The heater's operating levels (operation, operator, service) mapped to the API's levels, per function type (rule 16) |
 | `hacs.json` | HACS metadata, among them the minimum Home Assistant version |
 
 ## Commands
@@ -97,3 +98,17 @@ reason.
 15. **Agents**: commit only when asked, push only when asked, never change the git configuration, never rewrite
     published history, no tool attribution in commits or pull requests (no `Co-Authored-By:` for the agent, no
     "Generated with …", no session link). A person who co-wrote a change is credited with `Co-authored-by:`.
+
+### What Home Assistant may change
+
+16. **Home Assistant writes only what the operation level of the heater's screen offers**: the quick buttons of the
+    InfoWIN Touch's detail view, such as the operating mode or Eco / Comfort. The operator level, the service level
+    and the actuator test are never written, and a setting whose level is unsure counts as service level. The one
+    exception is the comfort correction (operator level), kept as the `set_current_temp_compensation` action (#92).
+    Reading follows what the heater shows to everyone: a value it shows in its info view ("Werte") or its app is a
+    sensor; another operator value is at most a sensor, another service value at most a diagnostic sensor,
+    disabled by default. A service value may also be read to configure the integration (whether a circuit has hot
+    water, for example) without becoming an entity. The level is the one the heater's manual gives the setting;
+    [docs/operating-levels.md](docs/operating-levels.md) maps the API's levels to the heater's, per function type as
+    they are checked. Rules 4 and 5 still apply to every write; a write that can start the burner (a one-time hot
+    water charge, for example) says so in its risk.
