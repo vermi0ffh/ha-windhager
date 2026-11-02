@@ -209,6 +209,11 @@
           "14": "Automatic boiler",
           "15": "Solid fuel boiler",
           "16": "Buffer"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Heater's text"
+          }
         }
       },
       "hot_water_temperature": {

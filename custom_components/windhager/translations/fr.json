@@ -209,6 +209,11 @@
           "14": "Chaudière automatique",
           "15": "CD-Chaudière",
           "16": "Tampon réserve"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
         }
       },
       "hot_water_temperature": {

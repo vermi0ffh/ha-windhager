@@ -209,6 +209,11 @@
           "14": "Automatik-Kessel",
           "15": "FB-Kessel",
           "16": "Pufferspeicher"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
         }
       },
       "hot_water_temperature": {
