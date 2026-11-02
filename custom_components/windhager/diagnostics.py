@@ -60,7 +60,7 @@ async def async_get_config_entry_diagnostics(
     if coordinator.api_scan is None:
         coordinator.api_scan = ApiScan(started_at=dt_util.utcnow())
         entry.async_create_background_task(
-            hass, _async_scan(entry, coordinator.api_scan), "windhager API scan"
+            hass, _async_scan(entry, coordinator.api_scan, hass.config.language), "windhager API scan"
         )
 
     coordinator_data = coordinator.data or {}
@@ -100,12 +100,14 @@ def _replace_chip_ids(value: Any, placeholders: dict[str, str]) -> Any:
     return value
 
 
-async def _async_scan(entry: WindhagerConfigEntry, scan: ApiScan) -> None:
+async def _async_scan(entry: WindhagerConfigEntry, scan: ApiScan, language: str) -> None:
     # A client of its own: the scan's many requests do not share the coordinator's
     # session and digest authentication state
     client = WindhagerHttpClient(entry.data[CONF_HOST], entry.data[CONF_PASSWORD])
     try:
-        scan.result = await client.scan()
+        # Labelled with the heater's names in the instance's language: a report from another
+        # model then says what its datapoints are (#89)
+        scan.result = await client.scan(language)
     # The scan records its failed requests; anything else ends it, still reported
     except Exception as err:
         scan.result = {"error": repr(err)}

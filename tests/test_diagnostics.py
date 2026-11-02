@@ -64,7 +64,7 @@ async def test_the_first_download_starts_the_scan_the_next_one_holds_it(
     # The scan lasts until the first download is served, as a real one (about 100 s on 2026-10-28)
     first_served = asyncio.Event()
 
-    async def scan() -> dict:
+    async def scan(language: str | None = None) -> dict:
         await first_served.wait()
         return {"devices": [{"nodeId": 15}], "errors": {}}
 
@@ -189,3 +189,21 @@ async def test_a_scan_that_fails_is_reported_done_with_its_error(
     assert result["scan"]["status"] == "done"
     assert result["scan"]["error"] == "ValueError('unexpected answer')"
     scan_client.close.assert_awaited_once()
+
+
+async def test_the_scan_is_labelled_in_the_instance_language(
+    hass: HomeAssistant, hass_client: ClientSessionGenerator, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    hass.config.language = "fr"
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch.object(diagnostics, "WindhagerHttpClient") as scan_client_class:
+        scan_client = scan_client_class.return_value
+        scan_client.scan = AsyncMock(return_value={"devices": [], "errors": {}})
+        scan_client.close = AsyncMock()
+        await get_diagnostics_for_config_entry(hass, hass_client, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+    # The heater's texts are read by the scan, at the download: not at setup
+    scan_client.scan.assert_awaited_once_with("fr")
