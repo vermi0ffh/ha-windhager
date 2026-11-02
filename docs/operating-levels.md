@@ -12,12 +12,18 @@ From Windhager's manual for operation via the InfoWIN Touch (Infinity PLUS, 11/2
 |-------|-------------------|-------------------|-------------------|
 | **Operation** (the detail view's quick buttons) | one tap | any user | may be written |
 | **Info level** | "Werte" | nobody: read only | sensors |
-| **Operator level** (Betreiberebene) | Settings → Operator level | "für alle zugänglich" (p. 20) | sensors only; one exception below |
-| **Service level** (Serviceebene) | operator level, then hold "OK" for 5 s | "nur durch geschultes Servicepersonal" (p. 52) | diagnostic sensors at most, disabled by default; never written |
+| **Operator level** (Betreiberebene) | Settings → Operator level | "für alle zugänglich" (p. 20) | never written (one exception below); sensors at most |
+| **Service level** (Serviceebene) | operator level, then hold "OK" for 5 s | "nur durch geschultes Servicepersonal" (p. 52) | never written; diagnostic sensors at most, disabled by default; may be read to configure the integration |
 | **Actuator test** (Aktorentest) | Settings | "nur dem geschulten Servicepersonal vorbehalten" | never written |
 
 The API does not protect these levels: almost every datapoint of the operator and service levels is writable
 (`writeProt: false`). The integration has to.
+
+**Writing and reading.** The cautious default guards the writes: a setting whose level is unsure counts as service
+level, so it is not written. Reading follows what the heater shows to everyone: a value it shows in its info view
+("Werte") or its app is a sensor, whichever API level it sits in. A service value may also be read only to configure
+the integration, without becoming an entity: #83 reads a circuit's `5/76` once at discovery, to know whether it has
+hot water.
 
 **The exception:** the comfort correction (`3/58`, operator level) stays writable through the
 `windhager.set_current_temp_compensation` action, which existed before this rule. It cannot be changed from an
@@ -37,7 +43,7 @@ menu's order; their names come from the heater's `EbenenTexte`, the datapoints' 
 | 100 | Ferienprogramm | `3/78` until date | operation (via Betriebswahl) |
 | 101 | Raumtemperatur-Sollwerte | `3/51` heating, `3/53` setback | operator |
 | 102 | Uhrzeit / Datum | `2/72`, `2/70` | read only |
-| 103 | Modulfunktionen | `7/76` heating circuit, `5/76` hot water circuit | service |
+| 103 | Modulfunktionen | `7/76` heating circuit, `5/76` hot water circuit | service (read to configure) |
 | 104 | Auslegungstemperaturen | `3/13`, `3/29`, `3/12`, `3/1` | service |
 | 105 | Raumtemperatureinfluss | `3/7` Kompensation, `3/30` | service |
 | 106 | Heizgrenzen | `7/8`, `7/2`, `3/21`, `3/2` | service |
@@ -52,13 +58,14 @@ menu's order; their names come from the heater's `EbenenTexte`, the datapoints' 
 | 120 | Heizkreis | `7/13`, `7/3` | service |
 | 121 | WW-Ladung | `5/0`, `5/1`, `5/3`, `5/80` | service |
 | 122 | (not named by the heater) | `1/20` circuit pump, `1/21` mixer, `1/66` charging pump, read only | info |
-| 126 | (not named by the heater) | `5/6` circulation pump, writable | unsure: counts as service |
+| 126 | (not named by the heater) | `5/6` circulation pump, writable | unsure: counts as service for writes |
 
 A level a module does not have is missing from its lookup: the hot water circuit of this heater has level 114, the
 heating circuits do not.
 
 ## Other function types
 
-Not mapped yet. The heater (type 9), a buffer (16), a heat pump or a hybrid manager have their own level ids: a
-datapoint of theirs counts as service level until its menu level is checked against the manual and a real heater,
-and added here.
+Not mapped yet. The heater (type 9), a buffer (16), a heat pump or a hybrid manager have their own level ids. Until
+a setting of theirs is checked against the manual and a real heater, and added here, it counts as service level and
+is not written. Their values the heater shows in its info view or its app are sensors all the same, as the heater's
+status, hopper level or pellet consumption already are.

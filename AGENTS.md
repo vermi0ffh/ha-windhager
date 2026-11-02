@@ -101,12 +101,14 @@ reason.
 
 ### What Home Assistant may change
 
-16. **Home Assistant changes only what a user changes on the heater's screen**: the operation level of the InfoWIN
-    Touch's own menu (the detail view's quick buttons, such as the operating mode or Eco / Comfort). A value of the
-    operator level is read at most, as a sensor; a value of the service level at most as a diagnostic sensor,
-    disabled by default; the service level and the actuator test are never written. The level is the one the
-    heater's manual gives the setting, and a setting whose level is unsure counts as service level.
+16. **Home Assistant writes only what the operation level of the heater's screen offers**: the quick buttons of the
+    InfoWIN Touch's detail view, such as the operating mode or Eco / Comfort. The operator level, the service level
+    and the actuator test are never written, and a setting whose level is unsure counts as service level. The one
+    exception is the comfort correction (operator level), kept as the `set_current_temp_compensation` action (#92).
+    Reading follows what the heater shows to everyone: a value it shows in its info view ("Werte") or its app is a
+    sensor; another operator value is at most a sensor, another service value at most a diagnostic sensor,
+    disabled by default. A service value may also be read to configure the integration (whether a circuit has hot
+    water, for example) without becoming an entity. The level is the one the heater's manual gives the setting;
     [docs/operating-levels.md](docs/operating-levels.md) maps the API's levels to the heater's, per function type as
-    they are checked. The one exception is the comfort correction (operator level), kept as the
-    `set_current_temp_compensation` action (#92). Rules 4 and 5 still apply to every write; a write that can start
-    the burner (a one-time hot water charge, for example) says so in its risk.
+    they are checked. Rules 4 and 5 still apply to every write; a write that can start the burner (a one-time hot
+    water charge, for example) says so in its risk.

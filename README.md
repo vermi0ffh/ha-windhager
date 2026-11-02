@@ -312,8 +312,8 @@ the diagnostics, and the device you are trying to integrate.
 
 If you want to contribute to this project, please feel free to fork the repository and submit a pull request,
 following the rules of [AGENTS.md](AGENTS.md) (for people and coding agents alike). Home Assistant only changes
-what a user can change on the heater's own screen; [docs/operating-levels.md](docs/operating-levels.md) says which
-settings that is. Please lint and format the code using [Ruff](https://docs.astral.sh/ruff/) as recommended by the [Home Assistant development guidelines](https://developers.home-assistant.io/docs/development_guidelines).
+what the operation level of the heater's own screen offers (its quick buttons), with one exception, the comfort
+correction; [docs/operating-levels.md](docs/operating-levels.md) says which settings that is. Please lint and format the code using [Ruff](https://docs.astral.sh/ruff/) as recommended by the [Home Assistant development guidelines](https://developers.home-assistant.io/docs/development_guidelines).
 
 The tests run against a pinned Home Assistant (Python 3.14):
 
