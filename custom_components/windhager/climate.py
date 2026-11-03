@@ -54,9 +54,9 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
         """Initialize the thermostat."""
         super().__init__(coordinator, device_info)
         self.client = self.coordinator.client
-        # The circuit's datapoints: its module's prefix, then its function (a module may hold
+        # The circuit's datapoints: its module's prefix, then its function's id (a module may hold
         # two circuits, as functions 0 and 1 of an UMUMLZ on 2026-10-31)
-        self._prefix = f"{device_info.get('prefix', '')}{device_info.get('function', '/0')}"
+        self._circuit_prefix = f"{device_info['prefix']}{device_info['fct_id']}"
         self._preset_modes = ["0", "1", "2", "3", "4", "5", "6", "7"]
         # Not named in the translations: the climate takes its circuit's name
         self._attr_translation_key = "windhager_climate"
@@ -105,7 +105,7 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
 
     def get_oid_value(self, path: str, default: str = "0") -> Optional[float]:
         """The value of the circuit's datapoint at `path` (group, member, instance)."""
-        return get_oid_value(self.coordinator, path, self._prefix, default)
+        return get_oid_value(self.coordinator, path, self._circuit_prefix, default)
 
     def raw_selected_mode(self) -> Optional[int]:
         """Get raw selected mode value."""
@@ -137,7 +137,7 @@ class WindhagerBaseThermostat(WindhagerEntity, ClimateEntity):
     async def _async_write(self, path: str, value: str) -> None:
         """Write a datapoint of the circuit; a failure is an error the user sees."""
         try:
-            await self.client.update(f"{self._prefix}{path}", value)
+            await self.client.update(f"{self._circuit_prefix}{path}", value)
         except InvalidAuth as err:
             # As when polling: Home Assistant asks the user for the new password
             self.coordinator.entry.async_start_reauth(self.hass)
