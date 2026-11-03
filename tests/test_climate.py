@@ -16,6 +16,7 @@ CIRCUIT = {
     "name": "Heating circuit",
     "type": "climate",
     "prefix": "/1/15/0",
+    "fct_id": "/0",
     "device_id": "circuit",
     "device_name": "Heating circuit",
 }
