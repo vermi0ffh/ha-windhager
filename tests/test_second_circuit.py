@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, call
 
+import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -28,12 +29,17 @@ MODULES = [
         "functions": [{"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN"}],
     },
 ]
-# Each circuit's room and target temperatures, as read on 2026-10-31
+# Each circuit's room and target temperatures, as read on 2026-10-31; their corrections and
+# remaining custom temperature times are made up, different to tell the circuits apart
 READINGS = {
     "/1/15/0/0/1/0": "23.1",
     "/1/15/0/1/1/0": "22.5",
+    "/1/15/0/3/58/0": "1.0",
+    "/1/15/0/2/10/0": "0",
     "/1/15/1/0/1/0": "22.0",
     "/1/15/1/1/1/0": "25.0",
+    "/1/15/1/3/58/0": "0.5",
+    "/1/15/1/2/10/0": "120",
 }
 
 
@@ -57,6 +63,15 @@ async def test_the_second_circuit_of_a_module_has_its_own_climate_reading_its_ow
     assert (first.attributes["current_temperature"], first.attributes["temperature"]) == (23.1, 22.5)
     assert (second.attributes["current_temperature"], second.attributes["temperature"]) == (22.0, 25.0)
     assert hass.states.get("sensor.radiatoren_current_temperature_real").state == "22.0"
+
+
+async def test_the_second_circuit_removes_its_own_correction_from_its_temperature(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up(hass, entry, client)
+
+    assert hass.states.get("climate.boiler_fbh").attributes["current_temperature"] == 22.1
+    assert hass.states.get("climate.radiatoren").attributes["current_temperature"] == 21.5
 
 
 async def test_the_second_circuit_is_a_device_of_its_own_on_the_same_module(
@@ -88,13 +103,29 @@ async def test_the_first_circuit_keeps_its_unique_ids_and_the_second_has_its_own
     assert entities.async_get("sensor.radiatoren_target_temperature").unique_id == f"{HEATER_ID}-1-15-1-1-1-0"
 
 
+@pytest.mark.parametrize(
+    ("domain", "action", "data", "writes"),
+    [
+        ("climate", "set_temperature", {"temperature": 21.5}, [("/3/4/0", "21.5"), ("/2/10/0", "400")]),
+        # Its custom temperature still runs (120): choosing a program ends it
+        ("climate", "set_preset_mode", {"preset_mode": "2"}, [("/3/50/0", "2"), ("/2/10/0", "0")]),
+        ("windhager", "set_current_temp_compensation", {"compensation": -1.5}, [("/3/58/0", "-1.5")]),
+    ],
+)
+@pytest.mark.parametrize("entity_id", ["climate.radiatoren", "climate.radiatoren_without_bias"])
 async def test_the_second_circuit_writes_its_own_datapoints(
-    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    client: MagicMock,
+    entity_id: str,
+    domain: str,
+    action: str,
+    data: dict,
+    writes: list[tuple[str, str]],
 ) -> None:
     await set_up(hass, entry, client)
 
-    await hass.services.async_call(
-        "climate", "set_temperature", {"entity_id": "climate.radiatoren", "temperature": 21.5}, blocking=True
-    )
+    await hass.services.async_call(domain, action, {"entity_id": entity_id, **data}, blocking=True)
 
-    assert client.update.await_args_list == [call("/1/15/1/3/4/0", "21.5"), call("/1/15/1/2/10/0", "400")]
+    # Never the first circuit's datapoints (/1/15/0/...): on a heater, that would change its setting
+    assert client.update.await_args_list == [call(f"/1/15/1{path}", value) for path, value in writes]
