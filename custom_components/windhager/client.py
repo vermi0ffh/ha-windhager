@@ -294,12 +294,9 @@ class WindhagerHttpClient:
                 # The module's first circuit keeps the ids and device it always had; another
                 # circuit of the module (RADIATOREN, function 1 of an UMUMLZ on 2026-10-31)
                 # is a device of its own, named after it
-                climate_id = f"{self.id_base}{device_id}" if index == 0 else f"{self.id_base}{device_id}{fct_id}"
-                circuit_device_id = (
-                    f"{self.id_base}{str(device['nodeId'])}"
-                    if index == 0
-                    else f"{self.id_base}{str(device['nodeId'])}{fct_id}"
-                )
+                circuit_suffix = "" if index == 0 else fct_id
+                climate_id = f"{self.id_base}{device_id}{circuit_suffix}"
+                circuit_device_id = f"{self.id_base}{str(device['nodeId'])}{circuit_suffix}"
 
                 # Climate control
                 self.devices.append(
@@ -308,7 +305,7 @@ class WindhagerHttpClient:
                         "name": function["name"],
                         "type": "climate",
                         "prefix": device_id,
-                        "function": fct_id,
+                        "fct_id": fct_id,
                         "oids": [
                             f"{fct_id}/0/1/0",
                             f"{fct_id}/1/1/0",
