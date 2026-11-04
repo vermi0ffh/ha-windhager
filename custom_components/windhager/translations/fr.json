@@ -1,7 +1,12 @@
 {
   "config": {
+    "flow_title": "{host}",
     "abort": {
-      "already_configured": "Dispositif déjà configuré"
+      "already_configured": "Dispositif déjà configuré",
+      "reauth_successful": "La réauthentification a réussi",
+      "reconfigure_successful": "La reconfiguration a réussi",
+      "wrong_heater": "Cette adresse répond avec une autre chaudière que celle de cette entrée",
+      "not_ipv4": "La chaudière n'a été trouvée qu'à une adresse IPv6 : ajoutez-la à la main avec son adresse IPv4 ou son nom d'hôte."
     },
     "error": {
       "cannot_connect": "Impossible de se connecter",
@@ -12,15 +17,89 @@
       "user": {
         "data": {
           "host": "Hôte",
-          "password": "Mot de passe",
-          "username": "Utilisateur"
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "host": "L'adresse de l'InfoWIN Touch de la chaudière sur votre réseau : son adresse IP, ou son nom d'hôte (mb6620 si votre box le résout).",
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Mot de passe refusé",
+        "description": "La chaudière à l'adresse {host} a refusé le mot de passe : saisissez son mot de passe InfoWIN actuel.",
+        "data": {
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer la chaudière",
+        "description": "Nouvelle adresse ou nouveau mot de passe pour cette chaudière : ses entités et leur historique sont conservés.",
+        "data": {
+          "host": "Hôte",
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "host": "L'adresse de l'InfoWIN Touch de la chaudière sur votre réseau : son adresse IP, ou son nom d'hôte (mb6620 si votre box le résout).",
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Une chaudière Windhager a été trouvée",
+        "description": "L'InfoWIN Touch à l'adresse {host} répond : saisissez son mot de passe pour ajouter la chaudière.",
+        "data": {
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "password": "Le mot de passe de l'accès web de l'InfoWIN Touch (l'intégration se connecte en tant que USER)."
         }
       }
     }
   },
   "entity": {
+    "binary_sensor": {
+      "heater_problem": {
+        "name": "Problème de la chaudière"
+      }
+    },
     "sensor": {
+      "current_temperature": {
+        "name": "Température actuelle"
+      },
+      "current_temperature_real": {
+        "name": "Température actuelle réelle"
+      },
+      "comfort_temperature_correction": {
+        "name": "Correction de la température de confort"
+      },
+      "current_temperature_correction": {
+        "name": "Correction de la température actuelle"
+      },
+      "target_temperature": {
+        "name": "Température de consigne"
+      },
+      "outside_temperature": {
+        "name": "Température extérieure"
+      },
+      "power_factor": {
+        "name": "Puissance"
+      },
+      "fumes_temperature": {
+        "name": "Température des fumées"
+      },
+      "heater_temperature": {
+        "name": "Température de la chaudière"
+      },
+      "combustion_chamber_temperature": {
+        "name": "Température de la chambre de combustion"
+      },
+      "hopper_level": {
+        "name": "Niveau de la trémie"
+      },
       "heater_status": {
+        "name": "État de la chaudière",
         "state": {
           "0": "Brûleur bloqué",
           "1": "Autotest",
@@ -38,7 +117,58 @@
           "13": "Allumage prêt",
           "14": "Annuler phase d'allumage",
           "15": "Préchauffage en cours",
+          "16": "Charge en couche",
           "17": "Extinction"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
+        }
+      },
+      "operating_mode": {
+        "name": "Mode de fonctionnement",
+        "state": {
+          "0": "Désactivée",
+          "1": "Désactivation",
+          "2": "Mode combustible solide / tampon",
+          "3": "Alimentation en pellets active",
+          "4": "Alimentation en pellets",
+          "5": "Marche",
+          "6": "Alimentation en pellets active",
+          "7": "Alimentation en pellets",
+          "8": "Mode manuel",
+          "9": "Fonction ramonage",
+          "10": "Test des actionneurs",
+          "11": "Installation en cours"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
+        }
+      },
+      "pellet_consumption": {
+        "name": "Consommation de granulés"
+      },
+      "total_pellet_consumption": {
+        "name": "Consommation totale de granulés"
+      },
+      "time_until_stage_1_cleaning": {
+        "name": "Durée de fonctionnement avant le nettoyage niveau 1"
+      },
+      "time_until_stage_2_cleaning": {
+        "name": "Durée de fonctionnement avant le nettoyage niveau 2"
+      },
+      "heater_error": {
+        "name": "Erreur de la chaudière",
+        "state": {
+          "none": "Aucune erreur"
+        },
+        "state_attributes": {
+          "code": {
+            "name": "Code"
+          }
         }
       }
     },
@@ -57,6 +187,55 @@
               "7": "Manuel"
             }
           }
+        }
+      },
+      "windhager_climate_without_bias": {
+        "name": "Sans biais",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Veille",
+              "1": "Programme chauffage 1",
+              "2": "Programme chauffage 2",
+              "3": "Programme chauffage 3",
+              "4": "Mode chauffage",
+              "5": "Mode réduit",
+              "6": "Vacances",
+              "7": "Manuel"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "write_auth_failed": {
+      "message": "La chaudière a refusé le mot de passe : rien n'a été écrit. Saisissez son mot de passe actuel dans la notification de réauthentification."
+    },
+    "write_refused": {
+      "message": "La chaudière a refusé la valeur (HTTP {status}) : rien n'a été écrit."
+    },
+    "write_cannot_connect": {
+      "message": "La chaudière n'a pas répondu : la valeur n'a peut-être pas été écrite."
+    },
+    "auth_failed": {
+      "message": "La chaudière à l'adresse {host} a refusé le mot de passe."
+    },
+    "timeout": {
+      "message": "La chaudière à l'adresse {host} n'a pas répondu en 20 secondes."
+    },
+    "cannot_connect": {
+      "message": "Impossible de lire la chaudière à l'adresse {host} : {error}"
+    }
+  },
+  "services": {
+    "set_current_temp_compensation": {
+      "name": "Définir la compensation de température",
+      "description": "Définit la correction de température de confort d'un circuit de chauffage : l'écart entre la température ambiante lue par la chaudière et celle affichée par le thermostat principal.",
+      "fields": {
+        "compensation": {
+          "name": "Compensation",
+          "description": "La correction en K, de -3,5 à 3,5."
         }
       }
     }

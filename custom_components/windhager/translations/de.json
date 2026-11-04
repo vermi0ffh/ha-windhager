@@ -1,7 +1,12 @@
 {
   "config": {
+    "flow_title": "{host}",
     "abort": {
-      "already_configured": "Das Gerät ist bereits eingerichtet"
+      "already_configured": "Das Gerät ist bereits eingerichtet",
+      "reauth_successful": "Die erneute Authentifizierung war erfolgreich",
+      "reconfigure_successful": "Die Neukonfiguration war erfolgreich",
+      "wrong_heater": "Unter dieser Adresse antwortet ein anderer Heizkessel als der dieses Eintrags",
+      "not_ipv4": "Der Kessel wurde nur unter einer IPv6-Adresse gefunden: fügen Sie ihn manuell mit seiner IPv4-Adresse oder seinem Hostnamen hinzu."
     },
     "error": {
       "cannot_connect": "Fehler beim Verbinden",
@@ -12,15 +17,89 @@
       "user": {
         "data": {
           "host": "Host (IP Adresse)",
-          "password": "Passwort",
-          "username": "Benutzername"
+          "password": "Passwort"
+        },
+        "data_description": {
+          "host": "Die Adresse des InfoWIN Touch des Kessels in Ihrem Netzwerk: seine IP-Adresse oder sein Hostname (mb6620, wenn Ihr Router ihn auflöst).",
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Passwort abgelehnt",
+        "description": "Der Heizkessel unter {host} hat das Passwort abgelehnt: Geben Sie sein aktuelles InfoWIN-Passwort ein.",
+        "data": {
+          "password": "Passwort"
+        },
+        "data_description": {
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
+        }
+      },
+      "reconfigure": {
+        "title": "Heizkessel neu konfigurieren",
+        "description": "Neue Adresse oder neues Passwort für diesen Heizkessel: seine Entitäten und ihr Verlauf bleiben erhalten.",
+        "data": {
+          "host": "Host",
+          "password": "Passwort"
+        },
+        "data_description": {
+          "host": "Die Adresse des InfoWIN Touch des Kessels in Ihrem Netzwerk: seine IP-Adresse oder sein Hostname (mb6620, wenn Ihr Router ihn auflöst).",
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Ein Windhager-Kessel wurde gefunden",
+        "description": "Das InfoWIN Touch unter {host} antwortet: geben Sie sein Passwort ein, um den Kessel hinzuzufügen.",
+        "data": {
+          "password": "Passwort"
+        },
+        "data_description": {
+          "password": "Das Passwort des Webzugangs des InfoWIN Touch (die Integration meldet sich als USER an)."
         }
       }
     }
   },
   "entity": {
+    "binary_sensor": {
+      "heater_problem": {
+        "name": "Kesselproblem"
+      }
+    },
     "sensor": {
+      "current_temperature": {
+        "name": "Aktuelle Temperatur"
+      },
+      "current_temperature_real": {
+        "name": "Aktuelle Temperatur real"
+      },
+      "comfort_temperature_correction": {
+        "name": "Korrektur Komforttemperatur"
+      },
+      "current_temperature_correction": {
+        "name": "Korrektur aktuelle Temperatur"
+      },
+      "target_temperature": {
+        "name": "Solltemperatur"
+      },
+      "outside_temperature": {
+        "name": "Außentemperatur"
+      },
+      "power_factor": {
+        "name": "Leistung"
+      },
+      "fumes_temperature": {
+        "name": "Abgastemperatur"
+      },
+      "heater_temperature": {
+        "name": "Kesseltemperatur"
+      },
+      "combustion_chamber_temperature": {
+        "name": "Brennkammertemperatur"
+      },
+      "hopper_level": {
+        "name": "Füllstand Vorratsbehälter"
+      },
       "heater_status": {
+        "name": "Kesselstatus",
         "state": {
           "0": "Brenner gesperrt",
           "1": "Selbsttest",
@@ -38,7 +117,58 @@
           "13": "Zündung bereit",
           "14": "Zündphase abgebrochen",
           "15": "Vorwärmung läuft",
+          "16": "Schichtladung",
           "17": "Ausbrand"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
+        }
+      },
+      "operating_mode": {
+        "name": "Betriebsart",
+        "state": {
+          "0": "Ausgeschaltet",
+          "1": "Abschaltvorgang",
+          "2": "Festbrennstoff-/Pufferbetrieb",
+          "3": "Pelletszuführung in Betrieb",
+          "4": "Pelletszuführung",
+          "5": "Ein",
+          "6": "Pelletszuführung in Betrieb",
+          "7": "Pelletszuführung",
+          "8": "Handbetrieb",
+          "9": "Kaminkehrerfunktion",
+          "10": "Aktorentest",
+          "11": "Installationsvorgang aktiv"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
+        }
+      },
+      "pellet_consumption": {
+        "name": "Pelletverbrauch"
+      },
+      "total_pellet_consumption": {
+        "name": "Gesamter Pelletverbrauch"
+      },
+      "time_until_stage_1_cleaning": {
+        "name": "Betriebszeit bis Reinigung Stufe 1"
+      },
+      "time_until_stage_2_cleaning": {
+        "name": "Betriebszeit bis Reinigung Stufe 2"
+      },
+      "heater_error": {
+        "name": "Kesselfehler",
+        "state": {
+          "none": "Kein Fehler"
+        },
+        "state_attributes": {
+          "code": {
+            "name": "Code"
+          }
         }
       }
     },
@@ -57,6 +187,55 @@
               "7": "Manuell"
             }
           }
+        }
+      },
+      "windhager_climate_without_bias": {
+        "name": "Ohne Korrektur",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heizprogramm 1",
+              "2": "Heizprogramm 2",
+              "3": "Heizprogramm 3",
+              "4": "Tagmodus",
+              "5": "Nachtmodus",
+              "6": "Urlaubsmodus",
+              "7": "Manuell"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "write_auth_failed": {
+      "message": "Der Kessel hat das Passwort abgelehnt: nichts wurde geschrieben. Geben Sie sein aktuelles Passwort in der Benachrichtigung zur erneuten Authentifizierung ein."
+    },
+    "write_refused": {
+      "message": "Der Kessel hat den Wert abgelehnt (HTTP {status}): nichts wurde geschrieben."
+    },
+    "write_cannot_connect": {
+      "message": "Der Kessel hat nicht geantwortet: der Wert wurde möglicherweise nicht geschrieben."
+    },
+    "auth_failed": {
+      "message": "Der Kessel unter {host} hat das Passwort abgelehnt."
+    },
+    "timeout": {
+      "message": "Der Kessel unter {host} hat nicht innerhalb von 20 Sekunden geantwortet."
+    },
+    "cannot_connect": {
+      "message": "Der Kessel unter {host} kann nicht gelesen werden: {error}"
+    }
+  },
+  "services": {
+    "set_current_temp_compensation": {
+      "name": "Temperaturkorrektur einstellen",
+      "description": "Stellt die Komforttemperatur-Korrektur eines Heizkreises ein: die Differenz zwischen der vom Kessel gemessenen Raumtemperatur und der vom Haupt-Thermostat angezeigten.",
+      "fields": {
+        "compensation": {
+          "name": "Korrektur",
+          "description": "Die Korrektur in K, von -3,5 bis 3,5."
         }
       }
     }

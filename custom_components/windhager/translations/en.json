@@ -1,7 +1,12 @@
 {
   "config": {
+    "flow_title": "{host}",
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Reconfiguration was successful",
+      "wrong_heater": "This address answers with another heater than this entry's",
+      "not_ipv4": "The heater was found at an IPv6 address only: add it by hand with its IPv4 address or host name."
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -12,15 +17,89 @@
       "user": {
         "data": {
           "host": "Host",
-          "password": "Password",
-          "username": "Username"
+          "password": "Password"
+        },
+        "data_description": {
+          "host": "The address of the heater's InfoWIN Touch on your network: its IP address, or its host name (mb6620 when your router resolves it).",
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Password refused",
+        "description": "The heater at {host} refused the password: enter its current InfoWIN password.",
+        "data": {
+          "password": "Password"
+        },
+        "data_description": {
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure the heater",
+        "description": "A new address or password for this heater: its entities and their history are kept.",
+        "data": {
+          "host": "Host",
+          "password": "Password"
+        },
+        "data_description": {
+          "host": "The address of the heater's InfoWIN Touch on your network: its IP address, or its host name (mb6620 when your router resolves it).",
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
+        }
+      },
+      "discovery_confirm": {
+        "title": "A Windhager heater was found",
+        "description": "The InfoWIN Touch at {host} answers: enter its password to add the heater.",
+        "data": {
+          "password": "Password"
+        },
+        "data_description": {
+          "password": "The password of the InfoWIN Touch's web access (the integration logs in as USER)."
         }
       }
     }
   },
   "entity": {
+    "binary_sensor": {
+      "heater_problem": {
+        "name": "Heater problem"
+      }
+    },
     "sensor": {
+      "current_temperature": {
+        "name": "Current temperature"
+      },
+      "current_temperature_real": {
+        "name": "Current temperature real"
+      },
+      "comfort_temperature_correction": {
+        "name": "Comfort temperature correction"
+      },
+      "current_temperature_correction": {
+        "name": "Current temperature correction"
+      },
+      "target_temperature": {
+        "name": "Target temperature"
+      },
+      "outside_temperature": {
+        "name": "Outside temperature"
+      },
+      "power_factor": {
+        "name": "Power factor"
+      },
+      "fumes_temperature": {
+        "name": "Fumes temperature"
+      },
+      "heater_temperature": {
+        "name": "Heater temperature"
+      },
+      "combustion_chamber_temperature": {
+        "name": "Combustion chamber temperature"
+      },
+      "hopper_level": {
+        "name": "Hopper level"
+      },
       "heater_status": {
+        "name": "Heater status",
         "state": {
           "0": "Burner blocked",
           "1": "Self-test",
@@ -38,7 +117,58 @@
           "13": "Ignition ready",
           "14": "Cancel ignition phase",
           "15": "Preheating in progress",
+          "16": "Stratified charging",
           "17": "Burnout"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Heater's text"
+          }
+        }
+      },
+      "operating_mode": {
+        "name": "Operating mode",
+        "state": {
+          "0": "Switched off",
+          "1": "Shutting down",
+          "2": "Solid fuel / buffer mode",
+          "3": "Pellet feed in operation",
+          "4": "Pellet feed",
+          "5": "On",
+          "6": "Pellet feed in operation",
+          "7": "Pellet feed",
+          "8": "Manual mode",
+          "9": "Chimney sweep function",
+          "10": "Actuator test",
+          "11": "Installation procedure active"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Heater's text"
+          }
+        }
+      },
+      "pellet_consumption": {
+        "name": "Pellet consumption"
+      },
+      "total_pellet_consumption": {
+        "name": "Total pellet consumption"
+      },
+      "time_until_stage_1_cleaning": {
+        "name": "Running time until stage 1 cleaning"
+      },
+      "time_until_stage_2_cleaning": {
+        "name": "Running time until stage 2 cleaning"
+      },
+      "heater_error": {
+        "name": "Heater error",
+        "state": {
+          "none": "No error"
+        },
+        "state_attributes": {
+          "code": {
+            "name": "Code"
+          }
         }
       }
     },
@@ -57,6 +187,55 @@
               "7": "Manual"
             }
           }
+        }
+      },
+      "windhager_climate_without_bias": {
+        "name": "Without bias",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heating program 1",
+              "2": "Heating program 2",
+              "3": "Heating program 3",
+              "4": "Day mode",
+              "5": "Night mode",
+              "6": "Holidays",
+              "7": "Manual"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "write_auth_failed": {
+      "message": "The heater refused the password: nothing was written. Enter its current password in the re-authentication notice."
+    },
+    "write_refused": {
+      "message": "The heater refused the value (HTTP {status}): nothing was written."
+    },
+    "write_cannot_connect": {
+      "message": "The heater did not answer: the value may not have been written."
+    },
+    "auth_failed": {
+      "message": "The heater at {host} refused the password."
+    },
+    "timeout": {
+      "message": "The heater at {host} did not answer within 20 seconds."
+    },
+    "cannot_connect": {
+      "message": "Cannot read the heater at {host}: {error}"
+    }
+  },
+  "services": {
+    "set_current_temp_compensation": {
+      "name": "Set temperature compensation",
+      "description": "Sets a heating circuit's comfort temperature correction: the difference between the room temperature the heater reads and the one the main climate shows.",
+      "fields": {
+        "compensation": {
+          "name": "Compensation",
+          "description": "The correction in K, from -3.5 to 3.5."
         }
       }
     }

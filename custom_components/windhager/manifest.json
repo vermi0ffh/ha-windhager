@@ -10,12 +10,23 @@
   ],
   "config_flow": true,
   "dependencies": [],
+  "dhcp": [
+    {
+      "hostname": "mb6620*",
+      "macaddress": "002343*"
+    }
+  ],
   "documentation": "https://github.com/vermi0ffh/ha-windhager",
   "homekit": {},
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/vermi0ffh/ha-windhager/issues",
   "requirements": [],
   "ssdp": [],
-  "version": "0.1.0",
-  "zeroconf": []
+  "version": "0.3.0",
+  "zeroconf": [
+    {
+      "type": "_workstation._tcp.local.",
+      "name": "mb6620*"
+    }
+  ]
 }

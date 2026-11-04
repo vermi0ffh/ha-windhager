@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Mapping
+from ipaddress import IPv4Address
 from typing import Any
 from urllib.parse import urlparse
 
@@ -11,9 +14,12 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.device_registry import format_mac
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .const import DOMAIN
-from .client import WindhagerHttpClient
+from .client import WindhagerHttpClient, heater_id
 from .exceptions import CannotConnect, InvalidAuth
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,6 +30,10 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required("password"): str,
     }
 )
+STEP_REAUTH_DATA_SCHEMA = vol.Schema({vol.Required("password"): str})
+
+# Avahi names the InfoWIN Touch's workstation service "<host> [<MAC>]" (2026-10-29)
+WORKSTATION_MAC = re.compile(r"\[([0-9a-fA-F:]{17})\]")
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
@@ -47,36 +57,36 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     _LOGGER.info("Validating Windhager connection - Host: %s", host)
 
+    client = WindhagerHttpClient(
+        host=host,
+        password=data["password"],
+    )
     try:
-        client = WindhagerHttpClient(
-            host=host,
-            password=data["password"],
-        )
-
-        try:
-            _LOGGER.debug("Testing connection by fetching root device info")
-            await client.fetch("/1")
-            _LOGGER.info("Successfully connected to Windhager device at %s", host)
-        except Exception as err:
-            _LOGGER.error("Connection test failed for %s: %s", host, str(err))
-            raise CannotConnect from err
-        finally:
-            await client.close()
-
-        return {
-            "title": f"Windhager Heater ({host})",
-            "host": host,  # Return the cleaned host
-        }
-
+        _LOGGER.debug("Testing connection by fetching root device info")
+        json_devices = await client.fetch("/1")
+        _LOGGER.info("Successfully connected to Windhager device at %s", host)
+    except InvalidAuth:
+        raise
     except Exception as err:
-        _LOGGER.exception("Unexpected exception during validation: %s", str(err))
+        _LOGGER.error("Connection test failed for %s: %s", host, str(err))
         raise CannotConnect from err
+    finally:
+        await client.close()
+
+    return {
+        "title": f"Windhager Heater ({host})",
+        "host": host,  # Return the cleaned host
+        "heater_id": heater_id(json_devices),
+    }
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for heater."""
 
     VERSION = 1
+
+    _discovered_host: str
+    _discovered_mac: str | None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -94,12 +104,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             info = await validate_input(self.hass, user_input)
-            # Create a new dict with cleaned host value
-            cleaned_data = {
-                "host": info["host"],  # Use the cleaned host
-                "password": user_input["password"],
-            }
-            return self.async_create_entry(title=info["title"], data=cleaned_data)
         except CannotConnect:
             errors["base"] = "cannot_connect"
         except InvalidAuth:
@@ -107,7 +111,181 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except Exception:
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
+        else:
+            # The same heater is added once, whatever host it is reached at
+            if info["heater_id"] is not None:
+                await self.async_set_unique_id(info["heater_id"])
+                self._abort_if_unique_id_configured()
+            # Create a new dict with cleaned host value
+            cleaned_data = {
+                "host": info["host"],  # Use the cleaned host
+                "password": user_input["password"],
+            }
+            return self.async_create_entry(title=info["title"], data=cleaned_data)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        )
+
+    async def async_step_zeroconf(
+        self, discovery_info: ZeroconfServiceInfo
+    ) -> config_entries.ConfigFlowResult:
+        """An InfoWIN Touch announcing its workstation service."""
+        if not isinstance(discovery_info.ip_address, IPv4Address):
+            # The client and the entry hold an IPv4 address or a host name
+            return self.async_abort(reason="not_ipv4")
+        found = WORKSTATION_MAC.search(discovery_info.name)
+        mac = format_mac(found.group(1)) if found else None
+        return await self._async_step_discovered(str(discovery_info.ip_address), mac)
+
+    async def async_step_dhcp(
+        self, discovery_info: DhcpServiceInfo
+    ) -> config_entries.ConfigFlowResult:
+        """An InfoWIN Touch asking for an address."""
+        return await self._async_step_discovered(
+            discovery_info.ip, format_mac(discovery_info.macaddress)
+        )
+
+    async def _async_step_discovered(
+        self, host: str, mac: str | None
+    ) -> config_entries.ConfigFlowResult:
+        """Follow a known heater to its new address, or offer to add a new one.
+
+        The discovery gives the MAC, not the Neuron ID that identifies an entry: an entry
+        learns its heater's MAC when it is discovered at its own host, then follows that
+        MAC to a new host. Nothing is sent to the heater before the user's password.
+        """
+        for entry in self._async_current_entries(include_ignore=False):
+            if mac is not None and entry.data.get("mac") == mac:
+                if entry.data["host"] != host:
+                    self.hass.config_entries.async_update_entry(
+                        entry, data={**entry.data, "host": host}
+                    )
+                    self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                return self.async_abort(reason="already_configured")
+            if entry.data.get("host") == host:
+                if mac is not None and entry.data.get("mac") is None:
+                    self.hass.config_entries.async_update_entry(
+                        entry, data={**entry.data, "mac": mac}
+                    )
+                return self.async_abort(reason="already_configured")
+
+        # The same heater found by zeroconf and by DHCP: one flow
+        await self.async_set_unique_id(mac or host)
+        self._abort_if_unique_id_configured()
+        self._discovered_host = host
+        self._discovered_mac = mac
+        self.context["title_placeholders"] = {"host": host}
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_discovery_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Ask the discovered heater's password, then add it as the user step does."""
+        errors = {}
+        if user_input is not None:
+            try:
+                info = await validate_input(
+                    self.hass,
+                    {"host": self._discovered_host, "password": user_input["password"]},
+                )
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                data = {"host": info["host"], "password": user_input["password"]}
+                if self._discovered_mac is not None:
+                    data["mac"] = self._discovered_mac
+                if info["heater_id"] is not None:
+                    # An entry added by hand for this heater: it follows it now
+                    await self.async_set_unique_id(info["heater_id"])
+                    self._abort_if_unique_id_configured(updates=data)
+                return self.async_create_entry(title=info["title"], data=data)
+
+        return self.async_show_form(
+            step_id="discovery_confirm",
+            data_schema=STEP_REAUTH_DATA_SCHEMA,
+            description_placeholders={"host": self._discovered_host},
+            errors=errors,
+        )
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> config_entries.ConfigFlowResult:
+        """The heater refused the password: ask for the new one."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Check the new password against the heater, then reload the entry with it."""
+        entry = self._get_reauth_entry()
+        errors = {}
+
+        if user_input is not None:
+            try:
+                await validate_input(
+                    self.hass,
+                    {"host": entry.data["host"], "password": user_input["password"]},
+                )
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates={"password": user_input["password"]}
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=STEP_REAUTH_DATA_SCHEMA,
+            description_placeholders={"host": entry.data["host"]},
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """A new host or password for the same heater, keeping its entities."""
+        entry = self._get_reconfigure_entry()
+        errors = {}
+
+        if user_input is not None:
+            try:
+                info = await validate_input(self.hass, user_input)
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                # Another heater at that host would take over this one's entities
+                if info["heater_id"] is not None and entry.unique_id is not None:
+                    await self.async_set_unique_id(info["heater_id"])
+                    self._abort_if_unique_id_mismatch(reason="wrong_heater")
+                return self.async_update_reload_and_abort(
+                    entry,
+                    title=info["title"],
+                    data_updates={
+                        "host": info["host"],
+                        "password": user_input["password"],
+                    },
+                )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_USER_DATA_SCHEMA, {"host": entry.data["host"]}
+            ),
+            errors=errors,
         )
