@@ -4,7 +4,7 @@ import logging
 # The InfoWIN Touch's own text files, on the local network: Python's expat refuses
 # external entities and limits entity expansion
 import xml.etree.ElementTree as ET
-from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
+from .const import BUFFER_FUNCTION_TYPE, CLIMATE_FUNCTION_TYPE, DEFAULT_USERNAME, HEATER_FUNCTION_TYPE
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,12 +21,86 @@ MODULES_CHECK_POLLS = 10
 # a request of its own, 0.16 to 0.18 s on 2026-10-31 (19 datapoints in 3.0 to 3.4 s a poll),
 # and a poll must end within the coordinator's 20 s
 SLOW_VALUES_POLLS = 10
+# A heating circuit's datapoints beyond its climate's: (path, key, English name, entity type,
+# hot water only), named by the InfoWIN Touch's res/xml/VarIdentTexte_<language>.xml
+CIRCUIT_DATAPOINTS = (
+    # Vorlauftemperatur: the flow to the circuit, and its target (0 while it does not heat)
+    ("/0/2/0", "flow_temperature", "Flow temperature", "temperature", False),
+    ("/1/2/0", "flow_target_temperature", "Flow target temperature", "temperature", False),
+    # Kesseltemperatur: the water the circuit draws from (boiler or buffer), and its target
+    ("/0/7/0", "boiler_temperature", "Boiler temperature", "temperature", False),
+    ("/1/7/0", "boiler_target_temperature", "Boiler target temperature", "temperature", False),
+    # Betriebsart: heating, setback, standby at the heating limit...
+    ("/2/9/0", "circuit_operating_mode", "Operating mode", "circuit_operating_mode", False),
+    # Heizkreispumpe: 0 or 100
+    ("/1/20/0", "circuit_pump", "Circuit pump", "running", False),
+    # Warmwasser: the tank's temperature and target, and its charging pump
+    ("/0/4/0", "hot_water_temperature", "Hot water temperature", "temperature", True),
+    ("/1/4/0", "hot_water_target_temperature", "Hot water target temperature", "temperature", True),
+    ("/1/66/0", "hot_water_charging_pump", "Hot water charging pump", "running", True),
+)
+# A circuit's hot water as configured on the heater: "WW-Kreis" of its level 103,
+# "Modulfunktionen", 0 inactive, 1 pump, 2 valve. Read once per circuit at discovery (0.17 and
+# 0.33 s on 2026-11-01): a circuit without hot water answers its charging pump with 0, a
+# value, so the datapoints alone cannot tell (a BioWIN 2 with three UMUMLZ, 2026-11-01)
+HOT_WATER_CIRCUIT = "/5/76/0"
+# The suction probes of a heater's pellet feed, "Sonde 1" to "Sonde 8" of its operator
+# level: 0 off, 1 on, 2 empty, each matching the heater's screen on 2026-11-02 (a BioWIN 2
+# with eight probes; two switched off there read 0 at once). A heater without probes does
+# not list them (a BioWIN Hybrid with a hand-filled container, 2026-10-31)
+PROBES = tuple(f"/43/{member}/0" for member in range(34, 42))
+PROBE_EMPTY = "2"
+# The heater's datapoints beyond its first ones: (path, key, English name, the entity's
+# description, slow), each compared with the heater's mobile app on 2026-10-31 (BioWIN)
+HEATER_DATAPOINTS: tuple[tuple[str, str, str, dict, bool], ...] = (
+    # Kesseltemperatur Soll: 0 °C while the heater does not run
+    ("/1/7/0", "heater_target_temperature", "Heater target temperature", {"type": "temperature"}, False),
+    # Laufzeit bis Wartung: 6005 h, not listed by the lookups, next to the cleanings' 20/61 and 20/62
+    (
+        "/20/63/0",
+        "time_until_maintenance",
+        "Running time until maintenance",
+        {"type": "sensor", "device_class": "duration", "state_class": "measurement", "entity_category": "diagnostic", "unit": "h"},
+        True,
+    ),
+    # Betriebsstunden: 1707 h
+    (
+        "/2/81/0",
+        "operating_hours",
+        "Operating hours",
+        {"type": "sensor", "device_class": "duration", "state_class": "total_increasing", "unit": "h"},
+        True,
+    ),
+    # Anzahl der Brennerstarts: 482
+    ("/2/80/0", "burner_starts", "Burner starts", {"type": "sensor", "state_class": "total_increasing"}, True),
+)
+# The datapoints of the functions read beyond the heater and the circuits, by function type:
+# (path, key, English name, the entity's description, slow), each compared with the heater's
+# mobile app on 2026-10-31
+FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
+    # A buffer tank (PUFFER of a WFBPK module): its sensors as the app and the InfoWIN's
+    # res/xml/VarIdentTexte_<language>.xml name them, 40.9 and 34.8 °C; its third one, TPT,
+    # was not connected
+    BUFFER_FUNCTION_TYPE: (
+        ("/21/65/0", "buffer_temperature_tpe", "Buffer temperature TPE", {"type": "temperature"}, False),
+        ("/21/66/0", "buffer_temperature_tpa", "Buffer temperature TPA", {"type": "temperature"}, False),
+    ),
+}
 # A text file of the InfoWIN Touch: about 7 kB for the error texts and 10 kB for the enum
 # texts, each read once at setup
 TEXTS_TIMEOUT_S = 20
 # The languages of the InfoWIN Touch's text files tried after the instance's: English, then
 # German, the manufacturer's
 TEXTS_FALLBACK_LANGUAGES = ("en", "de")
+
+
+def parse_hot_water_circuit(value: object) -> bool:
+    """Whether a circuit's "WW-Kreis" value means hot water: 1 pump, 2 valve; 0 inactive."""
+    try:
+        return int(str(value)) > 0
+    except ValueError:
+        # No value: a circuit that cannot have hot water (function 1 of an UMUMLZ)
+        return False
 
 
 def slugify(identifier_str: str) -> str:
@@ -125,6 +199,7 @@ class WindhagerHttpClient:
         # The polls left before the slow datapoints are read again: 0 reads them now
         self._polls_before_slow_read = 0
         self._slow_values: dict[str, str | None] = {}
+        self._check_required_values = False
         # The slow datapoints whose request failed: read again with the next poll
         self._slow_retry: set[str] = set()
 
@@ -254,8 +329,84 @@ class WindhagerHttpClient:
 
     slugify = staticmethod(slugify)
 
-    def _discover(self, json_devices: list[dict]) -> None:
-        """The entities and datapoints of the modules /1 lists."""
+    async def _heater_probes(self, json_devices: list[dict]) -> dict[str, list[tuple[int, str]]]:
+        """The suction probes each heater function of `json_devices` has: (number, path).
+
+        Read once at discovery, one request per probe (PROBES): a probe that answers with a
+        value exists, one that answers without (or a 409, as a heater with no probe
+        system may) does not. A probe whose request failed is kept, unknown until it
+        answers: a timeout must not take a store's probes away.
+        """
+        heaters: dict[str, list[tuple[int, str]]] = {}
+        for device in json_devices:
+            for function in device.get("functions", []):
+                if function.get("fctType") != HEATER_FUNCTION_TYPE or function.get("lock") is not False:
+                    continue
+                heater = f"/1/{device['nodeId']}/{function['fctId']}"
+                present = []
+                for number, path in enumerate(PROBES, 1):
+                    try:
+                        answer = await self.fetch(f"{heater}{path}")
+                    except (InvalidAuth, CannotConnect):
+                        raise
+                    except Exception as err:
+                        _LOGGER.debug("Cannot read probe %s of %s: %s", number, heater, err)
+                        present.append((number, path))
+                        continue
+                    if isinstance(answer, dict) and answer.get("value") not in (None, "-.-"):
+                        present.append((number, path))
+                if present:
+                    heaters[heater] = present
+        return heaters
+
+    async def _circuits_hot_water(self, json_devices: list[dict]) -> dict[str, bool]:
+        """Whether each circuit of `json_devices` heats hot water, as configured on the heater.
+
+        A circuit whose configuration could not be read is left out: its hot water datapoints
+        are then kept only if they answer with a value.
+        """
+        circuits: dict[str, bool] = {}
+        for device in json_devices:
+            for function in device.get("functions", []):
+                if function.get("fctType") != CLIMATE_FUNCTION_TYPE or function.get("lock") is not False:
+                    continue
+                circuit = f"/1/{device['nodeId']}/{function['fctId']}"
+                try:
+                    level = await self.fetch(f"{circuit}/103")
+                except (InvalidAuth, CannotConnect):
+                    raise
+                except Exception as err:
+                    _LOGGER.debug("Cannot read the configuration of circuit %s: %s", circuit, err)
+                    continue
+                if not isinstance(level, list):
+                    # A level the module does not have answers a 409 with a JSON body
+                    _LOGGER.debug("No configuration for circuit %s: %s", circuit, level)
+                    continue
+                # A circuit without hot water may not list it at all (function 1 of an UMUMLZ)
+                value = next(
+                    (
+                        datapoint.get("value")
+                        for datapoint in level
+                        if isinstance(datapoint, dict) and str(datapoint.get("OID", "")).endswith(HOT_WATER_CIRCUIT)
+                    ),
+                    None,
+                )
+                circuits[circuit] = parse_hot_water_circuit(value)
+        return circuits
+
+    def _discover(
+        self,
+        json_devices: list[dict],
+        hot_water: dict[str, bool] | None = None,
+        probes: dict[str, list[tuple[int, str]]] | None = None,
+    ) -> None:
+        """The entities and datapoints of the modules /1 lists.
+
+        `hot_water` tells, for each circuit whose configuration was read, whether it heats
+        hot water, and `probes` the suction probes of each heater function (_heater_probes).
+        """
+        hot_water = hot_water or {}
+        probes = probes or {}
         self.oids = set()
         self.slow_oids = set()
         self.devices = []
@@ -264,6 +415,8 @@ class WindhagerHttpClient:
         # The modules' slow datapoints are read with the next poll
         self._polls_before_slow_read = 0
         self._slow_values = {}
+        # The entities that need a value are checked against the next poll
+        self._check_required_values = True
         self._slow_retry = set()
 
         # Add devices
@@ -446,6 +599,30 @@ class WindhagerHttpClient:
                         **module,
                     }
                 )
+
+                # What the heater's mobile app shows on the circuit's Info screen, each
+                # checked against it on 2026-10-31. Its hot water ones only for a circuit
+                # configured with hot water; if its configuration could not be read, only if
+                # they answer with a value (RADIATOREN answers its temperature without one)
+                configured = hot_water.get(f"{device_id}{fct_id}")
+                for path, key, name, entity_type, is_hot_water in CIRCUIT_DATAPOINTS:
+                    if is_hot_water and configured is False:
+                        continue
+                    oid = f"{device_id}{fct_id}{path}"
+                    self.oids.add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{function['name']} {name}",
+                            "type": entity_type,
+                            "oid": oid,
+                            "requires_value": is_hot_water and configured is None,
+                            "device_id": self.slugify(circuit_device_id),
+                            "device_name": function["name"],
+                            **module,
+                        }
+                    )
 
             # Filter heaters
             functions = list(
@@ -715,6 +892,82 @@ class WindhagerHttpClient:
                     }
                 )
 
+                # What the heater's mobile app shows beyond these, each checked against it
+                for path, key, name, entity, slow in HEATER_DATAPOINTS:
+                    oid = f"{device_id}{fct_id}{path}"
+                    (self.slow_oids if slow else self.oids).add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{functions[0]['name']} {name}",
+                            "oid": oid,
+                            "device_id": self.slugify(f"{self.id_base}{str(device['nodeId'])}"),
+                            "device_name": functions[0]["name"],
+                            **module,
+                            **entity,
+                        }
+                    )
+
+                # The suction probes the heater has (_heater_probes): each one's state, and how
+                # many are empty, which tells better than a tonnage how full the store is
+                probe_oids = []
+                for number, path in probes.get(f"{device_id}{fct_id}", []):
+                    oid = f"{device_id}{fct_id}{path}"
+                    probe_oids.append(oid)
+                    self.slow_oids.add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": "probe",
+                            "translation_placeholders": {"number": str(number)},
+                            "name": f"{functions[0]['name']} Probe {number}",
+                            "type": "probe",
+                            "entity_category": "diagnostic",
+                            "oid": oid,
+                            "device_id": self.slugify(f"{self.id_base}{str(device['nodeId'])}"),
+                            "device_name": functions[0]["name"],
+                            **module,
+                        }
+                    )
+                if probe_oids:
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{device_id}{fct_id}/43/empty_probes"),
+                            "key": "empty_probes",
+                            "name": f"{functions[0]['name']} Empty probes",
+                            "type": "empty_probes",
+                            "probe_oids": probe_oids,
+                            "device_id": self.slugify(f"{self.id_base}{str(device['nodeId'])}"),
+                            "device_name": functions[0]["name"],
+                            **module,
+                        }
+                    )
+
+            # The functions the integration reads through FUNCTION_DATAPOINTS: each one a
+            # device of its own, named after it, with its module as the model
+            for function in device["functions"]:
+                datapoints = FUNCTION_DATAPOINTS.get(function.get("fctType"))
+                if not datapoints or function.get("lock") is not False:
+                    continue
+                fct_id = f"/{str(function['fctId'])}"
+                function_device_id = self.slugify(f"{self.id_base}{str(device['nodeId'])}{fct_id}")
+                for path, key, name, entity, slow in datapoints:
+                    oid = f"{device_id}{fct_id}{path}"
+                    (self.slow_oids if slow else self.oids).add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{function['name']} {name}",
+                            "oid": oid,
+                            "device_id": function_device_id,
+                            "device_name": function["name"],
+                            **module,
+                            **entity,
+                        }
+                    )
+
     async def _check_modules(self) -> None:
         """Every MODULES_CHECK_POLLS polls, discover the modules again if /1 lists others."""
         self._polls_since_modules_check += 1
@@ -733,20 +986,34 @@ class WindhagerHttpClient:
             return
         if signature != self._modules_signature:
             _LOGGER.info("The heater's modules changed: discovering them again")
-            self._discover(json_devices)
+            self._discover(
+                json_devices,
+                await self._circuits_hot_water(json_devices),
+                await self._heater_probes(json_devices),
+            )
 
     async def fetch_all(self):
         if self.oids is None:
             # Fetch all devices on the network
-            self._discover(await self.fetch("/1"))
+            json_devices = await self.fetch("/1")
+            self._discover(
+                json_devices,
+                await self._circuits_hot_water(json_devices),
+                await self._heater_probes(json_devices),
+            )
         else:
             await self._check_modules()
 
+        failed: set[str] = set()
         ret = {
             "devices": self.devices,
             "heater_id": self.heater_id,
-            "oids": await self._read(self.oids),
+            "oids": await self._read(self.oids, failed),
         }
+
+        if self._check_required_values:
+            self._drop_entities_without_value(ret["oids"], failed)
+            ret["devices"] = self.devices
 
         if self._polls_before_slow_read <= 0:
             self._slow_retry = set()
@@ -761,6 +1028,29 @@ class WindhagerHttpClient:
         ret["oids"].update(self._slow_values)
 
         return ret
+
+    def _drop_entities_without_value(self, values: dict[str, str | None], failed: set[str]) -> None:
+        """Drop the entities of datapoints the module does not have.
+
+        Such a datapoint answers without a value (a circuit's hot water, on a circuit
+        without one, answered with no "value" on 2026-10-31): it is no longer read, until
+        the modules are discovered again. A datapoint whose request failed (a timeout)
+        tells nothing: it is checked again with the next poll.
+        """
+        missing = {
+            device["oid"]
+            for device in self.devices
+            if device.get("requires_value") and values.get(device["oid"]) is None and device["oid"] not in failed
+        }
+        if missing:
+            _LOGGER.info("No value for %s: their entities are not created", ", ".join(sorted(missing)))
+        self.devices = [device for device in self.devices if device.get("oid") not in missing]
+        self.oids -= missing
+        for oid in missing:
+            values.pop(oid, None)
+        self._check_required_values = any(
+            device.get("requires_value") and device["oid"] in failed for device in self.devices
+        )
 
     async def _read(self, oids: set[str], failed: set[str] | None = None) -> dict[str, str | None]:
         """The values of `oids`, one request each: None for a datapoint without a value.

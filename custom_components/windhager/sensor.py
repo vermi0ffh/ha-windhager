@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.core import HomeAssistant
 
+from .client import PROBE_EMPTY
 from .coordinator import WindhagerConfigEntry
 from .entity import WindhagerEntity, async_add_module_entities
 from .helpers import parse_value, get_oid_value
@@ -200,6 +201,49 @@ class WindhagerOperatingModeSensor(WindhagerSelectSensor):
     _attr_options = OPERATING_MODES
 
 
+# A heating circuit's operating mode codes the translations name: those of the InfoWIN
+# Touch's res/xml/AufzaehlTexte_<language>.xml for group 2, member 9 (2026-10-31: 1
+# Heizbetrieb on a heating circuit, 8 Standby Heizgrenze on one at its heating limit)
+CIRCUIT_OPERATING_MODES = [str(code) for code in range(17)]
+
+
+class WindhagerCircuitOperatingModeSensor(WindhagerSelectSensor):
+    """A heating circuit's operating mode: heating, setback, standby at its heating limit…"""
+
+    _attr_options = CIRCUIT_OPERATING_MODES
+
+
+# A suction probe's codes (client.PROBES): 0 off, 1 on, 2 empty
+PROBE_STATES = ["0", "1", "2"]
+
+
+class WindhagerProbeSensor(WindhagerSelectSensor):
+    """A suction probe of the pellet feed: off, on or empty, as the heater's screen shows it.
+
+    Read only: the probes are switched on again on the heater's screen once the store has
+    been tended (rule 16, operator level).
+    """
+
+    _attr_options = PROBE_STATES
+
+
+class WindhagerEmptyProbesSensor(WindhagerBaseSensor):
+    """How many of the heater's suction probes are empty."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._probe_oids = device_info.get("probe_oids", [])
+
+    @property
+    def native_value(self) -> int | None:
+        values = [self.coordinator.data.get("oids", {}).get(oid) for oid in self._probe_oids]
+        if all(value is None for value in values):
+            return None
+        return sum(1 for value in values if value == PROBE_EMPTY)
+
+
 # The error code's value without an error (2026-10-30: "-" before a fault, "42" during it)
 NO_ERROR = "-"
 # Home Assistant's limit for a state
@@ -239,6 +283,9 @@ SENSOR_CLASSES: dict[str | None, type[WindhagerBaseSensor]] = {
     "error": WindhagerErrorSensor,
     "select": WindhagerSelectSensor,
     "operating_mode": WindhagerOperatingModeSensor,
+    "circuit_operating_mode": WindhagerCircuitOperatingModeSensor,
+    "probe": WindhagerProbeSensor,
+    "empty_probes": WindhagerEmptyProbesSensor,
     "total": WindhagerPelletSensor,
     "total_increasing": WindhagerPelletSensor,
 }

@@ -60,6 +60,8 @@ class WindhagerEntity(CoordinatorEntity[WindhagerDataUpdateCoordinator]):
         self._attr_unique_id = device_info.get("id")
         self._module_device_id = device_info.get("device_id")
         self._attr_translation_key = device_info.get("key")
+        # Entities sharing a translated name tell themselves apart by these ("Probe {number}")
+        self._attr_translation_placeholders = device_info.get("translation_placeholders", {})
         self._attr_entity_category = (
             EntityCategory(category)
             if (category := device_info.get("entity_category"))
