@@ -136,6 +136,8 @@ The heater has these entities:
 | Power factor | The burner's output, in %. |
 | Heater temperature, Fumes temperature, Combustion chamber temperature | The heater's temperatures. |
 | Hopper level | The pellets left in the heater's hopper, in %: the level the heater's mobile app shows. |
+| Empty probes | With a suction system: how many of its probes are empty. It shows how far the store has emptied better than a tonnage, since pellets never spread evenly over the probes. Only for a heater with probes. |
+| Probe 1 … Probe 8 | Each suction probe's state: *Off*, *On* or *Empty*, as the heater's screen shows it (diagnostics). Only the probes the heater has. A probe is switched back on at the heater's screen once the store has been tended: Home Assistant only reads them. |
 | Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
 | Running time until stage 1 cleaning, Running time until stage 2 cleaning | The burner hours left until each cleaning. |
 | Running time until maintenance | The hours left until the heater's maintenance. |

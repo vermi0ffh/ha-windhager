@@ -239,6 +239,22 @@
       },
       "burner_starts": {
         "name": "Anzahl der Brennerstarts"
+      },
+      "probe": {
+        "name": "Sonde {number}",
+        "state": {
+          "0": "Aus",
+          "1": "Ein",
+          "2": "Leer"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Text des Kessels"
+          }
+        }
+      },
+      "empty_probes": {
+        "name": "Leere Sonden"
       }
     },
     "climate": {

@@ -92,6 +92,16 @@
       },
       "burner_starts": {
         "default": "mdi:fire"
+      },
+      "probe": {
+        "default": "mdi:pipe",
+        "state": {
+          "0": "mdi:pipe-disconnected",
+          "2": "mdi:pipe-leak"
+        }
+      },
+      "empty_probes": {
+        "default": "mdi:silo"
       }
     },
     "climate": {

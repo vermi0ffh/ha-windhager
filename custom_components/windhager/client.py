@@ -44,6 +44,12 @@ CIRCUIT_DATAPOINTS = (
 # 0.33 s on 2026-11-01): a circuit without hot water answers its charging pump with 0, a
 # value, so the datapoints alone cannot tell (a BioWIN 2 with three UMUMLZ, 2026-11-01)
 HOT_WATER_CIRCUIT = "/5/76/0"
+# The suction probes of a heater's pellet feed, "Sonde 1" to "Sonde 8" of its operator
+# level: 0 off, 1 on, 2 empty, each matching the heater's screen on 2026-11-02 (a BioWIN 2
+# with eight probes; two switched off there read 0 at once). A heater without probes does
+# not list them (a BioWIN Hybrid with a hand-filled container, 2026-10-31)
+PROBES = tuple(f"/43/{member}/0" for member in range(34, 42))
+PROBE_EMPTY = "2"
 # The heater's datapoints beyond its first ones: (path, key, English name, the entity's
 # description, slow), each compared with the heater's mobile app on 2026-10-31 (BioWIN)
 HEATER_DATAPOINTS: tuple[tuple[str, str, str, dict, bool], ...] = (
@@ -323,6 +329,36 @@ class WindhagerHttpClient:
 
     slugify = staticmethod(slugify)
 
+    async def _heater_probes(self, json_devices: list[dict]) -> dict[str, list[tuple[int, str]]]:
+        """The suction probes each heater function of `json_devices` has: (number, path).
+
+        Read once at discovery, one request per probe (PROBES): a probe that answers with a
+        value exists, one that answers without (or a 409, as a heater with no probe
+        system may) does not. A probe whose request failed is kept, unknown until it
+        answers: a timeout must not take a store's probes away.
+        """
+        heaters: dict[str, list[tuple[int, str]]] = {}
+        for device in json_devices:
+            for function in device.get("functions", []):
+                if function.get("fctType") != HEATER_FUNCTION_TYPE or function.get("lock") is not False:
+                    continue
+                heater = f"/1/{device['nodeId']}/{function['fctId']}"
+                present = []
+                for number, path in enumerate(PROBES, 1):
+                    try:
+                        answer = await self.fetch(f"{heater}{path}")
+                    except (InvalidAuth, CannotConnect):
+                        raise
+                    except Exception as err:
+                        _LOGGER.debug("Cannot read probe %s of %s: %s", number, heater, err)
+                        present.append((number, path))
+                        continue
+                    if isinstance(answer, dict) and answer.get("value") not in (None, "-.-"):
+                        present.append((number, path))
+                if present:
+                    heaters[heater] = present
+        return heaters
+
     async def _circuits_hot_water(self, json_devices: list[dict]) -> dict[str, bool]:
         """Whether each circuit of `json_devices` heats hot water, as configured on the heater.
 
@@ -358,13 +394,19 @@ class WindhagerHttpClient:
                 circuits[circuit] = parse_hot_water_circuit(value)
         return circuits
 
-    def _discover(self, json_devices: list[dict], hot_water: dict[str, bool] | None = None) -> None:
+    def _discover(
+        self,
+        json_devices: list[dict],
+        hot_water: dict[str, bool] | None = None,
+        probes: dict[str, list[tuple[int, str]]] | None = None,
+    ) -> None:
         """The entities and datapoints of the modules /1 lists.
 
         `hot_water` tells, for each circuit whose configuration was read, whether it heats
-        hot water.
+        hot water, and `probes` the suction probes of each heater function (_heater_probes).
         """
         hot_water = hot_water or {}
+        probes = probes or {}
         self.oids = set()
         self.slow_oids = set()
         self.devices = []
@@ -867,6 +909,41 @@ class WindhagerHttpClient:
                         }
                     )
 
+                # The suction probes the heater has (_heater_probes): each one's state, and how
+                # many are empty, which tells better than a tonnage how full the store is
+                probe_oids = []
+                for number, path in probes.get(f"{device_id}{fct_id}", []):
+                    oid = f"{device_id}{fct_id}{path}"
+                    probe_oids.append(oid)
+                    self.slow_oids.add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": "probe",
+                            "translation_placeholders": {"number": str(number)},
+                            "name": f"{functions[0]['name']} Probe {number}",
+                            "type": "probe",
+                            "entity_category": "diagnostic",
+                            "oid": oid,
+                            "device_id": self.slugify(f"{self.id_base}{str(device['nodeId'])}"),
+                            "device_name": functions[0]["name"],
+                            **module,
+                        }
+                    )
+                if probe_oids:
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{device_id}{fct_id}/43/empty_probes"),
+                            "key": "empty_probes",
+                            "name": f"{functions[0]['name']} Empty probes",
+                            "type": "empty_probes",
+                            "probe_oids": probe_oids,
+                            "device_id": self.slugify(f"{self.id_base}{str(device['nodeId'])}"),
+                            "device_name": functions[0]["name"],
+                            **module,
+                        }
+                    )
+
             # The functions the integration reads through FUNCTION_DATAPOINTS: each one a
             # device of its own, named after it, with its module as the model
             for function in device["functions"]:
@@ -909,13 +986,21 @@ class WindhagerHttpClient:
             return
         if signature != self._modules_signature:
             _LOGGER.info("The heater's modules changed: discovering them again")
-            self._discover(json_devices, await self._circuits_hot_water(json_devices))
+            self._discover(
+                json_devices,
+                await self._circuits_hot_water(json_devices),
+                await self._heater_probes(json_devices),
+            )
 
     async def fetch_all(self):
         if self.oids is None:
             # Fetch all devices on the network
             json_devices = await self.fetch("/1")
-            self._discover(json_devices, await self._circuits_hot_water(json_devices))
+            self._discover(
+                json_devices,
+                await self._circuits_hot_water(json_devices),
+                await self._heater_probes(json_devices),
+            )
         else:
             await self._check_modules()
 

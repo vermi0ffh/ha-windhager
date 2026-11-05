@@ -239,6 +239,22 @@
       },
       "burner_starts": {
         "name": "Burner starts"
+      },
+      "probe": {
+        "name": "Probe {number}",
+        "state": {
+          "0": "Off",
+          "1": "On",
+          "2": "Empty"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Heater's text"
+          }
+        }
+      },
+      "empty_probes": {
+        "name": "Empty probes"
       }
     },
     "climate": {

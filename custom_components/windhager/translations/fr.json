@@ -239,6 +239,22 @@
       },
       "burner_starts": {
         "name": "Nombre de démarrages du brûleur"
+      },
+      "probe": {
+        "name": "Sonde {number}",
+        "state": {
+          "0": "Arrêt",
+          "1": "Marche",
+          "2": "Vide"
+        },
+        "state_attributes": {
+          "heater_text": {
+            "name": "Texte de la chaudière"
+          }
+        }
+      },
+      "empty_probes": {
+        "name": "Sondes vides"
       }
     },
     "climate": {
