@@ -222,7 +222,7 @@
       "message": "The heater at {host} refused the password."
     },
     "timeout": {
-      "message": "The heater at {host} did not answer within 20 seconds."
+      "message": "The heater at {host} did not answer within {seconds} seconds."
     },
     "cannot_connect": {
       "message": "Cannot read the heater at {host}: {error}"

@@ -715,6 +715,19 @@ class WindhagerHttpClient:
                     }
                 )
 
+    def requests_next_poll(self) -> int | None:
+        """How many requests the next fetch_all makes, for its timeout; None before discovery.
+
+        Its datapoints, the slow ones when they are due (or those to read again), and /1 when
+        the modules are checked again. Discovering changed modules adds a few more: that poll
+        may time out once, and keeps the last values.
+        """
+        if self.oids is None:
+            return None
+        slow = len(self.slow_oids) if self._polls_before_slow_read <= 0 else len(self._slow_retry)
+        modules_check = 1 if self._polls_since_modules_check + 1 >= MODULES_CHECK_POLLS else 0
+        return len(self.oids) + slow + modules_check
+
     async def _check_modules(self) -> None:
         """Every MODULES_CHECK_POLLS polls, discover the modules again if /1 lists others."""
         self._polls_since_modules_check += 1
