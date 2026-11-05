@@ -227,6 +227,15 @@
       },
       "buffer_temperature_tpa": {
         "name": "Puffertemperatur TPA"
+      },
+      "buffer_target_temperature": {
+        "name": "Puffertemperatur Sollwert"
+      },
+      "return_temperature": {
+        "name": "Rücklauftemperatur"
+      },
+      "heat_generator_pump": {
+        "name": "WE-Pumpe"
       }
     },
     "climate": {

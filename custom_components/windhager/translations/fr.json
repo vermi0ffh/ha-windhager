@@ -227,6 +227,15 @@
       },
       "buffer_temperature_tpa": {
         "name": "Température tampon TPA"
+      },
+      "buffer_target_temperature": {
+        "name": "Température de consigne du ballon tampon"
+      },
+      "return_temperature": {
+        "name": "Température de retour"
+      },
+      "heat_generator_pump": {
+        "name": "Pompe du générateur de chaleur"
       }
     },
     "climate": {

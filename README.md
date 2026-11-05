@@ -149,6 +149,9 @@ A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, wi
 | Entity | Description |
 | ------ | ----------- |
 | Buffer temperature TPE, Buffer temperature TPA | The buffer's temperature sensors, named as on the heater (TPE near the top, TPA lower). A sensor not connected shows as unknown. |
+| Buffer target temperature | The temperature the buffer is charged to ("Puffertemperatur Sollwert" on the heater's screen). It follows the heat demand, and is read every ten minutes. |
+| Return temperature | The water returning to the heater ("Rücklaufhochhaltung Aktueller Wert" on the screen). Only for a buffer with that sensor. |
+| Heat generator pump | The pump charging the buffer from the heater, in % ("WE-Pumpe" on the screen): above 0 while the buffer is charged. |
 
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
 until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's

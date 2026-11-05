@@ -227,6 +227,15 @@
       },
       "buffer_temperature_tpa": {
         "name": "Buffer temperature TPA"
+      },
+      "buffer_target_temperature": {
+        "name": "Buffer target temperature"
+      },
+      "return_temperature": {
+        "name": "Return temperature"
+      },
+      "heat_generator_pump": {
+        "name": "Heat generator pump"
       }
     },
     "climate": {

@@ -54,6 +54,27 @@ FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
     BUFFER_FUNCTION_TYPE: (
         ("/21/65/0", "buffer_temperature_tpe", "Buffer temperature TPE", {"type": "temperature"}, False),
         ("/21/66/0", "buffer_temperature_tpa", "Buffer temperature TPA", {"type": "temperature"}, False),
+        # Three more of the buffer's info view on the heater's screen, which the app does not
+        # show, each matching it on a BioWIN 2 on 2026-11-05 (B-PLM of a WFBPK).
+        # "Puffertemperatur Sollwert": 55.6 °C; it follows the heat demand, so the slow readings
+        ("/1/15/0", "buffer_target_temperature", "Buffer target temperature", {"type": "temperature"}, True),
+        # "Rücklaufhochhaltung Aktueller Wert", the return to the heater: 67.0 °C there. A buffer
+        # without that sensor answers it without a value (a BioWIN Hybrid, 2026-11-02)
+        (
+            "/0/8/0",
+            "return_temperature",
+            "Return temperature",
+            {"type": "temperature", "requires_value": True},
+            False,
+        ),
+        # "WE-Pumpe", the pump charging the buffer from the heater: 30 % there
+        (
+            "/1/22/0",
+            "heat_generator_pump",
+            "Heat generator pump",
+            {"type": "sensor", "state_class": "measurement", "unit": "%"},
+            False,
+        ),
     ),
 }
 # A text file of the InfoWIN Touch: about 7 kB for the error texts and 10 kB for the enum

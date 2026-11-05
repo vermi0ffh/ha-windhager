@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.windhager.client import WindhagerHttpClient
+from custom_components.windhager.client import SLOW_VALUES_POLLS, WindhagerHttpClient
 
 HEATER_ID = "0a0000000060"
 # A WFBPK module with its buffer function, and the heater with a locked one, as /1 listed
@@ -79,3 +79,60 @@ async def test_a_locked_buffer_function_is_not_read(
 
     assert "/1/16/1/21/65/0" in requested
     assert not any(url.startswith("/1/60/3/") for url in requested)
+
+
+# The buffer's info view on the heater's screen, beyond TPE and TPA, on a BioWIN 2 on 2026-11-05
+INFO_VIEW = {
+    **READINGS,
+    "/1/16/1/1/15/0": "55.6",
+    "/1/16/1/0/8/0": "67.0",
+    "/1/16/1/1/22/0": "30",
+}
+
+
+async def set_up_with(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, readings: dict[str, str]
+) -> WindhagerHttpClient:
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+    heater.fetch = AsyncMock(side_effect=lambda url: MODULES if url == "/1" else {"value": readings.get(url, "0")})
+    client.fetch_all.return_value = await heater.fetch_all()
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return heater
+
+
+async def test_a_buffer_shows_its_target_its_return_and_its_charging_pump(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    await set_up_with(hass, entry, client, INFO_VIEW)
+
+    target = hass.states.get("sensor.puffer_buffer_target_temperature")
+    back = hass.states.get("sensor.puffer_return_temperature")
+    pump = hass.states.get("sensor.puffer_heat_generator_pump")
+
+    assert (target.state, target.attributes["unit_of_measurement"]) == ("55.6", "°C")
+    assert (back.state, back.attributes["unit_of_measurement"]) == ("67.0", "°C")
+    assert (pump.state, pump.attributes["unit_of_measurement"]) == ("30.0", "%")
+
+
+async def test_a_buffer_without_a_return_sensor_has_no_return_temperature(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    # A BioWIN Hybrid's buffer answered it "-.-" on 2026-11-02
+    await set_up_with(hass, entry, client, {**INFO_VIEW, "/1/16/1/0/8/0": "-.-"})
+
+    assert hass.states.get("sensor.puffer_return_temperature") is None
+    assert hass.states.get("sensor.puffer_heat_generator_pump") is not None
+
+
+async def test_the_buffer_target_is_read_every_ten_polls(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    heater = await set_up_with(hass, entry, client, INFO_VIEW)
+
+    for _ in range(SLOW_VALUES_POLLS):
+        await heater.fetch_all()
+
+    requested = [call.args[0] for call in heater.fetch.await_args_list]
+    assert requested.count("/1/16/1/1/15/0") == 2
+    assert requested.count("/1/16/1/1/22/0") == SLOW_VALUES_POLLS + 1

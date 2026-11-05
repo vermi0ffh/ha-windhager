@@ -80,6 +80,15 @@
       },
       "buffer_temperature_tpa": {
         "default": "mdi:storage-tank-outline"
+      },
+      "buffer_target_temperature": {
+        "default": "mdi:thermometer-check"
+      },
+      "return_temperature": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "heat_generator_pump": {
+        "default": "mdi:pump"
       }
     },
     "climate": {
