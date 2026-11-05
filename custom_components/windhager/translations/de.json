@@ -237,7 +237,7 @@
       "message": "Der Kessel unter {host} hat das Passwort abgelehnt."
     },
     "timeout": {
-      "message": "Der Kessel unter {host} hat nicht innerhalb von 20 Sekunden geantwortet."
+      "message": "Der Kessel unter {host} hat nicht innerhalb von {seconds} Sekunden geantwortet."
     },
     "cannot_connect": {
       "message": "Der Kessel unter {host} kann nicht gelesen werden: {error}"
