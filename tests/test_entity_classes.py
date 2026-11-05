@@ -29,6 +29,8 @@ async def test_the_settings_and_maintenance_counters_are_diagnostics(
         "sensor.biowin_running_time_until_maintenance",
         "sensor.biowin_heater_error",
         "binary_sensor.biowin_heater_problem",
+        # Each suction probe the heater answers for (every datapoint reads 1 here)
+        *(f"sensor.biowin_probe_{number}" for number in range(1, 9)),
     }
 
 

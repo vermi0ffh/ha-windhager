@@ -9,6 +9,7 @@ from homeassistant.helpers.translation import async_get_translations
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.windhager.client import PROBES, SLOW_VALUES_POLLS, WindhagerHttpClient
+from custom_components.windhager.exceptions import InvalidAuth
 
 # A heater module (fake Neuron ID)
 MODULES = [
@@ -139,3 +140,25 @@ async def test_the_probes_are_translated(
     assert translations["component.windhager.entity.sensor.probe.name"] == name
     assert translations["component.windhager.entity.sensor.probe.state.2"] == empty
     assert translations["component.windhager.entity.sensor.empty_probes.name"] == count
+
+
+async def test_the_count_is_unknown_while_no_probe_has_been_read(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+    heater.fetch = AsyncMock(side_effect=answering(EIGHT_PROBES))
+    data = await heater.fetch_all()
+    # The probes' slow readings not answered yet
+    client.fetch_all.return_value = {**data, "oids": {oid: value for oid, value in data["oids"].items() if oid not in EIGHT_PROBES}}
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get("sensor.biowin_empty_probes").state == "unknown"
+
+
+async def test_a_refused_password_while_looking_for_probes_is_reported() -> None:
+    heater = WindhagerHttpClient("192.0.2.1", "secret")
+    heater.fetch = AsyncMock(side_effect=answering({f"{HEATER}{PROBES[0]}": InvalidAuth("refused")}))
+
+    with pytest.raises(InvalidAuth):
+        await heater.fetch_all()
