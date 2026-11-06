@@ -724,14 +724,22 @@ class WindhagerHttpClient:
         """
         if self.oids is None:
             return None
-        slow = len(self.slow_oids) if self._polls_before_slow_read <= 0 else len(self._slow_retry)
-        modules_check = 1 if self._polls_since_modules_check + 1 >= MODULES_CHECK_POLLS else 0
+        slow = len(self.slow_oids) if self._slow_read_due() else len(self._slow_retry)
+        modules_check = 1 if self._modules_check_due() else 0
         return len(self.oids) + slow + modules_check
+
+    def _slow_read_due(self) -> bool:
+        """Whether the next poll reads all the slow datapoints, not only those to read again."""
+        return self._polls_before_slow_read <= 0
+
+    def _modules_check_due(self) -> bool:
+        """Whether the next poll lists the modules again."""
+        return self._polls_since_modules_check + 1 >= MODULES_CHECK_POLLS
 
     async def _check_modules(self) -> None:
         """Every MODULES_CHECK_POLLS polls, discover the modules again if /1 lists others."""
-        self._polls_since_modules_check += 1
-        if self._polls_since_modules_check < MODULES_CHECK_POLLS:
+        if not self._modules_check_due():
+            self._polls_since_modules_check += 1
             return
         self._polls_since_modules_check = 0
         try:
@@ -761,7 +769,7 @@ class WindhagerHttpClient:
             "oids": await self._read(self.oids),
         }
 
-        if self._polls_before_slow_read <= 0:
+        if self._slow_read_due():
             self._slow_retry = set()
             self._slow_values = await self._read(self.slow_oids, self._slow_retry)
             self._polls_before_slow_read = SLOW_VALUES_POLLS
