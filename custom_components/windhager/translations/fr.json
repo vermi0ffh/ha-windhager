@@ -111,7 +111,7 @@
         "name": "Nombre d'allumages"
       },
       "operating_hours": {
-        "name": "Heures de fonctionnement"
+        "name": "Heures de service"
       },
       "heater_status": {
         "name": "État de la chaudière",

@@ -183,7 +183,7 @@ async def test_a_log_boiler_without_a_biowin_has_its_entities(
     ("language", "names"),
     [
         ("en", ("Buffer temperature top", "Buffer charge level", "Number of firings", "Operating hours")),
-        ("fr", ("Température haute du ballon tampon", "Niveau de charge du ballon tampon", "Nombre d'allumages", "Heures de fonctionnement")),
+        ("fr", ("Température haute du ballon tampon", "Niveau de charge du ballon tampon", "Nombre d'allumages", "Heures de service")),
         ("de", ("Puffertemperatur oben", "Puffer-Beladegrad", "Anzahl Anheizvorgänge", "Betriebsstunden")),
     ],
 )
