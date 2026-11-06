@@ -98,6 +98,21 @@
       "hopper_level": {
         "name": "Niveau de la trémie"
       },
+      "buffer_temperature_top": {
+        "name": "Température haute du ballon tampon"
+      },
+      "buffer_temperature_bottom": {
+        "name": "Température basse du ballon tampon"
+      },
+      "buffer_charge_level": {
+        "name": "Niveau de charge du ballon tampon"
+      },
+      "firing_count": {
+        "name": "Nombre d'allumages"
+      },
+      "operating_hours": {
+        "name": "Heures de service"
+      },
       "heater_status": {
         "name": "État de la chaudière",
         "state": {
