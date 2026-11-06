@@ -77,6 +77,10 @@ The integration polls the heater every 60 seconds. The InfoWIN Touch answers slo
 time, so the integration sends its requests one after the other. A change made on the heater shows in Home Assistant
 at the next poll. A change made from Home Assistant triggers a poll right after it.
 
+A poll gets half a second for each of its requests, and at least 20 seconds, so a heater with several heating circuits
+and many readings has the time it needs. The first poll after the start also discovers the heater's modules and gets
+two minutes.
+
 While the heater does not answer, the integration polls it less often, so that an InfoWIN Touch that restarts or is
 busy gets time to recover: it waits twice as long after each failed poll, up to five minutes, and polls every minute
 again as soon as the heater answers.
