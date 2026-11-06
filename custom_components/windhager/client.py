@@ -67,7 +67,7 @@ class LogBoilerReading(NamedTuple):
     entity_type: str
     # The entity's description beyond its type: state class, unit, device class…
     extra: dict[str, str] | None = None
-    # Read with the slow datapoints (every MODULES_CHECK_POLLS polls): values that change over hours
+    # Read with the slow datapoints (every SLOW_VALUES_POLLS polls): values that change over hours
     slow: bool = False
 
 
@@ -807,7 +807,8 @@ class WindhagerHttpClient:
 
         for reading in LOG_BOILER_READINGS:
             add(reading)
-        # The error code ("-" without an error), as the BioWIN's: its text and whether it has one
+        # The error code ("-", or "-.-" on an older InfoWIN Touch, without an error), as the
+        # BioWIN's: its text and whether it has one
         diagnostic = {"entity_category": "diagnostic"}
         add(LogBoilerReading("heater_error", "2/0", "error", diagnostic))
         add(LogBoilerReading("heater_problem", "2/0", "problem", diagnostic), "/problem")
