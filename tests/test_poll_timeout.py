@@ -44,6 +44,36 @@ async def test_the_requests_of_each_poll_are_known_beforehand() -> None:
         assert client.fetch.await_count == expected
 
 
+async def test_a_slow_datapoint_to_read_again_is_counted() -> None:
+    client = WindhagerHttpClient("192.0.2.1", "secret")
+    failed: set[str] = set()
+    without_value: set[str] = set()
+
+    async def fetch(url: str) -> dict:
+        if url == "/1":
+            return MODULES
+        if url in client.slow_oids and not failed:
+            # A request that fails is read again on the next poll
+            failed.add(url)
+            raise TimeoutError
+        if url in client.slow_oids and not without_value:
+            # A datapoint without a value waits for the next slow read
+            without_value.add(url)
+        if url in without_value:
+            return {"value": "-.-"}
+        return {"value": "1"}
+
+    client.fetch = AsyncMock(side_effect=fetch)
+    await client.fetch_all()
+    assert client._slow_retry == failed
+
+    expected = client.requests_next_poll()
+    assert expected == len(client.oids) + 1
+    client.fetch.reset_mock()
+    await client.fetch_all()
+    assert client.fetch.await_count == expected
+
+
 @pytest.mark.parametrize(("requests", "state"), [(20, ConfigEntryState.LOADED), (2, ConfigEntryState.SETUP_RETRY)])
 async def test_the_poll_gets_the_time_its_requests_need(
     hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock, requests: int, state: ConfigEntryState
@@ -65,3 +95,18 @@ async def test_the_poll_gets_the_time_its_requests_need(
 
     # 20 requests: 1 s, enough; 2 requests: 0.1 s, not enough
     assert entry.state is state
+
+
+async def test_the_setup_retry_says_how_long_it_waited(
+    hass: HomeAssistant, entry: MockConfigEntry, client: MagicMock
+) -> None:
+    client.fetch_all.side_effect = asyncio.TimeoutError
+    client.requests_next_poll.return_value = 80
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # 80 requests: 40 s
+    assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert entry.error_reason_translation_key == "timeout"
+    assert entry.error_reason_translation_placeholders == {"host": entry.data["host"], "seconds": "40"}
