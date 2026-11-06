@@ -200,8 +200,9 @@ class WindhagerOperatingModeSensor(WindhagerSelectSensor):
     _attr_options = OPERATING_MODES
 
 
-# The error code's value without an error (2026-10-30: "-" before a fault, "42" during it)
-NO_ERROR = "-"
+# The error code's values without an error: "-" (2026-10-30: "-" before a fault, "42" during
+# it), "-.-" on an older InfoWIN Touch (software V 3.21, no error on its screen, 2026-11-06)
+NO_ERROR = ("-", "-.-")
 # Home Assistant's limit for a state
 MAX_STATE_LENGTH = 255
 
@@ -219,7 +220,7 @@ class WindhagerErrorSensor(WindhagerBaseSensor):
         code = self._code
         if code is None:
             return None
-        if code == NO_ERROR:
+        if code in NO_ERROR:
             # Translated: "No error"
             return "none"
         text = self.coordinator.error_texts.get(code)
@@ -229,7 +230,7 @@ class WindhagerErrorSensor(WindhagerBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """The code alone, for automations: the text depends on the heater's language."""
         code = self._code
-        return {"code": parse_value(code, int, self._oid) if code not in (None, NO_ERROR) else None}
+        return {"code": parse_value(code, int, self._oid) if code is not None and code not in NO_ERROR else None}
 
 
 # The sensor of each type the client describes

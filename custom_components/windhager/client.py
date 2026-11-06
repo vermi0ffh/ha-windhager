@@ -482,7 +482,7 @@ class WindhagerHttpClient:
                         f"{device_id}{fct_id}/2/1/0",
                         # Operating mode: on, or switched off on the heater's screen
                         f"{device_id}{fct_id}/2/59/0",
-                        # Error code: "-" without an error
+                        # Error code: "-" or "-.-" without an error
                         f"{device_id}{fct_id}/2/0/0",
                         # Hopper level, not listed by the heater's lookups
                         f"{device_id}{fct_id}/43/42/0",
@@ -778,10 +778,13 @@ class WindhagerHttpClient:
         added to `failed`.
         """
         values: dict[str, str | None] = {}
+        # An error code's "-.-" is a value: an older InfoWIN Touch (software V 3.21) gives it
+        # without an error, where a newer one gives "-" (2026-11-06, issue #101)
+        error_oids = {device["oid"] for device in self.devices if device.get("type") == "error"}
         for oid in oids:
             try:
                 json = await self.fetch(oid)
-                if "value" in json and json["value"] != "-.-":
+                if "value" in json and (json["value"] != "-.-" or oid in error_oids):
                     values[oid] = json["value"]
                 else:
                     values[oid] = None
