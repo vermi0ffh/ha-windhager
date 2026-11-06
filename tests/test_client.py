@@ -251,6 +251,21 @@ async def test_the_datapoints_are_read_where_an_older_infowin_answers_them(heate
     assert data["oids"]["/1/60/0/0/7/0"] == "69.3"
 
 
+async def test_an_error_code_given_as_dashes_is_kept_while_a_reading_is_unknown(heater: Heater) -> None:
+    # Software V 3.21 gives "-.-" for its error code without an error (issue #101)
+    module = {**HEATER_MODULE, "functions": [{"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN 2"}]}
+    heater.lookups["/1"] = (200, [module])
+    heater.read_answers["/1/60/0/2/0/0"] = (200, {"OID": "/1/60/0/2/0/0", "value": "-.-"})
+    heater.read_answers["/1/60/0/0/7/0"] = (200, {"OID": "/1/60/0/0/7/0", "value": "-.-"})
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    data = await client.fetch_all()
+    await client.close()
+
+    assert data["oids"]["/1/60/0/2/0/0"] == "-.-"
+    assert data["oids"]["/1/60/0/0/7/0"] is None
+
+
 async def test_a_heater_that_does_not_answer_a_lookup_cannot_connect(socket_enabled: None) -> None:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
@@ -280,8 +295,10 @@ async def test_a_datapoint_the_heater_gives_as_dashes_reads_unknown() -> None:
 
     data = await client.fetch_all()
 
-    # The datapoints read on every poll; the slow ones keep their last value until read again
-    assert client.oids and all(data["oids"][oid] is None for oid in client.oids)
+    # The datapoints read on every poll; the slow ones keep their last value until read again.
+    # The error code's "-.-" means no error (issue #101): its own test above
+    readings = client.oids - {"/1/60/0/2/0/0"}
+    assert readings and all(data["oids"][oid] is None for oid in readings)
 
 
 def error_texts(lang: str, text: str) -> str:
