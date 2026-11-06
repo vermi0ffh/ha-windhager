@@ -115,6 +115,16 @@ Each heating circuit has these entities:
 | Target temperature | The temperature the circuit is heating to. |
 | Outside temperature | The outside sensor's temperature. |
 | Comfort temperature correction, Current temperature correction | The corrections set on the heater, in K. |
+| Flow temperature, Flow target temperature | The water sent to the circuit, and its target (0 °C while the circuit does not heat). |
+| Boiler temperature, Boiler target temperature | The water the circuit draws from, the heater's or the buffer's, and its target. |
+| Operating mode | What the circuit does, in the heater's own words: heating, setback, hot water charging, standby at the heating limit, frost protection… |
+| Circuit pump | On while the circuit's pump runs. |
+| Hot water temperature, Hot water target temperature | The hot water tank's temperature and target, for a circuit that also heats the hot water. |
+| Hot water charging pump | On while the pump charging the hot water tank runs. |
+
+A circuit has hot water entities only if it is configured with hot water on the heater: its *DHW circuit* setting,
+read when the integration starts and when the modules change. If that setting cannot be read, they are kept only if
+the heater gives them a value.
 
 The heater has these entities:
 
@@ -130,9 +140,9 @@ The heater has these entities:
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
 | Heater problem | On while the heater reports an error. |
 
-The *Heater status* and *Operating mode* also carry the heater's own text for their code in their `heater_text`
-attribute, in Home Assistant's language when the heater has it, else in English or German. A code the integration
-does not know yet, from a newer firmware, is still a state, with its text in that attribute.
+The *Heater status* and *Operating mode*, and a circuit's *Operating mode*, also carry the heater's own text for their
+code in their `heater_text` attribute, in Home Assistant's language when the heater has it, else in English or German.
+A code the integration does not know yet, from a newer firmware, is still a state, with its text in that attribute.
 
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
 until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
@@ -252,8 +262,8 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
-  supported yet.
+- Only the heater and heating circuit functions are read, with the hot water of a circuit that heats it. Buffers and
+  solar modules are not supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
   minutes for the pellet consumption and the running times until cleaning).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
