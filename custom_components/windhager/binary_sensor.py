@@ -42,4 +42,4 @@ class WindhagerProblemSensor(WindhagerEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         code = self.coordinator.data.get("oids", {}).get(self._oid)
-        return None if code is None else code != NO_ERROR
+        return None if code is None else code not in NO_ERROR
