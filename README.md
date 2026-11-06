@@ -20,8 +20,9 @@ The integration talks only to the InfoWIN Touch, with no cloud. It polls the hea
 | Device                                                                                  | Status | Notes                              |
 | --------------------------------------------------------------------------------------- | :----: | ---------------------------------- |
 | [BioWIN2](https://www.windhager.com/en/products/pellet-heating-systems/biowin2-3-33kw/) |   ✅   | Infowin Touch (1.0.2), API (1.0.0) |
+| LogWIN (log boiler)                                                                     |   ✅   | Read only, beside a BioWIN 2       |
 
-The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN) and the heating circuits (a
+The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN), a log boiler (LogWIN) and the heating circuits (a
 UMUMLZ module, for instance). Other Windhager heaters behind an InfoWIN Touch may work if their modules expose the
 same functions. The diagnostics (see [Troubleshooting](#troubleshooting)) show what yours exposes.
 
@@ -134,8 +135,18 @@ The *Heater status* and *Operating mode* also carry the heater's own text for th
 attribute, in Home Assistant's language when the heater has it, else in English or German. A code the integration
 does not know yet, from a newer firmware, is still a state, with its text in that attribute.
 
+A log boiler (LogWIN) has these entities, read only:
+
+| Entity | Description |
+| ------ | ----------- |
+| Heater status, Operating mode, Heater error, Heater problem | As the heater's above: the LogWIN uses the same codes. |
+| Heater temperature, Fumes temperature, Combustion chamber temperature | The log boiler's temperatures. |
+| Buffer temperature top, Buffer temperature bottom | The buffer tank's sensors wired to the LogWIN. |
+| Buffer charge level | How far the buffer tank is charged, in %. |
+| Number of firings, Operating hours | The log boiler's counters. |
+
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
-until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
+until cleaning, Heater error and Heater problem (of the heater and of the log boiler). The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.
 
 ### Thermostat
@@ -252,10 +263,10 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater and heating circuit functions are read. Hot water tanks, buffers and solar modules are not
-  supported yet.
+- Only the heater, log boiler and heating circuit functions are read. Hot water tanks, buffer modules and solar
+  modules are not supported yet (a buffer's temperatures show only through a LogWIN).
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
-  minutes for the pellet consumption and the running times until cleaning).
+  minutes for the pellet consumption, the running times until cleaning and the log boiler's counters).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
 - A heater status the integration does not know (beyond code 17), or an operating mode beyond code 11, shows as its
   code with the heater's text in `heater_text`. It shows as unknown only when the heater does not name the code, or

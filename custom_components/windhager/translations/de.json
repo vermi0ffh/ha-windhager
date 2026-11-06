@@ -98,6 +98,21 @@
       "hopper_level": {
         "name": "Füllstand Vorratsbehälter"
       },
+      "buffer_temperature_top": {
+        "name": "Puffertemperatur oben"
+      },
+      "buffer_temperature_bottom": {
+        "name": "Puffertemperatur unten"
+      },
+      "buffer_charge_level": {
+        "name": "Puffer-Beladegrad"
+      },
+      "firing_count": {
+        "name": "Anzahl Anheizvorgänge"
+      },
+      "operating_hours": {
+        "name": "Betriebsstunden"
+      },
       "heater_status": {
         "name": "Kesselstatus",
         "state": {

@@ -98,6 +98,21 @@
       "hopper_level": {
         "name": "Hopper level"
       },
+      "buffer_temperature_top": {
+        "name": "Buffer temperature top"
+      },
+      "buffer_temperature_bottom": {
+        "name": "Buffer temperature bottom"
+      },
+      "buffer_charge_level": {
+        "name": "Buffer charge level"
+      },
+      "firing_count": {
+        "name": "Number of firings"
+      },
+      "operating_hours": {
+        "name": "Operating hours"
+      },
       "heater_status": {
         "name": "Heater status",
         "state": {

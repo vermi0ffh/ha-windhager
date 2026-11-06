@@ -4,7 +4,7 @@ import logging
 # The InfoWIN Touch's own text files, on the local network: Python's expat refuses
 # external entities and limits entity expansion
 import xml.etree.ElementTree as ET
-from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
+from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE, LOG_BOILER_FUNCTION_TYPE
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,6 +55,34 @@ def modules_signature(json_devices: list[dict]) -> tuple:
 def is_datapoint(url: str) -> bool:
     """Whether `url` is a datapoint's OID (subnet, node, function, group, member, index)."""
     return len(url.strip("/").split("/")) == 6
+
+
+# The log boiler's readings: (key, group/member, entity type, its description). All of them
+# are on the LogWIN's title page (API level 155) or its info level (156), write-protected
+# (read on a LogWIN, node 65, on 2026-11-06): the values the heater shows to everyone
+LOG_BOILER_READINGS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
+    ("heater_temperature", "0/7", "temperature", {}),
+    ("fumes_temperature", "0/11", "temperature", {}),
+    ("combustion_chamber_temperature", "0/45", "temperature", {}),
+    # The buffer tank's sensors wired to the LogWIN: top and bottom (its "middle" read
+    # 327.6 °C there, no sensor connected, so it is left out)
+    ("buffer_temperature_top", "0/15", "temperature", {}),
+    ("buffer_temperature_bottom", "0/16", "temperature", {}),
+    ("buffer_charge_level", "23/87", "sensor", {"state_class": "measurement", "unit": "%"}),
+    # The same codes and texts as the BioWIN's (AufzaehlTexte "2/1" and "2/59", 2026-11-06)
+    ("heater_status", "2/1", "select", {}),
+    ("operating_mode", "2/59", "operating_mode", {}),
+)
+# Counters that change over hours: read with the slow datapoints
+LOG_BOILER_SLOW_READINGS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
+    ("firing_count", "20/112", "sensor", {"state_class": "total_increasing"}),
+    (
+        "operating_hours",
+        "2/81",
+        "sensor",
+        {"device_class": "duration", "state_class": "total_increasing", "unit": "h"},
+    ),
+)
 
 
 def heater_id(json_devices: list[dict]) -> str | None:
@@ -723,6 +751,55 @@ class WindhagerHttpClient:
                         **module,
                     }
                 )
+
+            self._discover_log_boiler(device, device_id, module)
+
+    def _discover_log_boiler(self, device: dict, device_id: str, module: dict) -> None:
+        """The entities of a module's log boiler (LogWIN), if it has an unlocked one.
+
+        Read only: the heater's own entities (status, temperatures, error) and the buffer
+        tank's sensors the LogWIN reads.
+        """
+        functions = [
+            f
+            for f in device["functions"]
+            if f["fctType"] == LOG_BOILER_FUNCTION_TYPE and f["lock"] is False
+        ]
+        if not functions:
+            return
+        fct_id = f"/{functions[0]['fctId']}"
+        name = functions[0]["name"]
+        prefix = f"{device_id}{fct_id}"
+        unique_prefix = f"{self.id_base}/1/{device['nodeId']}{fct_id}"
+        common = {
+            "device_id": self.slugify(f"{self.id_base}{device['nodeId']}"),
+            "device_name": name,
+            **module,
+        }
+
+        def add(key: str, datapoint: str, entity_type: str, extra: dict, suffix: str = "") -> None:
+            self.devices.append(
+                {
+                    "id": self.slugify(f"{unique_prefix}/{datapoint}/0{suffix}"),
+                    "key": key,
+                    "name": f"{name} {key.replace('_', ' ').capitalize()}",
+                    "type": entity_type,
+                    "oid": f"{prefix}/{datapoint}/0",
+                    **extra,
+                    **common,
+                }
+            )
+
+        for key, datapoint, entity_type, extra in LOG_BOILER_READINGS:
+            self.oids.add(f"{prefix}/{datapoint}/0")
+            add(key, datapoint, entity_type, extra)
+        for key, datapoint, entity_type, extra in LOG_BOILER_SLOW_READINGS:
+            self.slow_oids.add(f"{prefix}/{datapoint}/0")
+            add(key, datapoint, entity_type, extra)
+        # The error code ("-" without an error), as the BioWIN's: its text and whether it has one
+        self.oids.add(f"{prefix}/2/0/0")
+        add("heater_error", "2/0", "error", {"entity_category": "diagnostic"})
+        add("heater_problem", "2/0", "problem", {"entity_category": "diagnostic"}, "/problem")
 
     async def _check_modules(self) -> None:
         """Every MODULES_CHECK_POLLS polls, discover the modules again if /1 lists others."""
