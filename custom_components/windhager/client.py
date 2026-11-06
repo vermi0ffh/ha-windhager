@@ -52,6 +52,11 @@ def modules_signature(json_devices: list[dict]) -> tuple:
     )
 
 
+def is_datapoint(url: str) -> bool:
+    """Whether `url` is a datapoint's OID (subnet, node, function, group, member, index)."""
+    return len(url.strip("/").split("/")) == 6
+
+
 def heater_id(json_devices: list[dict]) -> str | None:
     """The heater's identity: the Neuron ID of the module holding its heater function.
 
@@ -149,9 +154,13 @@ class WindhagerHttpClient:
             self._session = None
 
     async def fetch(self, url):
+        # A datapoint is read from /datapoint, the rest is looked up: older InfoWIN Touches
+        # answer a datapoint's lookup 404 (software V 3.21 on 2026-11-06, issue #101), and
+        # the newer ones answer both alike
+        api = "datapoint" if is_datapoint(url) else "lookup"
         try:
             await self._ensure_session()
-            ret = await self._session.get(f"http://{self.host}/api/1.0/lookup{url}")
+            ret = await self._session.get(f"http://{self.host}/api/1.0/{api}{url}")
             # The heater refuses the password with a 401 and an HTML page (2026-10-29),
             # which reading as JSON would turn into a mere connection error
             if ret.status == 401:

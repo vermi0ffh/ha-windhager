@@ -20,6 +20,8 @@ from custom_components.windhager.exceptions import CannotConnect, InvalidAuth, W
 PASSWORD = "secret"
 REALM = "Windhager"
 NONCE = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
+# What the heater answers a datapoint it does not serve at that URL with (2026-11-06)
+NOT_FOUND = {"code": 404, "message": "Not Found", "reason": None}
 
 
 def md5(text: str) -> str:
@@ -41,6 +43,10 @@ class Heater:
     lookups: dict[str, tuple[int, object]] = field(default_factory=dict)
     # The paths of the lookups it answered
     looked_up: list[str] = field(default_factory=list)
+    # What it answers a datapoint's read with, by OID: (status, JSON body); 404 for the others
+    read_answers: dict[str, tuple[int, object]] = field(default_factory=dict)
+    # The OIDs of the datapoints it was asked to read
+    read: list[str] = field(default_factory=list)
     # The enum texts' files it serves, by language
     enum_texts: dict[str, str] = field(default_factory=dict)
     # Its other text files, by file name ("VarIdentTexte_de")
@@ -74,6 +80,11 @@ async def heater(socket_enabled: None) -> AsyncIterator[Heater]:
                 return web.Response(status=state.write_status)
             state.datapoints.append(await request.read())
             return web.json_response({})
+        if request.path.startswith("/api/1.0/datapoint/"):
+            oid = request.path.removeprefix("/api/1.0/datapoint")
+            state.read.append(oid)
+            status, body = state.read_answers.get(oid, (404, NOT_FOUND))
+            return web.json_response(body, status=status)
         path = request.path.removeprefix("/api/1.0/lookup")
         state.looked_up.append(path)
         if path in state.lookups:
@@ -224,6 +235,20 @@ async def test_a_datapoint_answered_without_a_value_reads_unknown() -> None:
 
     # The datapoints read on every poll; the slow ones keep their last value until read again
     assert client.oids and all(data["oids"][oid] is None for oid in client.oids)
+
+
+async def test_the_datapoints_are_read_where_an_older_infowin_answers_them(heater: Heater) -> None:
+    # Software V 3.21 answers a datapoint's lookup 404, and its /datapoint the value (issue #101)
+    module = {**HEATER_MODULE, "functions": [{"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN 2"}]}
+    heater.lookups["/1"] = (200, [module])
+    heater.lookups["/1/60/0/0/7/0"] = (404, NOT_FOUND)
+    heater.read_answers["/1/60/0/0/7/0"] = (200, {"OID": "/1/60/0/0/7/0", "value": "69.3"})
+    client = WindhagerHttpClient(heater.host, PASSWORD)
+
+    data = await client.fetch_all()
+    await client.close()
+
+    assert data["oids"]["/1/60/0/0/7/0"] == "69.3"
 
 
 async def test_a_heater_that_does_not_answer_a_lookup_cannot_connect(socket_enabled: None) -> None:
@@ -539,10 +564,12 @@ async def test_a_slow_datapoint_whose_request_failed_is_read_again_with_the_next
 
 async def test_a_slow_datapoint_the_heater_refuses_with_409_waits_for_the_next_slow_read(heater: Heater) -> None:
     # A datapoint a function does not have, or has locked, is refused with a 409 and a
-    # JSON body, the same every time (read on a BioWIN Hybrid on 2026-11-01): an answer,
-    # not a failed request, so it is not requested again with the next poll
+    # JSON body, the same every time (read on a BioWIN Hybrid on 2026-11-01; at /datapoint as
+    # at its lookup on a BioWIN 2 on 2026-11-06): an answer, not a failed request, so it is
+    # not requested again with the next poll
     refused = {"code": 409, "message": "Conflict", "reason": "Target returns invalid Identifier: 63-127"}
-    heater.lookups = {"/1": (200, [HEATER]), "/1/60/0/23/103/0": (409, refused)}
+    heater.lookups = {"/1": (200, [HEATER])}
+    heater.read_answers = {"/1/60/0/23/103/0": (409, refused)}
     client = WindhagerHttpClient(heater.host, PASSWORD)
 
     first = await client.fetch_all()
@@ -551,7 +578,7 @@ async def test_a_slow_datapoint_the_heater_refuses_with_409_waits_for_the_next_s
     await client.close()
 
     assert first["oids"]["/1/60/0/23/103/0"] is None
-    assert heater.looked_up.count("/1/60/0/23/103/0") == 1
+    assert heater.read.count("/1/60/0/23/103/0") == 1
 # A heating circuit's module functions, as a BioWIN 2 answered them on 2026-11-01: the
 # circuit's type (7/76) and its hot water's (5/76), and a reading the heater has no name for
 SCANNED = {
