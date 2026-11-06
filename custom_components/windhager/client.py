@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import logging
+from typing import NamedTuple
 # The InfoWIN Touch's own text files, on the local network: Python's expat refuses
 # external entities and limits entity expansion
 import xml.etree.ElementTree as ET
@@ -57,30 +58,42 @@ def is_datapoint(url: str) -> bool:
     return len(url.strip("/").split("/")) == 6
 
 
-# The log boiler's readings: (key, group/member, entity type, its description). All of them
-# are on the LogWIN's title page (API level 155) or its info level (156), write-protected
-# (read on a LogWIN, node 65, on 2026-11-06): the values the heater shows to everyone
-LOG_BOILER_READINGS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
-    ("heater_temperature", "0/7", "temperature", {}),
-    ("fumes_temperature", "0/11", "temperature", {}),
-    ("combustion_chamber_temperature", "0/45", "temperature", {}),
+class LogBoilerReading(NamedTuple):
+    """A datapoint of the log boiler and the entity reading it."""
+
+    key: str
+    # "group/member" of the datapoint, under the LogWIN's function
+    datapoint: str
+    entity_type: str
+    # The entity's description beyond its type: state class, unit, device class…
+    extra: dict[str, str] | None = None
+    # Read with the slow datapoints (every MODULES_CHECK_POLLS polls): values that change over hours
+    slow: bool = False
+
+
+# The log boiler's readings. All of them are on the LogWIN's title page (API level 155) or
+# its info level (156), write-protected (read on a LogWIN, node 65, on 2026-11-06): the
+# values the heater shows to everyone
+LOG_BOILER_READINGS: tuple[LogBoilerReading, ...] = (
+    LogBoilerReading("heater_temperature", "0/7", "temperature"),
+    LogBoilerReading("fumes_temperature", "0/11", "temperature"),
+    LogBoilerReading("combustion_chamber_temperature", "0/45", "temperature"),
     # The buffer tank's sensors wired to the LogWIN: top and bottom (its "middle" read
     # 327.6 °C there, no sensor connected, so it is left out)
-    ("buffer_temperature_top", "0/15", "temperature", {}),
-    ("buffer_temperature_bottom", "0/16", "temperature", {}),
-    ("buffer_charge_level", "23/87", "sensor", {"state_class": "measurement", "unit": "%"}),
+    LogBoilerReading("buffer_temperature_top", "0/15", "temperature"),
+    LogBoilerReading("buffer_temperature_bottom", "0/16", "temperature"),
+    LogBoilerReading("buffer_charge_level", "23/87", "sensor", {"state_class": "measurement", "unit": "%"}),
     # The same codes and texts as the BioWIN's (AufzaehlTexte "2/1" and "2/59", 2026-11-06)
-    ("heater_status", "2/1", "select", {}),
-    ("operating_mode", "2/59", "operating_mode", {}),
-)
-# Counters that change over hours: read with the slow datapoints
-LOG_BOILER_SLOW_READINGS: tuple[tuple[str, str, str, dict[str, str]], ...] = (
-    ("firing_count", "20/112", "sensor", {"state_class": "total_increasing"}),
-    (
+    LogBoilerReading("heater_status", "2/1", "select"),
+    LogBoilerReading("operating_mode", "2/59", "operating_mode"),
+    # Counters: a log boiler is fired by hand, hence "firings" rather than the BioWIN's burner starts
+    LogBoilerReading("firing_count", "20/112", "sensor", {"state_class": "total_increasing"}, slow=True),
+    LogBoilerReading(
         "operating_hours",
         "2/81",
         "sensor",
         {"device_class": "duration", "state_class": "total_increasing", "unit": "h"},
+        slow=True,
     ),
 )
 
@@ -777,29 +790,27 @@ class WindhagerHttpClient:
             **module,
         }
 
-        def add(key: str, datapoint: str, entity_type: str, extra: dict, suffix: str = "") -> None:
+        def add(reading: LogBoilerReading, suffix: str = "") -> None:
+            oid = f"{prefix}/{reading.datapoint}/0"
+            (self.slow_oids if reading.slow else self.oids).add(oid)
             self.devices.append(
                 {
-                    "id": self.slugify(f"{unique_prefix}/{datapoint}/0{suffix}"),
-                    "key": key,
-                    "name": f"{name} {key.replace('_', ' ').capitalize()}",
-                    "type": entity_type,
-                    "oid": f"{prefix}/{datapoint}/0",
-                    **extra,
+                    "id": self.slugify(f"{unique_prefix}/{reading.datapoint}/0{suffix}"),
+                    "key": reading.key,
+                    "name": f"{name} {reading.key.replace('_', ' ').capitalize()}",
+                    "type": reading.entity_type,
+                    "oid": oid,
+                    **(reading.extra or {}),
                     **common,
                 }
             )
 
-        for key, datapoint, entity_type, extra in LOG_BOILER_READINGS:
-            self.oids.add(f"{prefix}/{datapoint}/0")
-            add(key, datapoint, entity_type, extra)
-        for key, datapoint, entity_type, extra in LOG_BOILER_SLOW_READINGS:
-            self.slow_oids.add(f"{prefix}/{datapoint}/0")
-            add(key, datapoint, entity_type, extra)
+        for reading in LOG_BOILER_READINGS:
+            add(reading)
         # The error code ("-" without an error), as the BioWIN's: its text and whether it has one
-        self.oids.add(f"{prefix}/2/0/0")
-        add("heater_error", "2/0", "error", {"entity_category": "diagnostic"})
-        add("heater_problem", "2/0", "problem", {"entity_category": "diagnostic"}, "/problem")
+        diagnostic = {"entity_category": "diagnostic"}
+        add(LogBoilerReading("heater_error", "2/0", "error", diagnostic))
+        add(LogBoilerReading("heater_problem", "2/0", "problem", diagnostic), "/problem")
 
     async def _check_modules(self) -> None:
         """Every MODULES_CHECK_POLLS polls, discover the modules again if /1 lists others."""
