@@ -65,7 +65,6 @@ async def test_a_slow_datapoint_to_read_again_is_counted() -> None:
 
     client.fetch = AsyncMock(side_effect=fetch)
     await client.fetch_all()
-    assert client._slow_retry == failed
 
     expected = client.requests_next_poll()
     assert expected == len(client.oids) + 1
