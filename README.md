@@ -117,6 +117,9 @@ Each heating circuit has these entities:
 | Outside temperature | The outside sensor's temperature. |
 | Comfort temperature correction, Current temperature correction | The corrections set on the heater, in K. |
 
+Whether a circuit's heating curve fits can be checked from the rooms' thermostats and valves:
+[docs/heating-curve.md](docs/heating-curve.md).
+
 The heater has these entities:
 
 | Entity | Description |
