@@ -104,6 +104,21 @@
       "hopper_level": {
         "name": "Füllstand Vorratsbehälter"
       },
+      "buffer_temperature_top": {
+        "name": "Puffertemperatur oben"
+      },
+      "buffer_temperature_bottom": {
+        "name": "Puffertemperatur unten"
+      },
+      "buffer_charge_level": {
+        "name": "Puffer-Beladegrad"
+      },
+      "firing_count": {
+        "name": "Anzahl Anheizvorgänge"
+      },
+      "operating_hours": {
+        "name": "Betriebsstunden"
+      },
       "heater_status": {
         "name": "Kesselstatus",
         "state": {
@@ -279,7 +294,7 @@
       "message": "Der Kessel unter {host} hat das Passwort abgelehnt."
     },
     "timeout": {
-      "message": "Der Kessel unter {host} hat nicht innerhalb von 20 Sekunden geantwortet."
+      "message": "Der Kessel unter {host} hat nicht innerhalb von {seconds} Sekunden geantwortet."
     },
     "cannot_connect": {
       "message": "Der Kessel unter {host} kann nicht gelesen werden: {error}"

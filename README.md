@@ -20,8 +20,9 @@ The integration talks only to the InfoWIN Touch, with no cloud. It polls the hea
 | Device                                                                                  | Status | Notes                              |
 | --------------------------------------------------------------------------------------- | :----: | ---------------------------------- |
 | [BioWIN2](https://www.windhager.com/en/products/pellet-heating-systems/biowin2-3-33kw/) |   ✅   | Infowin Touch (1.0.2), API (1.0.0) |
+| LogWIN (log boiler)                                                                     |   ✅   | Read only, beside a BioWIN 2       |
 
-The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN) and the heating circuits (a
+The integration reads the modules that the InfoWIN Touch lists: a heater module (BioWIN), a log boiler (LogWIN) and the heating circuits (a
 UMUMLZ module, for instance). Other Windhager heaters behind an InfoWIN Touch may work if their modules expose the
 same functions. The diagnostics (see [Troubleshooting](#troubleshooting)) show what yours exposes.
 
@@ -77,6 +78,10 @@ The integration polls the heater every 60 seconds. The InfoWIN Touch answers slo
 time, so the integration sends its requests one after the other. A change made on the heater shows in Home Assistant
 at the next poll. A change made from Home Assistant triggers a poll right after it.
 
+A poll gets half a second for each of its requests, and at least 20 seconds, so a heater with several heating circuits
+and many readings has the time it needs. The first poll after the start also discovers the heater's modules and gets
+two minutes.
+
 While the heater does not answer, the integration polls it less often, so that an InfoWIN Touch that restarts or is
 busy gets time to recover: it waits twice as long after each failed poll, up to five minutes, and polls every minute
 again as soon as the heater answers.
@@ -126,6 +131,9 @@ A circuit has hot water entities only if it is configured with hot water on the 
 read when the integration starts and when the modules change. If that setting cannot be read, they are kept only if
 the heater gives them a value.
 
+Whether a circuit's heating curve fits can be checked from the rooms' thermostats and valves:
+[docs/heating-curve.md](docs/heating-curve.md).
+
 The heater has these entities:
 
 | Entity | Description |
@@ -150,8 +158,18 @@ A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, wi
 | ------ | ----------- |
 | Buffer temperature TPE, Buffer temperature TPA | The buffer's temperature sensors, named as on the heater (TPE near the top, TPA lower). A sensor not connected shows as unknown. |
 
+A log boiler (LogWIN) has these entities, read only:
+
+| Entity | Description |
+| ------ | ----------- |
+| Heater status, Operating mode, Heater error, Heater problem | As the heater's above: the LogWIN uses the same codes. |
+| Heater temperature, Fumes temperature, Combustion chamber temperature | The log boiler's temperatures. |
+| Buffer temperature top, Buffer temperature bottom | The buffer tank's sensors wired to the LogWIN. |
+| Buffer charge level | How far the buffer tank is charged, in %. |
+| Number of firings, Operating hours | The log boiler's counters. |
+
 These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
-until cleaning, Heater error and Heater problem. The two corrections are disabled on a new installation. To follow them, enable them in the entity's
+until cleaning, Heater error and Heater problem (of the heater and of the log boiler). The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.
 
 ### Thermostat
@@ -268,10 +286,10 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater, the heating circuits (with the hot water of a circuit that heats it) and the buffer tanks are
-  read. Solar modules are not supported yet.
+- Only the heater, the log boiler, the heating circuits (with the hot water of a circuit that heats it) and the buffer
+  tanks are read. Hot water tanks and solar modules are not supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
-  minutes for the pellet consumption and the running times until cleaning).
+  minutes for the pellet consumption, the running times until cleaning and the log boiler's counters).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
 - A heater status the integration does not know (beyond code 17), or an operating mode beyond code 11, shows as its
   code with the heater's text in `heater_text`. It shows as unknown only when the heater does not name the code, or

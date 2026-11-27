@@ -1,6 +1,9 @@
 {
   "domain": "windhager",
   "name": "Windhager Heater",
+  "categories": [
+    "climate.thermostats_heating"
+  ],
   "codeowners": [
     "@vermi0ffh",
     "@jannemannX"
@@ -19,7 +22,7 @@
   "issue_tracker": "https://github.com/vermi0ffh/ha-windhager/issues",
   "requirements": [],
   "ssdp": [],
-  "version": "0.2.0",
+  "version": "0.4.0",
   "zeroconf": [
     {
       "type": "_workstation._tcp.local.",
