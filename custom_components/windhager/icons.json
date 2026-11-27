@@ -30,6 +30,15 @@
       "hopper_level": {
         "default": "mdi:storage-tank"
       },
+      "buffer_charge_level": {
+        "default": "mdi:water-thermometer"
+      },
+      "firing_count": {
+        "default": "mdi:fire"
+      },
+      "operating_hours": {
+        "default": "mdi:timer-outline"
+      },
       "pellet_consumption": {
         "default": "mdi:grain"
       },

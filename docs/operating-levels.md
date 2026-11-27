@@ -63,6 +63,20 @@ menu's order; their names come from the heater's `EbenenTexte`, the datapoints' 
 A level a module does not have is missing from its lookup: the hot water circuit of this heater has level 114, the
 heating circuits do not.
 
+## Log boiler (function type 10)
+
+Measured on a LogWIN beside a BioWIN 2 on 2026-11-06, read-only.
+
+| API level | Menu item | Datapoints | Heater level |
+|-----------|-----------|------------|--------------|
+| 155 | Titelbild | `2/59` Betriebsarten, `2/1` Betriebsphasen, `0/7` Kesseltemperatur, `2/0` Alarmcode | info (read) |
+| 156 | Infoebene | `12/38`, `2/81` Betriebsstunden, `0/15`, `0/16`, `0/17` Puffertemperatur oben/unten/Mitte, `20/112` Anzahl Anheizvorgänge, `0/11` Abgas, `0/45` Brennkammer, `23/87` Puffer-Beladegrad, `4/92` | info (read) |
+| 157 | Betreiberebene | `12/42` Startverzögerung Automatikkessel, `2/72`, `2/70`, `20/111` Sperrzeit bis, `20/65` | operator |
+| 158 | Serviceebene | `9/75`, `12/40`, `23/88`, `23/90`, `23/91`, `0/42`, `12/105`, `12/103`, `23/98`, `20/118` | service |
+| 159 | (not named by the heater) | `39/0`, `39/4`, `39/22`, `39/23`, `39/25` | unsure: counts as service |
+
+The integration reads only datapoints of levels 155 and 156, all write-protected, and writes nothing.
+
 ## Other function types
 
 Not mapped yet. The heater (type 9), a buffer (16), a heat pump or a hybrid manager have their own level ids. Until

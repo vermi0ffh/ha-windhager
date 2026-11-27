@@ -1,10 +1,11 @@
 import asyncio
 import aiohttp
 import logging
+from typing import NamedTuple
 # The InfoWIN Touch's own text files, on the local network: Python's expat refuses
 # external entities and limits entity expansion
 import xml.etree.ElementTree as ET
-from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE
+from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE, LOG_BOILER_FUNCTION_TYPE
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,6 +83,51 @@ def modules_signature(json_devices: list[dict]) -> tuple:
             for device in json_devices
         )
     )
+
+
+def is_datapoint(url: str) -> bool:
+    """Whether `url` is a datapoint's OID (subnet, node, function, group, member, index)."""
+    return len(url.strip("/").split("/")) == 6
+
+
+class LogBoilerReading(NamedTuple):
+    """A datapoint of the log boiler and the entity reading it."""
+
+    key: str
+    # "group/member" of the datapoint, under the LogWIN's function
+    datapoint: str
+    entity_type: str
+    # The entity's description beyond its type: state class, unit, device class…
+    extra: dict[str, str] | None = None
+    # Read with the slow datapoints (every SLOW_VALUES_POLLS polls): values that change over hours
+    slow: bool = False
+
+
+# The log boiler's readings. All of them are on the LogWIN's title page (API level 155) or
+# its info level (156), write-protected (read on a LogWIN, node 65, on 2026-11-06): the
+# values the heater shows to everyone
+LOG_BOILER_READINGS: tuple[LogBoilerReading, ...] = (
+    LogBoilerReading("heater_temperature", "0/7", "temperature"),
+    LogBoilerReading("fumes_temperature", "0/11", "temperature"),
+    LogBoilerReading("combustion_chamber_temperature", "0/45", "temperature"),
+    # The buffer tank's sensors wired to the LogWIN: top and bottom (its "middle" read
+    # 327.6 °C there, no sensor connected, so it is left out)
+    LogBoilerReading("buffer_temperature_top", "0/15", "temperature"),
+    LogBoilerReading("buffer_temperature_bottom", "0/16", "temperature"),
+    LogBoilerReading("buffer_charge_level", "23/87", "sensor", {"state_class": "measurement", "unit": "%"}),
+    # The same codes and texts as the BioWIN's (AufzaehlTexte "2/1" and "2/59", 2026-11-06)
+    LogBoilerReading("heater_status", "2/1", "select"),
+    LogBoilerReading("operating_mode", "2/59", "operating_mode"),
+    # Counters: a log boiler is fired by hand, hence "firings" rather than the BioWIN's burner starts
+    LogBoilerReading("firing_count", "20/112", "sensor", {"state_class": "total_increasing"}, slow=True),
+    LogBoilerReading(
+        "operating_hours",
+        "2/81",
+        "sensor",
+        {"device_class": "duration", "state_class": "total_increasing", "unit": "h"},
+        slow=True,
+    ),
+)
 
 
 def heater_id(json_devices: list[dict]) -> str | None:
@@ -182,9 +228,13 @@ class WindhagerHttpClient:
             self._session = None
 
     async def fetch(self, url):
+        # A datapoint is read from /datapoint, the rest is looked up: older InfoWIN Touches
+        # answer a datapoint's lookup 404 (software V 3.21 on 2026-11-06, issue #101), and
+        # the newer ones answer both alike
+        api = "datapoint" if is_datapoint(url) else "lookup"
         try:
             await self._ensure_session()
-            ret = await self._session.get(f"http://{self.host}/api/1.0/lookup{url}")
+            ret = await self._session.get(f"http://{self.host}/api/1.0/{api}{url}")
             # The heater refuses the password with a 401 and an HTML page (2026-10-29),
             # which reading as JSON would turn into a mere connection error
             if ret.status == 401:
@@ -572,7 +622,7 @@ class WindhagerHttpClient:
                         f"{device_id}{fct_id}/2/1/0",
                         # Operating mode: on, or switched off on the heater's screen
                         f"{device_id}{fct_id}/2/59/0",
-                        # Error code: "-" without an error
+                        # Error code: "-" or "-.-" without an error
                         f"{device_id}{fct_id}/2/0/0",
                         # Hopper level, not listed by the heater's lookups
                         f"{device_id}{fct_id}/43/42/0",
@@ -814,10 +864,79 @@ class WindhagerHttpClient:
                     }
                 )
 
+            self._discover_log_boiler(device, device_id, module)
+
+    def _discover_log_boiler(self, device: dict, device_id: str, module: dict) -> None:
+        """The entities of a module's log boiler (LogWIN), if it has an unlocked one.
+
+        Read only: the heater's own entities (status, temperatures, error) and the buffer
+        tank's sensors the LogWIN reads.
+        """
+        functions = [
+            f
+            for f in device["functions"]
+            if f["fctType"] == LOG_BOILER_FUNCTION_TYPE and f["lock"] is False
+        ]
+        if not functions:
+            return
+        fct_id = f"/{functions[0]['fctId']}"
+        name = functions[0]["name"]
+        prefix = f"{device_id}{fct_id}"
+        unique_prefix = f"{self.id_base}/1/{device['nodeId']}{fct_id}"
+        common = {
+            "device_id": self.slugify(f"{self.id_base}{device['nodeId']}"),
+            "device_name": name,
+            **module,
+        }
+
+        def add(reading: LogBoilerReading, suffix: str = "") -> None:
+            oid = f"{prefix}/{reading.datapoint}/0"
+            (self.slow_oids if reading.slow else self.oids).add(oid)
+            self.devices.append(
+                {
+                    "id": self.slugify(f"{unique_prefix}/{reading.datapoint}/0{suffix}"),
+                    "key": reading.key,
+                    "name": f"{name} {reading.key.replace('_', ' ').capitalize()}",
+                    "type": reading.entity_type,
+                    "oid": oid,
+                    **(reading.extra or {}),
+                    **common,
+                }
+            )
+
+        for reading in LOG_BOILER_READINGS:
+            add(reading)
+        # The error code ("-", or "-.-" on an older InfoWIN Touch, without an error), as the
+        # BioWIN's: its text and whether it has one
+        diagnostic = {"entity_category": "diagnostic"}
+        add(LogBoilerReading("heater_error", "2/0", "error", diagnostic))
+        add(LogBoilerReading("heater_problem", "2/0", "problem", diagnostic), "/problem")
+
+    def requests_next_poll(self) -> int | None:
+        """How many requests the next fetch_all makes, for its timeout; None before discovery.
+
+        Its datapoints, the slow ones when they are due (or those to read again), and /1 when
+        the modules are checked again. Discovering changed modules adds a few more: that poll
+        may time out once, and keeps the last values.
+        """
+        if self.oids is None:
+            return None
+        slow = len(self.slow_oids) if self._slow_read_due() else len(self._slow_retry)
+        modules_check = 1 if self._modules_check_due() else 0
+        return len(self.oids) + slow + modules_check
+
+    def _slow_read_due(self) -> bool:
+        """Whether the next poll reads all the slow datapoints, not only those to read again."""
+        return self._polls_before_slow_read <= 0
+
+    def _modules_check_due(self) -> bool:
+        """Whether the next poll lists the modules again."""
+        return self._polls_since_modules_check + 1 >= MODULES_CHECK_POLLS
+
     async def _check_modules(self) -> None:
         """Every MODULES_CHECK_POLLS polls, discover the modules again if /1 lists others."""
-        self._polls_since_modules_check += 1
-        if self._polls_since_modules_check < MODULES_CHECK_POLLS:
+        if not self._modules_check_due():
+            self._polls_since_modules_check += 1
             return
         self._polls_since_modules_check = 0
         try:
@@ -853,7 +972,7 @@ class WindhagerHttpClient:
             self._drop_entities_without_value(ret["oids"], failed)
             ret["devices"] = self.devices
 
-        if self._polls_before_slow_read <= 0:
+        if self._slow_read_due():
             self._slow_retry = set()
             self._slow_values = await self._read(self.slow_oids, self._slow_retry)
             self._polls_before_slow_read = SLOW_VALUES_POLLS
@@ -897,10 +1016,13 @@ class WindhagerHttpClient:
         added to `failed`.
         """
         values: dict[str, str | None] = {}
+        # An error code's "-.-" is a value: an older InfoWIN Touch (software V 3.21) gives it
+        # without an error, where a newer one gives "-" (2026-11-06, issue #101)
+        error_oids = {device["oid"] for device in self.devices if device.get("type") == "error"}
         for oid in oids:
             try:
                 json = await self.fetch(oid)
-                if "value" in json and json["value"] != "-.-":
+                if "value" in json and (json["value"] != "-.-" or oid in error_oids):
                     values[oid] = json["value"]
                 else:
                     values[oid] = None
