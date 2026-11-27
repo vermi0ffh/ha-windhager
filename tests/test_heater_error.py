@@ -57,6 +57,8 @@ async def test_an_error_the_heater_has_no_text_for_shows_its_code(
     [
         # The heater's value without an error (2026-10-30)
         ("-", "none", "off"),
+        # An older InfoWIN Touch's value without an error (software V 3.21, 2026-11-06)
+        ("-.-", "none", "off"),
         # Not read: unknown, not "no error"
         (None, "unknown", "unknown"),
     ],
