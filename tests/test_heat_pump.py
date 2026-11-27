@@ -118,6 +118,9 @@ async def test_the_heat_pump_phase_is_named_when_known_and_its_code_otherwise(
     assert (translations[f"{key}.3"], translations[f"{key}.4"]) == ("Standby", "Heizen")
     # A phase not seen yet shows as its code
     assert f"{key}.5" not in translations
+    client.fetch_all.return_value["oids"]["/1/60/1/50/6/0"] = "5"
+    await entry.runtime_data.async_refresh()
+    assert hass.states.get("sensor.aerowin_operating_phase").state == "5"
 
 
 async def test_the_hybrid_manager_shows_its_outdoor_temperature_and_sg_ready_state(

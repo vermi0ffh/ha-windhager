@@ -1161,8 +1161,10 @@ class WindhagerHttpClient:
         """Drop the entities of datapoints the module does not have.
 
         Such a datapoint answers without a value (a circuit's hot water, on a circuit
-        without one, answered with no "value" on 2026-10-31): it is no longer read, until
-        the modules are discovered again. A datapoint whose request failed (a timeout)
+        without one, answered with no "value" on 2026-10-31; the heat pump's group 52 and
+        the hybrid manager's 52/10 are checked the same way): it is no longer read, until
+        the modules are discovered again, whether it is read on every poll or every ten
+        minutes (`slow_oids`, `_slow_values`). A datapoint whose request failed (a timeout)
         tells nothing: it is checked again with the next poll.
         """
         missing = {
