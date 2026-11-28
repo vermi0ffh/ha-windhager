@@ -26,6 +26,7 @@ async def test_the_settings_and_maintenance_counters_are_diagnostics(
         "sensor.circuit_current_temperature_real",
         "sensor.biowin_running_time_until_stage_1_cleaning",
         "sensor.biowin_running_time_until_stage_2_cleaning",
+        "sensor.biowin_running_time_until_maintenance",
         "sensor.biowin_heater_error",
         "binary_sensor.biowin_heater_problem",
     }

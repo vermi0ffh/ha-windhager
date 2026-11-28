@@ -5,7 +5,15 @@ from typing import NamedTuple
 # The InfoWIN Touch's own text files, on the local network: Python's expat refuses
 # external entities and limits entity expansion
 import xml.etree.ElementTree as ET
-from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE, LOG_BOILER_FUNCTION_TYPE
+from .const import (
+    BUFFER_FUNCTION_TYPE,
+    CLIMATE_FUNCTION_TYPE,
+    DEFAULT_USERNAME,
+    HEAT_PUMP_FUNCTION_TYPE,
+    HEATER_FUNCTION_TYPE,
+    HYBRID_FUNCTION_TYPE,
+    LOG_BOILER_FUNCTION_TYPE,
+)
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +53,131 @@ CIRCUIT_DATAPOINTS = (
 # 0.33 s on 2026-11-01): a circuit without hot water answers its charging pump with 0, a
 # value, so the datapoints alone cannot tell (a BioWIN 2 with three UMUMLZ, 2026-11-01)
 HOT_WATER_CIRCUIT = "/5/76/0"
+# The heater's datapoints beyond its first ones: (path, key, English name, the entity's
+# description, slow), each compared with the heater's mobile app on 2026-10-31 (BioWIN)
+HEATER_DATAPOINTS: tuple[tuple[str, str, str, dict, bool], ...] = (
+    # Kesseltemperatur Soll: 0 °C while the heater does not run
+    ("/1/7/0", "heater_target_temperature", "Heater target temperature", {"type": "temperature"}, False),
+    # Laufzeit bis Wartung: 6005 h, not listed by the lookups, next to the cleanings' 20/61 and 20/62
+    (
+        "/20/63/0",
+        "time_until_maintenance",
+        "Running time until maintenance",
+        {"type": "sensor", "device_class": "duration", "state_class": "measurement", "entity_category": "diagnostic", "unit": "h"},
+        True,
+    ),
+    # Betriebsstunden: 1707 h
+    (
+        "/2/81/0",
+        "operating_hours",
+        "Operating hours",
+        {"type": "sensor", "device_class": "duration", "state_class": "total_increasing", "unit": "h"},
+        True,
+    ),
+    # Anzahl der Brennerstarts: 482
+    ("/2/80/0", "burner_starts", "Burner starts", {"type": "sensor", "state_class": "total_increasing"}, True),
+)
+# A datapoint of a group the lookups do not list (the heat pump's 52, found by a sweep on
+# 2026-10-31): another heat pump may not have it. A missing datapoint answers a 409 with no
+# value (2026-11-01), so its entity is not created rather than left unknown
+UNLISTED = {"requires_value": True}
+# The descriptions of the heat pump's sensors
+HEAT_MWH = {
+    "type": "sensor",
+    "device_class": "energy",
+    "state_class": "total_increasing",
+    "unit": "MWh",
+    **UNLISTED,
+}
+# Since midnight: Home Assistant can derive them from the totals (a utility meter), so they
+# are disabled on a new installation
+HEAT_KWH = {
+    "type": "sensor",
+    "device_class": "energy",
+    "state_class": "total_increasing",
+    "unit": "kWh",
+    "enabled_default": False,
+    **UNLISTED,
+}
+# Counters for maintenance rather than for a dashboard: diagnostics
+HOURS = {
+    "type": "sensor",
+    "device_class": "duration",
+    "state_class": "total_increasing",
+    "unit": "h",
+    "entity_category": "diagnostic",
+    **UNLISTED,
+}
+HOURS_TODAY = {**HOURS, "enabled_default": False}
+COP = {"type": "sensor", "state_class": "measurement", **UNLISTED}
+# The datapoints of the functions read beyond the heater and the circuits, by function type:
+# (path, key, English name, the entity's description, slow), each compared with the heater's
+# mobile app on 2026-10-31
+FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
+    # A buffer tank (PUFFER of a WFBPK module): its sensors as the app and the InfoWIN's
+    # res/xml/VarIdentTexte_<language>.xml name them, 40.9 and 34.8 °C; its third one, TPT,
+    # was not connected
+    BUFFER_FUNCTION_TYPE: (
+        ("/21/65/0", "buffer_temperature_tpe", "Buffer temperature TPE", {"type": "temperature"}, False),
+        ("/21/66/0", "buffer_temperature_tpa", "Buffer temperature TPA", {"type": "temperature"}, False),
+    ),
+    # A heat pump (AeroWIN of a BioWIN Hybrid). The InfoWIN's own texts predate it: the names
+    # are the app's. Its group 52 is not listed by the lookups; a sweep of its members found
+    # these. The totals, hours, starts and daily averages are read every ten minutes
+    HEAT_PUMP_FUNCTION_TYPE: (
+        # Wärmemenge Heizen / Warmwasser, in total and today: 50.22 MWh, 59.4 kWh, 9.50 MWh, 25.1 kWh
+        ("/52/59/0", "heat_quantity_heating", "Heat quantity heating", HEAT_MWH, True),
+        ("/52/60/0", "heat_quantity_heating_today", "Heat quantity heating today", HEAT_KWH, True),
+        ("/52/61/0", "heat_quantity_hot_water", "Heat quantity hot water", HEAT_MWH, True),
+        ("/52/62/0", "heat_quantity_hot_water_today", "Heat quantity hot water today", HEAT_KWH, True),
+        # Betriebsstunden Heizen / Warmwasser, in total and today: 5046 h, 5.5 h, 893 h, 1.9 h
+        ("/52/50/0", "operating_hours_heating", "Operating hours heating", HOURS, True),
+        ("/52/51/0", "operating_hours_heating_today", "Operating hours heating today", HOURS_TODAY, True),
+        ("/52/52/0", "operating_hours_hot_water", "Operating hours hot water", HOURS, True),
+        ("/52/53/0", "operating_hours_hot_water_today", "Operating hours hot water today", HOURS_TODAY, True),
+        # Anzahl Starts: 13786, then 13787 when it started
+        (
+            "/52/56/0",
+            "heat_pump_starts",
+            "Starts",
+            {"type": "sensor", "state_class": "total_increasing", "entity_category": "diagnostic", **UNLISTED},
+            True,
+        ),
+        # Ø COP Heizen / Warmwasser heute: 3.8 and 3.9
+        ("/52/87/0", "cop_heating_today", "Average COP heating today", COP, True),
+        ("/52/89/0", "cop_hot_water_today", "Average COP hot water today", COP, True),
+        # Aktuelle Leistung: 0 % in standby, 100 % running
+        (
+            "/50/26/0",
+            "heat_pump_output",
+            "Output",
+            {"type": "sensor", "state_class": "measurement", "unit": "%"},
+            False,
+        ),
+        # Betriebsphase: 3 in standby, 4 heating, seen changing when it started
+        ("/50/6/0", "heat_pump_phase", "Operating phase", {"type": "heat_pump_phase"}, False),
+    ),
+    # The hybrid manager, choosing between the heat pump and the pellet boiler
+    HYBRID_FUNCTION_TYPE: (
+        # Aussentemperatur Regelung: the outdoor temperature it decides with, 7.9 °C
+        # Disabled on a new installation: most have an outdoor sensor already (the circuits')
+        (
+            "/52/10/0",
+            "outdoor_temperature_control",
+            "Outdoor temperature control",
+            {"type": "temperature", "enabled_default": False, **UNLISTED},
+            False,
+        ),
+        # SG Ready Status: "Zustand 2" in the app, 2
+        (
+            "/54/49/0",
+            "sg_ready_state",
+            "SG Ready state",
+            {"type": "sg_ready_state", "entity_category": "diagnostic"},
+            False,
+        ),
+    ),
+}
 # A text file of the InfoWIN Touch: about 7 kB for the error texts and 10 kB for the enum
 # texts, each read once at setup
 TEXTS_TIMEOUT_S = 20
@@ -864,6 +997,47 @@ class WindhagerHttpClient:
                     }
                 )
 
+                # What the heater's mobile app shows beyond these, each checked against it
+                for path, key, name, entity, slow in HEATER_DATAPOINTS:
+                    oid = f"{device_id}{fct_id}{path}"
+                    (self.slow_oids if slow else self.oids).add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{functions[0]['name']} {name}",
+                            "oid": oid,
+                            "device_id": self.slugify(f"{self.id_base}{str(device['nodeId'])}"),
+                            "device_name": functions[0]["name"],
+                            **module,
+                            **entity,
+                        }
+                    )
+
+            # The functions the integration reads through FUNCTION_DATAPOINTS: each one a
+            # device of its own, named after it, with its module as the model
+            for function in device["functions"]:
+                datapoints = FUNCTION_DATAPOINTS.get(function.get("fctType"))
+                if not datapoints or function.get("lock") is not False:
+                    continue
+                fct_id = f"/{str(function['fctId'])}"
+                function_device_id = self.slugify(f"{self.id_base}{str(device['nodeId'])}{fct_id}")
+                for path, key, name, entity, slow in datapoints:
+                    oid = f"{device_id}{fct_id}{path}"
+                    (self.slow_oids if slow else self.oids).add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{function['name']} {name}",
+                            "oid": oid,
+                            "device_id": function_device_id,
+                            "device_name": function["name"],
+                            **module,
+                            **entity,
+                        }
+                    )
+
             self._discover_log_boiler(device, device_id, module)
 
     def _discover_log_boiler(self, device: dict, device_id: str, module: dict) -> None:
@@ -962,15 +1136,7 @@ class WindhagerHttpClient:
             await self._check_modules()
 
         failed: set[str] = set()
-        ret = {
-            "devices": self.devices,
-            "heater_id": self.heater_id,
-            "oids": await self._read(self.oids, failed),
-        }
-
-        if self._check_required_values:
-            self._drop_entities_without_value(ret["oids"], failed)
-            ret["devices"] = self.devices
+        values = await self._read(self.oids, failed)
 
         if self._slow_read_due():
             self._slow_retry = set()
@@ -982,16 +1148,23 @@ class WindhagerHttpClient:
             retry, self._slow_retry = self._slow_retry, set()
             self._slow_values.update(await self._read(retry, self._slow_retry))
         self._polls_before_slow_read -= 1
-        ret["oids"].update(self._slow_values)
+        values.update(self._slow_values)
 
-        return ret
+        # After the slow datapoints: a datapoint read every ten minutes may need a value too
+        # (the heat pump's group 52)
+        if self._check_required_values:
+            self._drop_entities_without_value(values, failed | self._slow_retry)
+
+        return {"devices": self.devices, "heater_id": self.heater_id, "oids": values}
 
     def _drop_entities_without_value(self, values: dict[str, str | None], failed: set[str]) -> None:
         """Drop the entities of datapoints the module does not have.
 
         Such a datapoint answers without a value (a circuit's hot water, on a circuit
-        without one, answered with no "value" on 2026-10-31): it is no longer read, until
-        the modules are discovered again. A datapoint whose request failed (a timeout)
+        without one, answered with no "value" on 2026-10-31; the heat pump's group 52 and
+        the hybrid manager's 52/10 are checked the same way): it is no longer read, until
+        the modules are discovered again, whether it is read on every poll or every ten
+        minutes (`slow_oids`, `_slow_values`). A datapoint whose request failed (a timeout)
         tells nothing: it is checked again with the next poll.
         """
         missing = {
@@ -1003,8 +1176,10 @@ class WindhagerHttpClient:
             _LOGGER.info("No value for %s: their entities are not created", ", ".join(sorted(missing)))
         self.devices = [device for device in self.devices if device.get("oid") not in missing]
         self.oids -= missing
+        self.slow_oids -= missing
         for oid in missing:
             values.pop(oid, None)
+            self._slow_values.pop(oid, None)
         self._check_required_values = any(
             device.get("requires_value") and device["oid"] in failed for device in self.devices
         )

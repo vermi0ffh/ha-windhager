@@ -86,5 +86,5 @@ async def test_the_heater_text_attribute_is_translated(
 
     translations = await async_get_translations(hass, language, "entity", ["windhager"])
 
-    for key in ("heater_status", "operating_mode", "circuit_operating_mode"):
+    for key in ("heater_status", "operating_mode", "circuit_operating_mode", "heat_pump_phase", "sg_ready_state"):
         assert translations[f"component.windhager.entity.sensor.{key}.state_attributes.heater_text.name"]
