@@ -236,6 +236,24 @@
       },
       "hot_water_target_temperature": {
         "name": "Hot water target temperature"
+      },
+      "buffer_temperature_tpe": {
+        "name": "Buffer temperature TPE"
+      },
+      "buffer_temperature_tpa": {
+        "name": "Buffer temperature TPA"
+      },
+      "heater_target_temperature": {
+        "name": "Heater target temperature"
+      },
+      "time_until_maintenance": {
+        "name": "Running time until maintenance"
+      },
+      "operating_hours": {
+        "name": "Operating hours"
+      },
+      "burner_starts": {
+        "name": "Burner starts"
       }
     },
     "climate": {

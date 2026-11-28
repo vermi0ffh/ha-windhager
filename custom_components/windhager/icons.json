@@ -83,6 +83,24 @@
       },
       "hot_water_target_temperature": {
         "default": "mdi:water-thermometer"
+      },
+      "buffer_temperature_tpe": {
+        "default": "mdi:storage-tank-outline"
+      },
+      "buffer_temperature_tpa": {
+        "default": "mdi:storage-tank-outline"
+      },
+      "heater_target_temperature": {
+        "default": "mdi:thermometer"
+      },
+      "time_until_maintenance": {
+        "default": "mdi:wrench-clock"
+      },
+      "operating_hours": {
+        "default": "mdi:timer-outline"
+      },
+      "burner_starts": {
+        "default": "mdi:fire"
       }
     },
     "climate": {

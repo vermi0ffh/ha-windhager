@@ -1,5 +1,6 @@
 """Constants for the Windhager Heater integration."""
 
+BUFFER_FUNCTION_TYPE = 16
 CLIMATE_FUNCTION_TYPE = 14
 DEFAULT_USERNAME = "USER"
 DOMAIN = "windhager"

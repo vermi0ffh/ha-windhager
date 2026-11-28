@@ -87,7 +87,8 @@ busy gets time to recover: it waits twice as long after each failed poll, up to 
 again as soon as the heater answers.
 
 The readings that change over hours or days are read every ten minutes instead, which keeps each poll short: the
-pellet consumption and the running times until cleaning. They keep their last value in between.
+pellet consumption, the running times until cleaning and maintenance, the operating hours and the burner starts, and the log boiler's counters.
+They keep their last value in between.
 A reading whose request failed (a timeout, a connection error) is read again with the next poll, until it answers.
 
 When the integration starts, it also reads the heater's texts for its error codes once, from the InfoWIN Touch's web
@@ -145,12 +146,21 @@ The heater has these entities:
 | Hopper level | The pellets left in the heater's hopper, in %: the level the heater's mobile app shows. |
 | Pellet consumption, Total pellet consumption | The pellets burnt, in tonnes: since the last reset, and in total. |
 | Running time until stage 1 cleaning, Running time until stage 2 cleaning | The burner hours left until each cleaning. |
+| Running time until maintenance | The hours left until the heater's maintenance. |
+| Operating hours, Burner starts | The burner's running hours and its number of starts, both growing totals. |
+| Heater target temperature | The temperature the heater is heating to (0 °C while it does not run). |
 | Heater error | The heater's current error: its code and the heater's own text for it (for example "42: Suction turbine relay defective"), or *No error*. The text is in Home Assistant's language when the heater has it, else in English or German. The code alone is in the `code` attribute. |
 | Heater problem | On while the heater reports an error. |
 
 The *Heater status* and *Operating mode*, and a circuit's *Operating mode*, also carry the heater's own text for their
 code in their `heater_text` attribute, in Home Assistant's language when the heater has it, else in English or German.
 A code the integration does not know yet, from a newer firmware, is still a state, with its text in that attribute.
+
+A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, with these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Buffer temperature TPE, Buffer temperature TPA | The buffer's temperature sensors, named as on the heater (TPE near the top, TPA lower). A sensor not connected shows as unknown. |
 
 A log boiler (LogWIN) has these entities, read only:
 
@@ -162,8 +172,8 @@ A log boiler (LogWIN) has these entities, read only:
 | Buffer charge level | How far the buffer tank is charged, in %. |
 | Number of firings, Operating hours | The log boiler's counters. |
 
-These entities are diagnostics: the two temperature corrections, Current temperature real, the two running times
-until cleaning, Heater error and Heater problem (of the heater and of the log boiler). The two corrections are disabled on a new installation. To follow them, enable them in the entity's
+These entities are diagnostics: the two temperature corrections, Current temperature real, the running times
+until cleaning and until maintenance, Heater error and Heater problem (of the heater and of the log boiler). The two corrections are disabled on a new installation. To follow them, enable them in the entity's
 settings.
 
 ### Thermostat
@@ -280,11 +290,10 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater, log boiler and heating circuit functions are read, with the hot water of a circuit that heats it.
-  Hot water tanks, buffer modules and solar modules are not supported yet (a buffer's temperatures show only
-  through a LogWIN).
+- Only the heater, the log boiler, the heating circuits (with the hot water of a circuit that heats it) and the buffer
+  tanks are read. Hot water tanks and solar modules are not supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
-  minutes for the pellet consumption, the running times until cleaning and the log boiler's counters).
+  minutes for the readings read every ten minutes, see [Data updates](#data-updates)).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.
 - A heater status the integration does not know (beyond code 17), or an operating mode beyond code 11, shows as its
   code with the heater's text in `heater_text`. It shows as unknown only when the heater does not name the code, or
