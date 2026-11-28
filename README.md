@@ -152,6 +152,12 @@ The *Heater status* and *Operating mode*, and a circuit's *Operating mode*, also
 code in their `heater_text` attribute, in Home Assistant's language when the heater has it, else in English or German.
 A code the integration does not know yet, from a newer firmware, is still a state, with its text in that attribute.
 
+A buffer tank (the PUFFER function of a WFBPK module) is a device of its own, with these entities:
+
+| Entity | Description |
+| ------ | ----------- |
+| Buffer temperature TPE, Buffer temperature TPA | The buffer's temperature sensors, named as on the heater (TPE near the top, TPA lower). A sensor not connected shows as unknown. |
+
 A log boiler (LogWIN) has these entities, read only:
 
 | Entity | Description |
@@ -280,9 +286,8 @@ are those of an English installation: find yours in each entity's settings.
 
 ## Known limitations
 
-- Only the heater, log boiler and heating circuit functions are read, with the hot water of a circuit that heats it.
-  Hot water tanks, buffer modules and solar modules are not supported yet (a buffer's temperatures show only
-  through a LogWIN).
+- Only the heater, the log boiler, the heating circuits (with the hot water of a circuit that heats it) and the buffer
+  tanks are read. Hot water tanks and solar modules are not supported yet.
 - The readings are polled every minute, so a change on the heater can take up to a minute to show (up to ten
   minutes for the pellet consumption, the running times until cleaning and the log boiler's counters).
 - Discovery works over IPv4 only. A heater found only at an IPv6 address must be added by hand.

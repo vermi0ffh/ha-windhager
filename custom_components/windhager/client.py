@@ -5,7 +5,13 @@ from typing import NamedTuple
 # The InfoWIN Touch's own text files, on the local network: Python's expat refuses
 # external entities and limits entity expansion
 import xml.etree.ElementTree as ET
-from .const import DEFAULT_USERNAME, CLIMATE_FUNCTION_TYPE, HEATER_FUNCTION_TYPE, LOG_BOILER_FUNCTION_TYPE
+from .const import (
+    BUFFER_FUNCTION_TYPE,
+    CLIMATE_FUNCTION_TYPE,
+    DEFAULT_USERNAME,
+    HEATER_FUNCTION_TYPE,
+    LOG_BOILER_FUNCTION_TYPE,
+)
 from .exceptions import CannotConnect, InvalidAuth, WriteFailed
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +51,18 @@ CIRCUIT_DATAPOINTS = (
 # 0.33 s on 2026-11-01): a circuit without hot water answers its charging pump with 0, a
 # value, so the datapoints alone cannot tell (a BioWIN 2 with three UMUMLZ, 2026-11-01)
 HOT_WATER_CIRCUIT = "/5/76/0"
+# The datapoints of the functions read beyond the heater and the circuits, by function type:
+# (path, key, English name, the entity's description, slow), each compared with the heater's
+# mobile app on 2026-10-31
+FUNCTION_DATAPOINTS: dict[int, tuple[tuple[str, str, str, dict, bool], ...]] = {
+    # A buffer tank (PUFFER of a WFBPK module): its sensors as the app and the InfoWIN's
+    # res/xml/VarIdentTexte_<language>.xml name them, 40.9 and 34.8 °C; its third one, TPT,
+    # was not connected
+    BUFFER_FUNCTION_TYPE: (
+        ("/21/65/0", "buffer_temperature_tpe", "Buffer temperature TPE", {"type": "temperature"}, False),
+        ("/21/66/0", "buffer_temperature_tpa", "Buffer temperature TPA", {"type": "temperature"}, False),
+    ),
+}
 # A text file of the InfoWIN Touch: about 7 kB for the error texts and 10 kB for the enum
 # texts, each read once at setup
 TEXTS_TIMEOUT_S = 20
@@ -863,6 +881,30 @@ class WindhagerHttpClient:
                         **module,
                     }
                 )
+
+            # The functions the integration reads through FUNCTION_DATAPOINTS: each one a
+            # device of its own, named after it, with its module as the model
+            for function in device["functions"]:
+                datapoints = FUNCTION_DATAPOINTS.get(function.get("fctType"))
+                if not datapoints or function.get("lock") is not False:
+                    continue
+                fct_id = f"/{str(function['fctId'])}"
+                function_device_id = self.slugify(f"{self.id_base}{str(device['nodeId'])}{fct_id}")
+                for path, key, name, entity, slow in datapoints:
+                    oid = f"{device_id}{fct_id}{path}"
+                    (self.slow_oids if slow else self.oids).add(oid)
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.id_base}{oid}"),
+                            "key": key,
+                            "name": f"{function['name']} {name}",
+                            "oid": oid,
+                            "device_id": function_device_id,
+                            "device_name": function["name"],
+                            **module,
+                            **entity,
+                        }
+                    )
 
             self._discover_log_boiler(device, device_id, module)
 
